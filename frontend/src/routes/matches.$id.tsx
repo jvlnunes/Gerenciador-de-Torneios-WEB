@@ -1,45 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
-  api, type Match, type MatchPlayer, type MatchEvent, type PointType, type PointSide,
+  api, type Match, type MatchEvent, type PointType, type PointSide, type Player,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft, RotateCcw, Flag, ChevronDown, ChevronUp,
-  Loader2, Check, Trophy, Clock, X,
+  Loader2, Trophy, X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/matches/$id")({
   component: LiveMatchPage,
 });
 
-/* ── Point / Error definitions ──────────────────────────────── */
+/* ── Action definitions ──────────────────────────────────── */
 type ActionDef = {
   type: PointType;
   label: string;
   emoji: string;
-  color: string;        // tailwind bg
-  isError: boolean;     // true = erro (ponto adversário)
+  isError: boolean;
 };
 
 const POINT_ACTIONS: ActionDef[] = [
-  { type: "SAQUE",          label: "Saque",          emoji: "🏐", color: "bg-blue-500",    isError: false },
-  { type: "ATAQUE",         label: "Ataque",          emoji: "⚡", color: "bg-amber-500",   isError: false },
-  { type: "BLOQUEIO",       label: "Bloqueio",        emoji: "🛡️", color: "bg-purple-500",  isError: false },
-  { type: "ERRO_ADVERSARIO",label: "Erro adversário", emoji: "🎯", color: "bg-green-600",   isError: false },
+  { type: "SAQUE",    label: "Saque",    emoji: "🏐", isError: false },
+  { type: "ATAQUE",   label: "Ataque",   emoji: "⚡", isError: false },
+  { type: "BLOQUEIO", label: "Bloqueio", emoji: "🛡️", isError: false },
 ];
+
 const ERROR_ACTIONS: ActionDef[] = [
-  { type: "ERRO_SAQUE",  label: "Erro de saque",  emoji: "❌", color: "bg-red-500",    isError: true },
-  { type: "ERRO_ATAQUE", label: "Erro de ataque", emoji: "💨", color: "bg-red-400",    isError: true },
-  { type: "TOQUE_REDE",  label: "Toque na rede",  emoji: "🕸️", color: "bg-orange-500", isError: true },
-  { type: "INVASAO",     label: "Invasão",         emoji: "⚠️", color: "bg-orange-400", isError: true },
-  { type: "BOLA_FORA",   label: "Bola fora",      emoji: "📤", color: "bg-rose-500",   isError: true },
-  { type: "DUPLO",       label: "Duplo toque",    emoji: "✌️", color: "bg-rose-400",   isError: true },
+  { type: "ERRO_SAQUE", label: "Erro de saque", emoji: "❌", isError: true },
+  { type: "TOQUE_REDE", label: "Toque na rede", emoji: "🕸️", isError: true },
+  { type: "INVASAO",    label: "Invasão",       emoji: "⚠️", isError: true },
+  { type: "BOLA_FORA",  label: "Bola fora",     emoji: "📤", isError: true },
+  { type: "DUPLO",      label: "Duplo",         emoji: "✌️", isError: true },
 ];
+
+const ALL_ACTIONS = [...POINT_ACTIONS, ...ERROR_ACTIONS];
 
 const TYPE_LABEL: Record<PointType, string> = {
   SAQUE: "Saque", ATAQUE: "Ataque", BLOQUEIO: "Bloqueio", ERRO_ADVERSARIO: "Erro adversário",
@@ -49,170 +48,175 @@ const TYPE_LABEL: Record<PointType, string> = {
 
 /* ── Player Picker Modal ─────────────────────────────────── */
 function PlayerPickerModal({
-  title,
-  players,
-  onPick,
-  onSkip,
+  title, players, onPick, onSkip,
 }: {
   title: string;
-  players: MatchPlayer[];
-  onPick: (mp: MatchPlayer) => void;
+  players: Player[];
+  onPick: (p: Player) => void;
   onSkip: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
       <div className="w-full max-w-sm bg-background rounded-2xl border border-border shadow-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-zinc-50 dark:bg-zinc-900">
           <p className="font-display font-bold text-foreground">{title}</p>
-          <button onClick={onSkip} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted">
+          <button onClick={onSkip} className="p-1.5 rounded-lg text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="max-h-72 overflow-y-auto p-3 space-y-1.5">
-          {players.map(mp => (
-            <button key={mp.id} onClick={() => onPick(mp)}
-              className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-primary/5 hover:border-primary/30 border border-transparent transition-all text-left">
-              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary grid place-items-center shrink-0 text-xs font-black">
-                {mp.jerseyNumber ?? "?"}
+          {players.length === 0 && (
+            <div className="py-6 text-center space-y-2">
+              <p className="text-sm font-semibold text-foreground">Nenhum jogador listado</p>
+              <p className="text-xs text-muted-foreground px-4">Os jogadores aparecerão aqui assim que forem cadastrados no time pelo painel.</p>
+            </div>
+          )}
+          {players.map(p => (
+            <button key={p.id} onClick={() => onPick(p)}
+              className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent transition-all text-left">
+              <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800 border border-border grid place-items-center shrink-0 text-xs font-black text-foreground">
+                {p.jerseyNumber ?? "?"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{mp.playerName}</p>
-                {mp.position && <p className="text-xs text-muted-foreground">{mp.position}</p>}
+                <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
+                {p.position && <p className="text-xs text-muted-foreground">{p.position}</p>}
               </div>
             </button>
           ))}
         </div>
-        <div className="px-4 py-3 border-t border-border">
-          <button onClick={onSkip}
-            className="w-full rounded-lg py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium">
-            Continuar sem especificar jogador
-          </button>
+        <div className="px-4 py-3 border-t border-border bg-zinc-50 dark:bg-zinc-900">
+          <Button variant="ghost" onClick={onSkip} className="w-full text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800">
+            Continuar sem identificar jogador
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Scoreboard Header ───────────────────────────────────── */
-function Scoreboard({ match }: { match: Match }) {
-  const setN = match.sets.length + 1;
-  return (
-    <div
-      className="rounded-2xl overflow-hidden shadow-lg mb-6"
-      style={{ background: "linear-gradient(160deg, #0a0a0a 0%, #0a3d1f 100%)" }}
-    >
-      <div className="px-4 py-2 flex items-center justify-between text-xs"
-        style={{ background: "rgba(0,132,61,0.3)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <span className="font-bold uppercase tracking-widest text-white/70">Set {setN}</span>
-        <div className="flex items-center gap-3">
-          {match.sets.map((s, i) => (
-            <span key={i} className="font-mono text-white/50 text-xs">{s.home}–{s.away}</span>
-          ))}
-          <span className="flex items-center gap-1 font-bold" style={{ color: "#4ade80" }}>
-            <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" /> Ao vivo
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 items-center py-6 px-4 gap-4">
-        {/* Home */}
-        <div className="text-center">
-          <p className="font-display font-black text-white text-base leading-tight">{match.homeTeamName}</p>
-          <p className="text-xs mt-1 font-bold" style={{ color: "#4ade80" }}>Sets: {match.homeSets}</p>
-        </div>
-
-        {/* Scores */}
-        <div className="flex items-center justify-center gap-3">
-          <span className="font-display text-5xl font-black text-white">{match.currentSetHome}</span>
-          <span className="font-display text-2xl font-black text-white/30">–</span>
-          <span className="font-display text-5xl font-black text-white">{match.currentSetAway}</span>
-        </div>
-
-        {/* Away */}
-        <div className="text-center">
-          <p className="font-display font-black text-white text-base leading-tight">{match.awayTeamName}</p>
-          <p className="text-xs mt-1 font-bold" style={{ color: "#4ade80" }}>Sets: {match.awaySets}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Action Buttons Grid ─────────────────────────────────── */
-function ActionGrid({
-  side,
-  label,
-  actions,
-  onAction,
-  disabled,
+/* ── Action button (Corrigido para evitar botões pretos) ─── */
+function ActionBtn({
+  action, side, onAction, disabled
 }: {
-  side: PointSide;
-  label: string;
-  actions: ActionDef[];
-  onAction: (action: ActionDef, side: PointSide) => void;
+  action: ActionDef; side: PointSide;
+  onAction: (a: ActionDef, s: PointSide) => void;
   disabled: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground text-center">{label}</p>
-      <div className="grid grid-cols-2 gap-2">
-        {actions.map(a => (
-          <button
-            key={a.type}
-            disabled={disabled}
-            onClick={() => onAction(a, side)}
-            className={cn(
-              "flex flex-col items-center gap-1 rounded-xl p-3 text-white font-semibold text-xs transition-all active:scale-95 shadow-sm",
-              a.color,
-              disabled ? "opacity-40 cursor-not-allowed" : "hover:brightness-110"
-            )}
-          >
-            <span className="text-xl">{a.emoji}</span>
-            {a.label}
-          </button>
-        ))}
+    <Button
+      variant="outline"
+      disabled={disabled}
+      onClick={() => onAction(action, side)}
+      className={cn(
+        "h-14 flex flex-col justify-center gap-1 transition-all active:scale-95 w-full",
+        action.isError 
+          // Estilo suave para ERROS (Cinza claro/escuro legível)
+          ? "bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-zinc-800 dark:hover:bg-zinc-800"
+          // Estilo para PONTOS (Hover esverdeado para manter a identidade)
+          : "hover:border-emerald-500/50 hover:bg-emerald-500/10 text-foreground"
+      )}
+    >
+      <span className="text-sm font-semibold flex items-center gap-2">
+        <span>{action.emoji}</span> {action.label}
+      </span>
+    </Button>
+  );
+}
+
+/* ── One side panel (Horizontal Layout) ──────────────────── */
+function SidePanel({
+  teamName, side, onAction, disabled, isHome,
+}: {
+  teamName: string; side: PointSide;
+  onAction: (a: ActionDef, s: PointSide) => void;
+  disabled: boolean; isHome: boolean;
+}) {
+  return (
+    <div className="flex-1 flex flex-col bg-background border border-border rounded-2xl p-6 shadow-sm">
+      {/* Team Header */}
+      <div className="text-center mb-8 pb-6 border-b border-border">
+        <h2 className="text-2xl font-display font-bold text-foreground truncate">{teamName}</h2>
+        <p className="text-sm font-medium text-muted-foreground mt-1">
+          {isHome ? "Time da Casa" : "Time Visitante"}
+        </p>
+      </div>
+
+      {/* Action Areas */}
+      <div className="space-y-8 mt-auto">
+        {/* Points */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-500 mb-3 text-center">
+            Pontos a favor (+)
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {POINT_ACTIONS.map(a => (
+              <ActionBtn key={a.type} action={a} side={side} onAction={onAction} disabled={disabled} />
+            ))}
+          </div>
+        </div>
+
+        {/* Errors */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 text-center">
+            Erros cometidos (-)
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {ERROR_ACTIONS.map(a => (
+              <ActionBtn key={a.type} action={a} side={side} onAction={onAction} disabled={disabled} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ── History ─────────────────────────────────────────────── */
+/* ── History Panel ───────────────────────────────────────── */
 function HistoryPanel({ events, homeTeamName, awayTeamName }: {
   events: MatchEvent[]; homeTeamName: string; awayTeamName: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const visible = [...events].filter(e => !e.voided).reverse().slice(0, 40);
+  const [open, setOpen] = useState(true);
+  const visible = [...events].reverse().slice(0, 60);
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+    <div className="rounded-2xl border border-border bg-background overflow-hidden mt-6">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 text-sm font-bold text-foreground hover:bg-muted/40 transition-colors"
+        className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
       >
-        <span>Histórico da partida ({visible.length} eventos)</span>
+        <span>Histórico da Partida ({events.length} eventos)</span>
         {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
 
       {open && (
-        <div className="border-t border-border divide-y divide-border max-h-96 overflow-y-auto">
+        <div className="border-t border-border divide-y divide-border max-h-80 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-900/50">
           {visible.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-6">Nenhum evento ainda.</p>
+            <p className="text-center text-sm text-muted-foreground py-8">Nenhum evento registrado ainda.</p>
           )}
           {visible.map((e, idx) => {
-            const isHome = e.side === "HOME";
+            const isHome   = e.side === "HOME";
             const teamName = isHome ? homeTeamName : awayTeamName;
+            const emoji    = ALL_ACTIONS.find(a => a.type === e.type)?.emoji ?? "🏐";
+            const isVoided = e.voided;
+
             return (
-              <div key={e.id} className={cn("flex items-center gap-3 px-5 py-3",
-                idx === 0 ? "bg-primary/5" : "")}>
-                <span className="text-lg">{ERROR_ACTIONS.find(a => a.type === e.type)?.emoji ?? POINT_ACTIONS.find(a => a.type === e.type)?.emoji ?? "🏐"}</span>
+              <div key={e.id} className={cn(
+                "flex items-center gap-4 px-6 py-3",
+                idx === 0 && !isVoided && "bg-emerald-500/5 dark:bg-emerald-500/10",
+                isVoided && "opacity-50 bg-red-500/5",
+              )}>
+                <span className="text-xl">{emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    <span className={cn("mr-1", isHome ? "text-primary" : "text-amber-500")}>[{teamName}]</span>
+                  <p className={cn("text-sm font-semibold text-foreground", isVoided && "line-through text-muted-foreground")}>
+                    <span className="mr-2 text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                      {teamName}
+                    </span>
                     {TYPE_LABEL[e.type]}
-                    {e.playerName && <span className="ml-1 text-muted-foreground">— {e.playerName}</span>}
+                    {e.playerName && <span className="ml-1 text-muted-foreground font-normal">— {e.playerName}</span>}
+                    {isVoided && <span className="ml-2 text-xs font-normal text-red-500 dark:text-red-400 not-italic">(anulado)</span>}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Set {e.setIndex + 1} • {e.scoreHome}–{e.scoreAway}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Set {e.setIndex + 1} · Placar: {e.scoreHome}–{e.scoreAway}
                     {" · "}{new Date(e.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </p>
                 </div>
@@ -225,72 +229,20 @@ function HistoryPanel({ events, homeTeamName, awayTeamName }: {
   );
 }
 
-/* ── Stats Summary ───────────────────────────────────────── */
-function StatsSummary({ events, homeTeamName, awayTeamName }: {
-  events: MatchEvent[]; homeTeamName: string; awayTeamName: string;
-}) {
-  const active = events.filter(e => !e.voided);
-  const stat = (side: PointSide, type: PointType) => active.filter(e => e.side === side && e.type === type).length;
-
-  const rows: { label: string; type: PointType; emoji: string }[] = [
-    { label: "Saques",    type: "SAQUE",    emoji: "🏐" },
-    { label: "Ataques",   type: "ATAQUE",   emoji: "⚡" },
-    { label: "Bloqueios", type: "BLOQUEIO", emoji: "🛡️" },
-    { label: "Erros adv.",type: "ERRO_ADVERSARIO", emoji: "🎯" },
-  ];
-
-  return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-5 py-3 border-b border-border">
-        <p className="text-sm font-bold text-foreground">Estatísticas</p>
-      </div>
-      <div className="px-5 py-3 space-y-2">
-        {rows.map(r => {
-          const h = stat("HOME", r.type);
-          const a = stat("AWAY", r.type);
-          const total = h + a;
-          return (
-            <div key={r.type} className="space-y-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="font-bold text-primary">{h}</span>
-                <span>{r.emoji} {r.label}</span>
-                <span className="font-bold text-amber-500">{a}</span>
-              </div>
-              <div className="flex gap-0.5 h-1.5 rounded-full overflow-hidden bg-muted">
-                {total > 0 && (
-                  <>
-                    <div className="bg-primary rounded-full transition-all" style={{ width: `${(h/total)*100}%` }} />
-                    <div className="bg-amber-400 rounded-full transition-all" style={{ width: `${(a/total)*100}%` }} />
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        <div className="pt-1 flex justify-between text-xs text-muted-foreground border-t border-border mt-2">
-          <span className="font-bold text-foreground">{homeTeamName}</span>
-          <span className="font-bold text-foreground">{awayTeamName}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── Main Page ───────────────────────────────────────────── */
-function LiveMatchPage() {
+export default function LiveMatchPage() {
   const { id: matchId } = Route.useParams();
   const { user } = useAuth();
   const canManage = user?.role === "ADMIN" || user?.role === "MANAGER";
 
-  const [match, setMatch]           = useState<Match | null>(null);
-  const [homePlayers, setHomePlayers] = useState<MatchPlayer[]>([]);
-  const [awayPlayers, setAwayPlayers] = useState<MatchPlayer[]>([]);
-  const [events, setEvents]         = useState<MatchEvent[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [undoing, setUndoing]       = useState(false);
-  const [finishing, setFinishing]   = useState(false);
+  const [match, setMatch]             = useState<Match | null>(null);
+  const [homePlayers, setHomePlayers] = useState<Player[]>([]);
+  const [awayPlayers, setAwayPlayers] = useState<Player[]>([]);
+  const [events, setEvents]           = useState<MatchEvent[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [undoing, setUndoing]         = useState(false);
+  const [finishing, setFinishing]     = useState(false);
 
-  // Pending action state (waiting for player pick)
   const [pendingAction, setPendingAction] = useState<{
     action: ActionDef; side: PointSide;
   } | null>(null);
@@ -298,33 +250,34 @@ function LiveMatchPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [m, evs, mp] = await Promise.all([
+      const [m, evs] = await Promise.all([
         api.getMatch(matchId),
         api.listMatchEvents(matchId),
-        api.listMatchPlayers(matchId),
       ]);
       setMatch(m);
       setEvents(evs);
-      setHomePlayers(mp.filter(p => p.teamId === m.homeTeamId));
-      setAwayPlayers(mp.filter(p => p.teamId === m.awayTeamId));
+      
+      const [hp, ap] = await Promise.all([
+        api.listPlayers(m.homeTeamId),
+        api.listPlayers(m.awayTeamId),
+      ]);
+      setHomePlayers(hp);
+      setAwayPlayers(ap);
     } finally { setLoading(false); }
   }, [matchId]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Compute current set index
   const setIndex = match ? match.sets.length : 0;
 
   const registerPoint = useCallback(async (
     action: ActionDef,
     side: PointSide,
-    pickedPlayer?: MatchPlayer,
+    pickedPlayer?: Player,
   ) => {
     if (!match) return;
 
-    // who gets the point
     const pointSide: PointSide = action.isError ? (side === "HOME" ? "AWAY" : "HOME") : side;
-
     const activeEvents = events.filter(e => !e.voided && e.matchId === matchId);
     const setEvs = activeEvents.filter(e => e.setIndex === setIndex);
     const last = setEvs[setEvs.length - 1];
@@ -335,8 +288,8 @@ function LiveMatchPage() {
       setIndex,
       side: pointSide,
       type: action.type,
-      playerId: pickedPlayer?.playerId,
-      playerName: pickedPlayer?.playerName,
+      playerId: pickedPlayer?.id,
+      playerName: pickedPlayer?.name,
       scoreHome,
       scoreAway,
     });
@@ -345,19 +298,11 @@ function LiveMatchPage() {
     setMatch(updatedMatch);
     setPendingAction(null);
 
-    // check set end
     const pts = setIndex >= match.setsToWinMatch * 2 - 2
       ? match.pointsToWinLastSet
       : match.pointsToWinSet;
-    const diff = match.tieBreakEnabled ? 2 : 1; // not in Match type yet, default 2
-    if (
-      (scoreHome >= pts || scoreAway >= pts) &&
-      Math.abs(scoreHome - scoreAway) >= 2
-    ) {
-      // set ended — check match end
-      const newHomeSets = updatedMatch.homeSets;
-      const newAwaySets = updatedMatch.awaySets;
-      if (newHomeSets >= match.setsToWinMatch || newAwaySets >= match.setsToWinMatch) {
+    if ((scoreHome >= pts || scoreAway >= pts) && Math.abs(scoreHome - scoreAway) >= 2) {
+      if (updatedMatch.homeSets >= match.setsToWinMatch || updatedMatch.awaySets >= match.setsToWinMatch) {
         if (confirm("Partida encerrada! Finalizar agora?")) {
           const finished = await api.finishMatch(matchId);
           setMatch(finished);
@@ -370,9 +315,9 @@ function LiveMatchPage() {
     setPendingAction({ action, side });
   };
 
-  const handlePickPlayer = (mp: MatchPlayer) => {
+  const handlePickPlayer = (p: Player) => {
     if (!pendingAction) return;
-    registerPoint(pendingAction.action, pendingAction.side, mp);
+    registerPoint(pendingAction.action, pendingAction.side, p);
   };
 
   const handleSkipPlayer = () => {
@@ -386,9 +331,9 @@ function LiveMatchPage() {
       const { match: updated } = await api.voidLastEvent(matchId);
       setMatch(updated);
       setEvents(prev => {
-        const nonVoided = prev.filter(e => !e.voided);
-        const lastId = nonVoided[nonVoided.length - 1]?.id;
-        return prev.map(e => e.id === lastId ? { ...e, voided: true } : e);
+        const lastActive = [...prev].reverse().find(e => !e.voided);
+        if (!lastActive) return prev;
+        return prev.map(e => e.id === lastActive.id ? { ...e, voided: true } : e);
       });
     } catch (e) { alert((e as Error).message); }
     finally { setUndoing(false); }
@@ -405,7 +350,7 @@ function LiveMatchPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
   );
 
@@ -417,21 +362,22 @@ function LiveMatchPage() {
 
   const isLive     = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
-  const pickingFor = pendingAction
+  const hasActiveEvents = events.filter(e => !e.voided).length > 0;
+
+  const pickingFor: Player[] = pendingAction
     ? (pendingAction.action.isError
-        ? (pendingAction.side === "HOME" ? awayPlayers : homePlayers)
+        ? (pendingAction.side === "HOME" ? homePlayers : awayPlayers) 
         : (pendingAction.side === "HOME" ? homePlayers : awayPlayers))
     : [];
 
   const pickTitle = pendingAction
-    ? `${pendingAction.action.isError ? "Quem cometeu o erro?" : "Quem fez o ponto?"}`
+    ? (pendingAction.action.isError ? "Quem cometeu o erro?" : "Quem fez o ponto?")
     : "";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-zinc-50 dark:bg-[#16171d] flex flex-col">
       <SiteHeader />
 
-      {/* Player picker */}
       {pendingAction && (
         <PlayerPickerModal
           title={pickTitle}
@@ -441,93 +387,98 @@ function LiveMatchPage() {
         />
       )}
 
-      <div className="container mx-auto max-w-2xl px-4 py-8 space-y-6">
-        {/* Back */}
-        <Link
-          to="/tournaments/$id/matches"
-          params={{ id: match.tournamentId }}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Partidas
-        </Link>
+      {/* ── HEADER / PLACAR SUPERIOR (Horizontal) ── */}
+      <header className="border-b border-border bg-background shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+          {/* Esquerda: Voltar */}
+          <div className="w-1/4">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+              <Link to="/tournaments/$id/matches" params={{ id: match.tournamentId }}>
+                <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+              </Link>
+            </Button>
+          </div>
 
-        {/* Scoreboard */}
-        <Scoreboard match={match} />
+          {/* Centro: Placar Principal */}
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-2 mb-1">
+              {isLive && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                Set {setIndex + 1}
+              </span>
+            </div>
+            <div className="flex items-center justify-center gap-8 text-5xl font-display font-black text-foreground">
+              <span className="w-16 text-right">{match.currentSetHome}</span>
+              <span className="text-2xl text-muted-foreground/30 font-medium">X</span>
+              <span className="w-16 text-left">{match.currentSetAway}</span>
+            </div>
+            <div className="flex items-center gap-4 mt-2 text-sm font-semibold text-muted-foreground">
+              <span>Sets: {match.homeSets}</span>
+              <span className="text-border px-2">|</span>
+              <span>Sets: {match.awaySets}</span>
+            </div>
+          </div>
 
-        {/* Finished banner */}
+          {/* Direita: Ações Globais */}
+          <div className="w-1/4 flex justify-end gap-2">
+            {isLive && canManage && (
+              <>
+                <Button variant="outline" size="sm" onClick={handleUndo} disabled={undoing || !hasActiveEvents} className="border-zinc-300 dark:border-zinc-700">
+                  {undoing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                  Anular
+                </Button>
+                <Button size="sm" onClick={handleFinish} disabled={finishing} className="bg-emerald-600 text-white hover:bg-emerald-700 border-none">
+                  {finishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
+                  Encerrar
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ── ÁREA PRINCIPAL ── */}
+      <main className="flex-1 container mx-auto max-w-6xl px-4 py-8">
+        
         {isFinished && (
-          <div className="rounded-2xl border-2 border-primary bg-primary/10 p-6 text-center space-y-2">
-            <Trophy className="h-10 w-10 text-primary mx-auto" />
-            <h2 className="font-display text-2xl font-bold text-foreground">Partida encerrada!</h2>
-            <p className="text-muted-foreground text-sm">
-              {match.homeSets > match.awaySets ? match.homeTeamName : match.awayTeamName} venceu por {match.homeSets}–{match.awaySets} sets.
+          <div className="mb-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-8 text-center space-y-3 shadow-sm">
+            <Trophy className="h-12 w-12 text-emerald-500 mx-auto" />
+            <h2 className="font-display text-3xl font-bold text-foreground">Partida encerrada!</h2>
+            <p className="text-muted-foreground">
+              {match.homeSets > match.awaySets ? match.homeTeamName : match.awayTeamName} venceu por {match.homeSets} a {match.awaySets} em sets.
             </p>
           </div>
         )}
 
-        {/* Live controls */}
-        {isLive && canManage && (
-          <>
-            {/* HOME points */}
-            <div className="rounded-2xl border-2 border-border bg-card p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display font-bold text-foreground">{match.homeTeamName}</h3>
-                <Badge className="bg-primary/10 text-primary border-primary/20">Casa</Badge>
-              </div>
-              <ActionGrid side="HOME" label="Pontos" actions={POINT_ACTIONS} onAction={handleAction} disabled={!!pendingAction} />
-              <ActionGrid side="HOME" label="Erros" actions={ERROR_ACTIONS} onAction={handleAction} disabled={!!pendingAction} />
-            </div>
-
-            {/* AWAY points */}
-            <div className="rounded-2xl border-2 border-border bg-card p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display font-bold text-foreground">{match.awayTeamName}</h3>
-                <Badge className="bg-amber-100 text-amber-700 border-amber-200">Visitante</Badge>
-              </div>
-              <ActionGrid side="AWAY" label="Pontos" actions={POINT_ACTIONS} onAction={handleAction} disabled={!!pendingAction} />
-              <ActionGrid side="AWAY" label="Erros" actions={ERROR_ACTIONS} onAction={handleAction} disabled={!!pendingAction} />
-            </div>
-
-            {/* Controls */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 gap-2 h-11"
-                onClick={handleUndo}
-                disabled={undoing || events.filter(e => !e.voided).length === 0}
-              >
-                {undoing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                Anular último
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 gap-2 h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleFinish}
-                disabled={finishing}
-              >
-                {finishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flag className="h-4 w-4" />}
-                Encerrar partida
-              </Button>
-            </div>
-          </>
+        {/* ── Painéis dos Times (Lado a Lado) ── */}
+        {(isLive && canManage) && (
+          <div className="flex flex-col lg:flex-row gap-6 mb-8">
+            <SidePanel
+              teamName={match.homeTeamName}
+              side="HOME"
+              onAction={handleAction}
+              disabled={!!pendingAction}
+              isHome={true}
+            />
+            {/* Divisória Visual */}
+            <div className="hidden lg:flex w-px bg-border/50 my-6" />
+            <SidePanel
+              teamName={match.awayTeamName}
+              side="AWAY"
+              onAction={handleAction}
+              disabled={!!pendingAction}
+              isHome={false}
+            />
+          </div>
         )}
 
-        {/* Stats */}
-        {events.filter(e => !e.voided).length > 0 && (
-          <StatsSummary
-            events={events}
-            homeTeamName={match.homeTeamName}
-            awayTeamName={match.awayTeamName}
-          />
-        )}
-
-        {/* History */}
+        {/* ── Histórico ── */}
         <HistoryPanel
           events={events}
           homeTeamName={match.homeTeamName}
           awayTeamName={match.awayTeamName}
         />
-      </div>
+      </main>
     </div>
   );
 }

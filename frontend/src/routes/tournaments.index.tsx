@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Trophy, Plus, MapPin, Calendar, Pencil } from "lucide-react";
+import { Trophy, Plus, MapPin, Calendar } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,17 +35,18 @@ const statusLabel: Record<string, string> = {
 function TournamentCard({
   t,
   canManage,
-  onEdit,
+  onClick,
   onDelete,
 }: {
   t: Tournament;
   canManage: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
+  onClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) {
   return (
     <article
-      className="group flex flex-col rounded-2xl border-2 border-border bg-card overflow-hidden transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+      onClick={canManage ? onClick : undefined}
+      className={`group flex flex-col rounded-2xl border-2 border-border bg-card overflow-hidden transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg ${canManage ? "cursor-pointer" : ""}`}
       style={{ boxShadow: "var(--shadow-card)" }}
     >
       {/* Banner */}
@@ -63,10 +64,8 @@ function TournamentCard({
           />
         )}
 
-        {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Status badge top-right */}
         {t.status && (
           <div className="absolute top-3 right-3">
             <Badge className={statusColor[t.status]}>
@@ -75,7 +74,6 @@ function TournamentCard({
           </div>
         )}
 
-        {/* Logo bottom-left */}
         <div className="absolute bottom-3 left-3">
           {t.logoUrl ? (
             <img
@@ -92,6 +90,15 @@ function TournamentCard({
             </div>
           )}
         </div>
+
+        {/* Hover overlay for managers */}
+        {canManage && (
+          <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="text-white text-sm font-bold bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
+              Gerenciar torneio
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Body */}
@@ -117,16 +124,9 @@ function TournamentCard({
           )}
         </div>
 
+        {/* Delete button for managers — stops propagation so card click doesn't fire */}
         {canManage && (
-          <div className="mt-auto pt-4 flex gap-2 border-t border-border mt-4">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1"
-              onClick={onEdit}
-            >
-              <Pencil className="mr-1 h-3 w-3" /> Editar
-            </Button>
+          <div className="mt-auto pt-4 border-t border-border mt-4 flex justify-end">
             <Button
               size="sm"
               variant="ghost"
@@ -167,7 +167,8 @@ function TournamentsPage() {
     load();
   }, []);
 
-  const remove = async (id: string) => {
+  const remove = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // prevent card click
     if (!confirm("Excluir este torneio?")) return;
     await api.deleteTournament(id);
     load();
@@ -183,7 +184,7 @@ function TournamentsPage() {
               Torneios
             </h1>
             <p className="mt-1 text-muted-foreground">
-              Explore, gerencie e edite torneios de vôlei.
+              {canManage ? "Clique em um torneio para gerenciá-lo." : "Explore os torneios de vôlei."}
             </p>
           </div>
           {canManage && (
@@ -235,10 +236,8 @@ function TournamentsPage() {
                 key={t.id}
                 t={t}
                 canManage={canManage}
-                onEdit={() =>
-                  navigate({ to: "/tournaments/$id/edit", params: { id: t.id } })
-                }
-                onDelete={() => remove(t.id)}
+                onClick={() => navigate({ to: "/tournaments/$id/edit", params: { id: t.id } })}
+                onDelete={(e) => remove(e, t.id)}
               />
             ))}
           </div>
