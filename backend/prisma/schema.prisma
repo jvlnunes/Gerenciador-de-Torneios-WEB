@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = env("DATABASE_URL")
+}
+
+// Enums
+
+enum PerfilUsuario {
+  ADMIN
+  GERENTE
+  USUARIO
+}
+
+enum StatusTorneio {
+  RASCUNHO
+  ABERTO
+  EM_ANDAMENTO
+  FINALIZADO
+}
+
+enum VisibilidadeTorneio {
+  PUBLICO
+  SOMENTE_PARTICIPANTES
+  PRIVADO
+}
+
+enum FormatoTorneio {
+  RACHA
+  MATA_MATA
+  PONTOS_CORRIDOS
+}
+
+enum StatusPartida {
+  AGENDADA
+  AQUECIMENTO
+  AO_VIVO
+  FINALIZADA
+}
+
+enum TipoPonto {
+  SAQUE
+  ATAQUE
+  BLOQUEIO
+  ERRO_ADVERSARIO
+}
+
+enum TipoErro {
+  ERRO_SAQUE
+  ERRO_ATAQUE
+  TOQUE_REDE
+  INVASAO
+  BOLA_FORA
+  DOIS_TOQUES
+}
+
+enum LadoPonto {
+  CASA
+  VISITANTE
+}
+
+// ─── MODELOS
+
+model Usuario {
+  id       String        @id @default(uuid())
+  nome     String
+  email    String        @unique
+  senha    String
+  perfil   PerfilUsuario @default(USUARIO)
+  criadoEm DateTime      @default(now())
+
+  torneiosOrganizados OrganizadorTorneios[]
+  perfisJogador       Jogador[]
+}
+
+model Torneio {
+  id           String              @id @default(uuid())
+  nome         String
+  descricao    String?
+  local        String?
+  dataInicio   DateTime?
+  dataFim      DateTime?
+  status       StatusTorneio       @default(RASCUNHO)
+  visibilidade VisibilidadeTorneio @default(PRIVADO)
+  bannerUrl    String?
+  logoUrl      String?
+  tokenConvite String?
+  formato      FormatoTorneio      @default(MATA_MATA)
+  criadoEm     DateTime            @default(now())
+
+  organizadores OrganizadorTorneios[]
+  times         Time[]
+  partidas      Partida[]
+}
+
+model OrganizadorTorneios {
+  id        String @id @default(uuid())
+  torneioId String
+  usuarioId String
+
+  torneio Torneio @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([torneioId, usuarioId])
+}
+
+model Time {
+  id                  String  @id @default(uuid())
+  nome                String
+  logoUrl             String?
+  tokenConvite        String? @unique
+  quantidadeJogadores Int     @default(0)
+
+  torneioId String
+  torneio   Torneio @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+
+  jogadores          Jogador[]
+  partidasComoCasa   Partida[]        @relation("PartidaCasa")
+  partidasComoVisita Partida[]        @relation("PartidaVisitante")
+  jogadoresNaPartida JogadorPartida[]
+}
+
+model Jogador {
+  id            String   @id @default(uuid())
+  nome          String
+  numeroCamisa  Int?
+  posicao       String?
+  fotoUrl       String?
+  entrouPorLink Boolean  @default(false)
+  criadoEm      DateTime @default(now())
+
+  timeId String
+  time   Time   @relation(fields: [timeId], references: [id], onDelete: Cascade)
+
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  aparicoesPartida JogadorPartida[]
+  eventosPartida   EventoPartida[]
+}
+
+model Partida {
+  id           String        @id @default(uuid())
+  status       StatusPartida @default(AGENDADA)
+  agendadoPara DateTime?
+  local        String?
+
+  setsCasa          Int @default(0)
+  setsVisitante     Int @default(0)
+  setAtualCasa      Int @default(0)
+  setAtualVisitante Int @default(0)
+
+  torneioId String
+  torneio   Torneio @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+
+  timeCasaId String
+  timeCasa   Time   @relation("PartidaCasa", fields: [timeCasaId], references: [id], onDelete: Cascade)
+
+  timeVisitanteId String
+  timeVisitante   Time   @relation("PartidaVisitante", fields: [timeVisitanteId], references: [id], onDelete: Cascade)
+
+  jogadoresNaPartida JogadorPartida[]
+  eventosPartida     EventoPartida[]
+}
+
+model JogadorPartida {
+  id           String  @id @default(uuid())
+  titular      Boolean @default(false)
+  numeroCamisa Int?
+  posicao      String?
+
+  partidaId String
+  partida   Partida @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+
+  jogadorId String
+  jogador   Jogador @relation(fields: [jogadorId], references: [id], onDelete: Cascade)
+
+  timeId String
+  time   Time   @relation(fields: [timeId], references: [id], onDelete: Cascade)
+
+  @@unique([jogadorId, partidaId])
+}
+
+model EventoPartida {
+  id              String    @id @default(uuid())
+  indiceSet       Int
+  lado            LadoPonto
+  tipo            TipoPonto
+  tipoErro        TipoErro?
+  placarCasa      Int
+  placarVisitante Int
+  horario         DateTime  @default(now())
+  anulado         Boolean   @default(false)
+
+  partidaId String
+  partida   Partida @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+
+  jogadorId String?
+  jogador   Jogador? @relation(fields: [jogadorId], references: [id], onDelete: SetNull)
+}
