@@ -46,6 +46,7 @@ enum TipoPonto {
   ATAQUE
   BLOQUEIO
   ERRO_ADVERSARIO
+  CARTAO_ADVERSARIO
 }
 
 enum TipoErro {
@@ -55,11 +56,19 @@ enum TipoErro {
   INVASAO
   BOLA_FORA
   DOIS_TOQUES
+  QUATRO_TOQUES
+  CONDUCAO
+  ERRO_ROTACAO
 }
 
 enum LadoPonto {
   CASA
   VISITANTE
+}
+
+enum TipoCartao {
+  AMARELO
+  VERMELHO
 }
 
 // ─── MODELOS
@@ -185,15 +194,16 @@ model JogadorPartida {
 }
 
 model EventoPartida {
-  id              String    @id @default(uuid())
+  id              String      @id @default(uuid())
   indiceSet       Int
   lado            LadoPonto
   tipo            TipoPonto
   tipoErro        TipoErro?
+  tipoCartao      TipoCartao?
   placarCasa      Int
   placarVisitante Int
-  horario         DateTime  @default(now())
-  anulado         Boolean   @default(false)
+  horario         DateTime    @default(now())
+  anulado         Boolean     @default(false)
 
   partidaId String
   partida   Partida @relation(fields: [partidaId], references: [id], onDelete: Cascade)

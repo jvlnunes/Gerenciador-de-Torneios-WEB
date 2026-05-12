@@ -37,7 +37,7 @@ interface BasicInfo {
   startDate: string
   endDate: string
   maxTeams: number
-  status: "DRAFT" | "OPEN" | "ONGOING" | "FINISHED"
+  status: "RASCUNHO" | "ABERTO" | "EM_ANDAMENTO" | "FINALIZADO"
 }
 
 // ── Stepper UI ────────────────────────────────────────────────
@@ -168,7 +168,7 @@ export function CreateTournamentForm() {
     startDate: "",
     endDate: "",
     maxTeams: 8,
-    status: "DRAFT",
+    status: "RASCUNHO",
   })
 
   const [phases, setPhases] = useState<Phase[]>([
@@ -186,7 +186,7 @@ export function CreateTournamentForm() {
   const [organizers, setOrganizers] = useState<Organizer[]>([
     {
       id: crypto.randomUUID(),
-      name: currentUser?.name ?? "",
+      name: currentUser?.nome ?? "",
       email: currentUser?.email ?? "",
       phone: "",
       role: "head",
@@ -205,13 +205,14 @@ export function CreateTournamentForm() {
     setSubmitting(true)
     setError(null)
     try {
-      await api.createTournament({
-        name: basicInfo.name,
-        description: basicInfo.description,
-        location: basicInfo.location,
-        startDate: basicInfo.startDate || undefined,
-        endDate: basicInfo.endDate || undefined,
-        maxTeams: basicInfo.maxTeams,
+      // await api.createTournament({
+      await api.criarTorneio({
+        nome: basicInfo.name,
+        descricao: basicInfo.description,
+        local: basicInfo.location,
+        dataInicio: basicInfo.startDate || undefined,
+        dataFim: basicInfo.endDate || undefined,
+        maxTimes: basicInfo.maxTeams,
         status: basicInfo.status,
       })
       navigate({ to: "/tournaments" })
