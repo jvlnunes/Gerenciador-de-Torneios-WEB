@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import {
-  api, type Match, type MatchEvent, type PointType, type PointSide, type Player,
+  api, type Partida, type EventoPartida, type TipoPonto, type TipoErro, type TipoCartao, type LadoPonto, type Jogador,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
@@ -9,476 +9,240 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft, RotateCcw, Flag, ChevronDown, ChevronUp,
-  Loader2, Trophy, X,
+  Loader2, Trophy, X, AlertTriangle
 } from "lucide-react";
 
 export const Route = createFileRoute("/matches/$id")({
   component: LiveMatchPage,
 });
 
-/* ── Action definitions ──────────────────────────────────── */
+/* ── Definições de Ações (Botões) ─────────────────────────── */
 type ActionDef = {
-  type: PointType;
+  type: TipoPonto;
   label: string;
   emoji: string;
-  isError: boolean;
+  color?: string;
 };
 
-const POINT_ACTIONS: ActionDef[] = [
-  { type: "SAQUE",    label: "Saque",    emoji: "🏐", isError: false },
-  { type: "ATAQUE",   label: "Ataque",   emoji: "⚡", isError: false },
-  { type: "BLOQUEIO", label: "Bloqueio", emoji: "🛡️", isError: false },
+const ACOES_PONTO: ActionDef[] = [
+  { type: "SAQUE",    label: "Saque",    emoji: "🏐" },
+  { type: "ATAQUE",   label: "Ataque",   emoji: "⚡" },
+  { type: "BLOQUEIO", label: "Bloqueio", emoji: "🛡️" },
 ];
 
-const ERROR_ACTIONS: ActionDef[] = [
-  { type: "ERRO_SAQUE", label: "Erro de saque", emoji: "❌", isError: true },
-  { type: "TOQUE_REDE", label: "Toque na rede", emoji: "🕸️", isError: true },
-  { type: "INVASAO",    label: "Invasão",       emoji: "⚠️", isError: true },
-  { type: "BOLA_FORA",  label: "Bola fora",     emoji: "📤", isError: true },
-  { type: "DUPLO",      label: "Duplo",         emoji: "✌️", isError: true },
+// Agora tratamos Erro e Cartão separadamente
+const ACOES_EXTRAS: ActionDef[] = [
+  { type: "ERRO_ADVERSARIO",   label: "Erro do Adversário",   emoji: "❌", color: "text-orange-500" },
+  { type: "CARTAO_ADVERSARIO", label: "Cartão Adversário",    emoji: "🟨", color: "text-red-500" },
 ];
 
-const ALL_ACTIONS = [...POINT_ACTIONS, ...ERROR_ACTIONS];
-
-const TYPE_LABEL: Record<PointType, string> = {
-  SAQUE: "Saque", ATAQUE: "Ataque", BLOQUEIO: "Bloqueio", ERRO_ADVERSARIO: "Erro adversário",
-  ERRO_SAQUE: "Erro de saque", ERRO_ATAQUE: "Erro de ataque",
-  TOQUE_REDE: "Toque na rede", INVASAO: "Invasão", BOLA_FORA: "Bola fora", DUPLO: "Duplo toque",
-};
-
-/* ── Player Picker Modal ─────────────────────────────────── */
-function PlayerPickerModal({
-  title, players, onPick, onSkip,
-}: {
-  title: string;
-  players: Player[];
-  onPick: (p: Player) => void;
-  onSkip: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
-      <div className="w-full max-w-sm bg-background rounded-2xl border border-border shadow-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-zinc-50 dark:bg-zinc-900">
-          <p className="font-display font-bold text-foreground">{title}</p>
-          <button onClick={onSkip} className="p-1.5 rounded-lg text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="max-h-72 overflow-y-auto p-3 space-y-1.5">
-          {players.length === 0 && (
-            <div className="py-6 text-center space-y-2">
-              <p className="text-sm font-semibold text-foreground">Nenhum jogador listado</p>
-              <p className="text-xs text-muted-foreground px-4">Os jogadores aparecerão aqui assim que forem cadastrados no time pelo painel.</p>
-            </div>
-          )}
-          {players.map(p => (
-            <button key={p.id} onClick={() => onPick(p)}
-              className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent transition-all text-left">
-              <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800 border border-border grid place-items-center shrink-0 text-xs font-black text-foreground">
-                {p.jerseyNumber ?? "?"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
-                {p.position && <p className="text-xs text-muted-foreground">{p.position}</p>}
-              </div>
-            </button>
-          ))}
-        </div>
-        <div className="px-4 py-3 border-t border-border bg-zinc-50 dark:bg-zinc-900">
-          <Button variant="ghost" onClick={onSkip} className="w-full text-muted-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800">
-            Continuar sem identificar jogador
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Action button (Corrigido para evitar botões pretos) ─── */
-function ActionBtn({
-  action, side, onAction, disabled
-}: {
-  action: ActionDef; side: PointSide;
-  onAction: (a: ActionDef, s: PointSide) => void;
-  disabled: boolean;
-}) {
-  return (
-    <Button
-      variant="outline"
-      disabled={disabled}
-      onClick={() => onAction(action, side)}
-      className={cn(
-        "h-14 flex flex-col justify-center gap-1 transition-all active:scale-95 w-full",
-        action.isError 
-          // Estilo suave para ERROS (Cinza claro/escuro legível)
-          ? "bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-zinc-800 dark:hover:bg-zinc-800"
-          // Estilo para PONTOS (Hover esverdeado para manter a identidade)
-          : "hover:border-emerald-500/50 hover:bg-emerald-500/10 text-foreground"
-      )}
-    >
-      <span className="text-sm font-semibold flex items-center gap-2">
-        <span>{action.emoji}</span> {action.label}
-      </span>
-    </Button>
-  );
-}
-
-/* ── One side panel (Horizontal Layout) ──────────────────── */
-function SidePanel({
-  teamName, side, onAction, disabled, isHome,
-}: {
-  teamName: string; side: PointSide;
-  onAction: (a: ActionDef, s: PointSide) => void;
-  disabled: boolean; isHome: boolean;
-}) {
-  return (
-    <div className="flex-1 flex flex-col bg-background border border-border rounded-2xl p-6 shadow-sm">
-      {/* Team Header */}
-      <div className="text-center mb-8 pb-6 border-b border-border">
-        <h2 className="text-2xl font-display font-bold text-foreground truncate">{teamName}</h2>
-        <p className="text-sm font-medium text-muted-foreground mt-1">
-          {isHome ? "Time da Casa" : "Time Visitante"}
-        </p>
-      </div>
-
-      {/* Action Areas */}
-      <div className="space-y-8 mt-auto">
-        {/* Points */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-500 mb-3 text-center">
-            Pontos a favor (+)
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {POINT_ACTIONS.map(a => (
-              <ActionBtn key={a.type} action={a} side={side} onAction={onAction} disabled={disabled} />
-            ))}
-          </div>
-        </div>
-
-        {/* Errors */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 text-center">
-            Erros cometidos (-)
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {ERROR_ACTIONS.map(a => (
-              <ActionBtn key={a.type} action={a} side={side} onAction={onAction} disabled={disabled} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── History Panel ───────────────────────────────────────── */
-function HistoryPanel({ events, homeTeamName, awayTeamName }: {
-  events: MatchEvent[]; homeTeamName: string; awayTeamName: string;
-}) {
-  const [open, setOpen] = useState(true);
-  const visible = [...events].reverse().slice(0, 60);
-
-  return (
-    <div className="rounded-2xl border border-border bg-background overflow-hidden mt-6">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
-      >
-        <span>Histórico da Partida ({events.length} eventos)</span>
-        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-      </button>
-
-      {open && (
-        <div className="border-t border-border divide-y divide-border max-h-80 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-900/50">
-          {visible.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-8">Nenhum evento registrado ainda.</p>
-          )}
-          {visible.map((e, idx) => {
-            const isHome   = e.side === "HOME";
-            const teamName = isHome ? homeTeamName : awayTeamName;
-            const emoji    = ALL_ACTIONS.find(a => a.type === e.type)?.emoji ?? "🏐";
-            const isVoided = e.voided;
-
-            return (
-              <div key={e.id} className={cn(
-                "flex items-center gap-4 px-6 py-3",
-                idx === 0 && !isVoided && "bg-emerald-500/5 dark:bg-emerald-500/10",
-                isVoided && "opacity-50 bg-red-500/5",
-              )}>
-                <span className="text-xl">{emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className={cn("text-sm font-semibold text-foreground", isVoided && "line-through text-muted-foreground")}>
-                    <span className="mr-2 text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-                      {teamName}
-                    </span>
-                    {TYPE_LABEL[e.type]}
-                    {e.playerName && <span className="ml-1 text-muted-foreground font-normal">— {e.playerName}</span>}
-                    {isVoided && <span className="ml-2 text-xs font-normal text-red-500 dark:text-red-400 not-italic">(anulado)</span>}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Set {e.setIndex + 1} · Placar: {e.scoreHome}–{e.scoreAway}
-                    {" · "}{new Date(e.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Main Page ───────────────────────────────────────────── */
-export default function LiveMatchPage() {
-  const { id: matchId } = Route.useParams();
+function LiveMatchPage() {
+  const { id: partidaId } = Route.useParams();
   const { user } = useAuth();
-  const canManage = user?.role === "ADMIN" || user?.role === "MANAGER";
+  
+  const [partida, setPartida] = useState<Partida | null>(null);
+  const [eventos, setEventos] = useState<EventoPartida[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Estados para o Modal de seleção de Jogador/Erro
+  const [selecionandoAcao, setSelecionandoAcao] = useState<{ lado: LadoPonto, acao: ActionDef } | null>(null);
+  const [erroSelecionado, setErroSelecionado] = useState<TipoErro | null>(null);
 
-  const [match, setMatch]             = useState<Match | null>(null);
-  const [homePlayers, setHomePlayers] = useState<Player[]>([]);
-  const [awayPlayers, setAwayPlayers] = useState<Player[]>([]);
-  const [events, setEvents]           = useState<MatchEvent[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [undoing, setUndoing]         = useState(false);
-  const [finishing, setFinishing]     = useState(false);
-
-  const [pendingAction, setPendingAction] = useState<{
-    action: ActionDef; side: PointSide;
-  } | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
+  const carregarDados = useCallback(async () => {
     try {
-      const [m, evs] = await Promise.all([
-        api.getMatch(matchId),
-        api.listMatchEvents(matchId),
+      const [p, evs] = await Promise.all([
+        api.buscarPartida(partidaId),
+        api.listarEventosPartida(partidaId)
       ]);
-      setMatch(m);
-      setEvents(evs);
-      
-      const [hp, ap] = await Promise.all([
-        api.listPlayers(m.homeTeamId),
-        api.listPlayers(m.awayTeamId),
-      ]);
-      setHomePlayers(hp);
-      setAwayPlayers(ap);
-    } finally { setLoading(false); }
-  }, [matchId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const setIndex = match ? match.sets.length : 0;
-
-  const registerPoint = useCallback(async (
-    action: ActionDef,
-    side: PointSide,
-    pickedPlayer?: Player,
-  ) => {
-    if (!match) return;
-
-    const pointSide: PointSide = action.isError ? (side === "HOME" ? "AWAY" : "HOME") : side;
-    const activeEvents = events.filter(e => !e.voided && e.matchId === matchId);
-    const setEvs = activeEvents.filter(e => e.setIndex === setIndex);
-    const last = setEvs[setEvs.length - 1];
-    const scoreHome = (last?.scoreHome ?? 0) + (pointSide === "HOME" ? 1 : 0);
-    const scoreAway = (last?.scoreAway ?? 0) + (pointSide === "AWAY" ? 1 : 0);
-
-    const { event, match: updatedMatch } = await api.addMatchEvent(matchId, {
-      setIndex,
-      side: pointSide,
-      type: action.type,
-      playerId: pickedPlayer?.id,
-      playerName: pickedPlayer?.name,
-      scoreHome,
-      scoreAway,
-    });
-
-    setEvents(prev => [...prev, event]);
-    setMatch(updatedMatch);
-    setPendingAction(null);
-
-    const pts = setIndex >= match.setsToWinMatch * 2 - 2
-      ? match.pointsToWinLastSet
-      : match.pointsToWinSet;
-    if ((scoreHome >= pts || scoreAway >= pts) && Math.abs(scoreHome - scoreAway) >= 2) {
-      if (updatedMatch.homeSets >= match.setsToWinMatch || updatedMatch.awaySets >= match.setsToWinMatch) {
-        if (confirm("Partida encerrada! Finalizar agora?")) {
-          const finished = await api.finishMatch(matchId);
-          setMatch(finished);
-        }
-      }
+      setPartida(p);
+      setEventos(evs);
+    } catch (err) {
+      console.error("Erro ao carregar partida:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [match, events, matchId, setIndex]);
+  }, [partidaId]);
 
-  const handleAction = (action: ActionDef, side: PointSide) => {
-    setPendingAction({ action, side });
-  };
+  useEffect(() => {
+    carregarDados();
+  }, [carregarDados]);
 
-  const handlePickPlayer = (p: Player) => {
-    if (!pendingAction) return;
-    registerPoint(pendingAction.action, pendingAction.side, p);
-  };
-
-  const handleSkipPlayer = () => {
-    if (!pendingAction) return;
-    registerPoint(pendingAction.action, pendingAction.side, undefined);
-  };
-
-  const handleUndo = async () => {
-    setUndoing(true);
+  const registrarPonto = async (lado: LadoPonto, tipo: TipoPonto, jogadorId?: string, tipoErro?: TipoErro, tipoCartao?: TipoCartao) => {
+    if (!partida) return;
+    
     try {
-      const { match: updated } = await api.voidLastEvent(matchId);
-      setMatch(updated);
-      setEvents(prev => {
-        const lastActive = [...prev].reverse().find(e => !e.voided);
-        if (!lastActive) return prev;
-        return prev.map(e => e.id === lastActive.id ? { ...e, voided: true } : e);
+      const { partida: partidaAtualizada } = await api.registrarEvento(partidaId, {
+        indiceSet: partida.setsCasa + partida.setsVisitante,
+        lado,
+        tipo,
+        tipoErro,
+        tipoCartao,
+        jogadorId,
+        placarCasa: partida.setAtualCasa + (lado === "CASA" ? 1 : 0),
+        placarVisitante: partida.setAtualVisitante + (lado === "VISITANTE" ? 1 : 0),
       });
-    } catch (e) { alert((e as Error).message); }
-    finally { setUndoing(false); }
+      
+      setPartida(partidaAtualizada);
+      carregarDados(); // Recarrega para garantir sincronia
+      setSelecionandoAcao(null);
+    } catch (err) {
+      console.error("Erro ao registrar ponto:", err);
+    }
   };
 
-  const handleFinish = async () => {
-    if (!confirm("Finalizar a partida agora?")) return;
-    setFinishing(true);
+  const anularUltimo = async () => {
+    if (!confirm("Anular o último ponto registrado?")) return;
     try {
-      const updated = await api.finishMatch(matchId);
-      setMatch(updated);
-    } finally { setFinishing(false); }
+      const { partida: p } = await api.anularUltimoEvento(partidaId);
+      setPartida(p);
+      carregarDados();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
-  );
+  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (!partida) return <div>Partida não encontrada</div>;
 
-  if (!match) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <p className="text-muted-foreground">Partida não encontrada.</p>
-    </div>
-  );
-
-  const isLive     = match.status === "LIVE";
-  const isFinished = match.status === "FINISHED";
-  const hasActiveEvents = events.filter(e => !e.voided).length > 0;
-
-  const pickingFor: Player[] = pendingAction
-    ? (pendingAction.action.isError
-        ? (pendingAction.side === "HOME" ? homePlayers : awayPlayers) 
-        : (pendingAction.side === "HOME" ? homePlayers : awayPlayers))
-    : [];
-
-  const pickTitle = pendingAction
-    ? (pendingAction.action.isError ? "Quem cometeu o erro?" : "Quem fez o ponto?")
-    : "";
+  const isFinalizada = partida.status === "FINALIZADA";
+  const podeGerenciar = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-[#16171d] flex flex-col">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       <SiteHeader />
-
-      {pendingAction && (
-        <PlayerPickerModal
-          title={pickTitle}
-          players={pickingFor}
-          onPick={handlePickPlayer}
-          onSkip={handleSkipPlayer}
-        />
-      )}
-
-      {/* ── HEADER / PLACAR SUPERIOR (Horizontal) ── */}
-      <header className="border-b border-border bg-background shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          {/* Esquerda: Voltar */}
-          <div className="w-1/4">
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-              <Link to="/tournaments/$id/matches" params={{ id: match.tournamentId }}>
-                <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-              </Link>
-            </Button>
-          </div>
-
-          {/* Centro: Placar Principal */}
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="flex items-center gap-2 mb-1">
-              {isLive && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                Set {setIndex + 1}
-              </span>
+      
+      <main className="container mx-auto px-4 py-8">
+        {/* Cabeçalho com Placar Grande Horizontal */}
+        <div className="mb-8 flex flex-col items-center justify-center space-y-4">
+          <div className="flex items-center gap-8 md:gap-16">
+            <div className="text-right">
+              <h2 className="text-2xl font-bold">{partida.nomeTimeCasa}</h2>
+              <span className="text-5xl font-black text-primary">{partida.setAtualCasa}</span>
             </div>
-            <div className="flex items-center justify-center gap-8 text-5xl font-display font-black text-foreground">
-              <span className="w-16 text-right">{match.currentSetHome}</span>
-              <span className="text-2xl text-muted-foreground/30 font-medium">X</span>
-              <span className="w-16 text-left">{match.currentSetAway}</span>
+            
+            <div className="flex flex-col items-center">
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Sets</span>
+              <div className="flex items-center gap-3 text-3xl font-bold">
+                <span>{partida.setsCasa}</span>
+                <span className="text-muted-foreground/30">—</span>
+                <span>{partida.setsVisitante}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 mt-2 text-sm font-semibold text-muted-foreground">
-              <span>Sets: {match.homeSets}</span>
-              <span className="text-border px-2">|</span>
-              <span>Sets: {match.awaySets}</span>
+
+            <div className="text-left">
+              <h2 className="text-2xl font-bold">{partida.nomeTimeVisitante}</h2>
+              <span className="text-5xl font-black text-primary">{partida.setAtualVisitante}</span>
             </div>
           </div>
 
-          {/* Direita: Ações Globais */}
-          <div className="w-1/4 flex justify-end gap-2">
-            {isLive && canManage && (
-              <>
-                <Button variant="outline" size="sm" onClick={handleUndo} disabled={undoing || !hasActiveEvents} className="border-zinc-300 dark:border-zinc-700">
-                  {undoing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
-                  Anular
-                </Button>
-                <Button size="sm" onClick={handleFinish} disabled={finishing} className="bg-emerald-600 text-white hover:bg-emerald-700 border-none">
-                  {finishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
-                  Encerrar
-                </Button>
-              </>
-            )}
-          </div>
+          {podeGerenciar && !isFinalizada && (
+            <div className="flex gap-4">
+              <Button variant="outline" size="sm" onClick={anularUltimo} className="gap-2">
+                <RotateCcw className="h-4 w-4" /> Anular Ponto
+              </Button>
+              <Button variant="destructive" size="sm" className="gap-2">
+                <Flag className="h-4 w-4" /> Encerrar Partida
+              </Button>
+            </div>
+          )}
         </div>
-      </header>
 
-      {/* ── ÁREA PRINCIPAL ── */}
-      <main className="flex-1 container mx-auto max-w-6xl px-4 py-8">
-        
-        {isFinished && (
-          <div className="mb-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-8 text-center space-y-3 shadow-sm">
-            <Trophy className="h-12 w-12 text-emerald-500 mx-auto" />
-            <h2 className="font-display text-3xl font-bold text-foreground">Partida encerrada!</h2>
-            <p className="text-muted-foreground">
-              {match.homeSets > match.awaySets ? match.homeTeamName : match.awayTeamName} venceu por {match.homeSets} a {match.awaySets} em sets.
-            </p>
-          </div>
-        )}
-
-        {/* ── Painéis dos Times (Lado a Lado) ── */}
-        {(isLive && canManage) && (
-          <div className="flex flex-col lg:flex-row gap-6 mb-8">
-            <SidePanel
-              teamName={match.homeTeamName}
-              side="HOME"
-              onAction={handleAction}
-              disabled={!!pendingAction}
-              isHome={true}
+        {/* ── Painéis de Comando (Apenas se estiver AO VIVO) ── */}
+        {!isFinalizada && podeGerenciar && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* LADO CASA */}
+            <PainelComando 
+              timeNome={partida.nomeTimeCasa} 
+              lado="CASA" 
+              acoesPonto={ACOES_PONTO}
+              acoesExtras={ACOES_EXTRAS}
+              onAction={(acao) => setSelecionandoAcao({ lado: "CASA", acao })}
             />
-            {/* Divisória Visual */}
-            <div className="hidden lg:flex w-px bg-border/50 my-6" />
-            <SidePanel
-              teamName={match.awayTeamName}
-              side="AWAY"
-              onAction={handleAction}
-              disabled={!!pendingAction}
-              isHome={false}
+
+            {/* LADO VISITANTE */}
+            <PainelComando 
+              timeNome={partida.nomeTimeVisitante} 
+              lado="VISITANTE" 
+              acoesPonto={ACOES_PONTO}
+              acoesExtras={ACOES_EXTRAS}
+              onAction={(acao) => setSelecionandoAcao({ lado: "VISITANTE", acao })}
             />
           </div>
         )}
 
-        {/* ── Histórico ── */}
-        <HistoryPanel
-          events={events}
-          homeTeamName={match.homeTeamName}
-          awayTeamName={match.awayTeamName}
-        />
+        {/* Listagem de Sets Anteriores */}
+        <div className="mt-12">
+            <h3 className="text-lg font-semibold mb-4 text-center">Histórico de Sets</h3>
+            <div className="flex justify-center gap-4">
+                {partida.sets.map((s, i) => (
+                    <div key={i} className="bg-muted px-4 py-2 rounded-lg border">
+                        <span className="text-xs text-muted-foreground block text-center">Set {i+1}</span>
+                        <span className="font-bold">{s.casa} x {s.visitante}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
       </main>
+
+      {/* Modal de Seleção de Jogador/Detalhes (Conceitual) */}
+      {selecionandoAcao && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+              <div className="bg-card w-full max-w-md p-6 rounded-2xl shadow-xl border">
+                  <h3 className="text-xl font-bold mb-4">
+                    {selecionandoAcao.acao.label} - {selecionandoAcao.lado === "CASA" ? partida.nomeTimeCasa : partida.nomeTimeVisitante}
+                  </h3>
+                  
+                  {/* Se for erro do adversário, mostrar lista de erros */}
+                  {selecionandoAcao.acao.type === "ERRO_ADVERSARIO" && (
+                      <div className="grid grid-cols-2 gap-2 mb-6">
+                          {["ERRO_SAQUE", "ERRO_ATAQUE", "TOQUE_REDE", "DOIS_TOQUES", "QUATRO_TOQUES", "BOLA_FORA"].map(err => (
+                              <Button key={err} variant="outline" size="sm" onClick={() => registrarPonto(selecionandoAcao.lado, "ERRO_ADVERSARIO", undefined, err as TipoErro)}>
+                                  {err.replace("ERRO_", "").replace("_", " ")}
+                              </Button>
+                          ))}
+                      </div>
+                  )}
+
+                  {/* Botão de fechar */}
+                  <Button variant="ghost" className="w-full" onClick={() => setSelecionandoAcao(null)}>Cancelar</Button>
+              </div>
+          </div>
+      )}
     </div>
   );
+}
+
+// Sub-componente para organizar os botões de cada lado
+function PainelComando({ timeNome, lado, acoesPonto, acoesExtras, onAction }: any) {
+    return (
+        <div className="bg-card border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-center font-bold text-xl mb-6 text-primary">{timeNome}</h3>
+            
+            <div className="space-y-6">
+                <div>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase mb-3 block">Pontos Proativos</span>
+                    <div className="grid grid-cols-3 gap-3">
+                        {acoesPonto.map((a: any) => (
+                            <Button key={a.type} onClick={() => onAction(a)} className="flex flex-col h-20 gap-1">
+                                <span className="text-2xl">{a.emoji}</span>
+                                <span className="text-xs">{a.label}</span>
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase mb-3 block">Penalidades / Erros</span>
+                    <div className="grid grid-cols-2 gap-3">
+                        {acoesExtras.map((a: any) => (
+                            <Button key={a.type} variant="outline" onClick={() => onAction(a)} className={cn("flex gap-2 h-12", a.color)}>
+                                <span>{a.emoji}</span>
+                                <span className="text-xs font-bold">{a.label}</span>
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 }

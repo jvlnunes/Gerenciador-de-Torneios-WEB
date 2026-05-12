@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { api, type Match, type Team } from "@/lib/api";
+import { api, type Partida, type Time } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -17,16 +17,16 @@ export const Route = createFileRoute("/tournaments/$id/matches")({
 
 /* ── Status helpers ───────────────────────────────────────── */
 const matchStatusColor: Record<string, string> = {
-  SCHEDULED: "bg-muted text-muted-foreground",
-  WARMUP:    "bg-amber-100 text-amber-700 border-amber-200",
-  LIVE:      "bg-green-100 text-green-700 border-green-200",
-  FINISHED:  "bg-secondary text-secondary-foreground",
+  AGENDADA: "bg-muted text-muted-foreground",
+  AQUECIMENTO: "bg-amber-100 text-amber-700 border-amber-200",
+  AO_VIVO: "bg-green-100 text-green-700 border-green-200",
+  FINALIZADA: "bg-secondary text-secondary-foreground",
 };
 const matchStatusLabel: Record<string, string> = {
-  SCHEDULED: "Agendada",
-  WARMUP:    "Aquecimento",
-  LIVE:      "Ao vivo",
-  FINISHED:  "Finalizada",
+  AGENDADA: "Agendada",
+  AQUECIMENTO: "Aquecimento",
+  AO_VIVO: "Ao vivo",
+  FINALIZADA: "Finalizada",
 };
 
 /* ── Create Match Modal ───────────────────────────────────── */
@@ -37,28 +37,28 @@ function CreateMatchModal({
   onClose,
 }: {
   tournamentId: string;
-  teams: Team[];
-  onCreated: (m: Match) => void;
+  teams: Time[];
+  onCreated: (m: Partida) => void;
   onClose: () => void;
 }) {
   const [homeTeamId, setHomeTeamId] = useState("");
   const [awayTeamId, setAwayTeamId] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
-  const [location, setLocation]     = useState("");
-  const [saving, setSaving]         = useState(false);
-  const [error, setError]           = useState<string | null>(null);
+  const [location, setLocation] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     if (!homeTeamId || !awayTeamId) { setError("Selecione os dois times"); return; }
-    if (homeTeamId === awayTeamId)  { setError("Os times precisam ser diferentes"); return; }
+    if (homeTeamId === awayTeamId) { setError("Os times precisam ser diferentes"); return; }
     setSaving(true); setError(null);
     try {
-      const m = await api.createMatch({
-        tournamentId,
-        homeTeamId,
-        awayTeamId,
-        scheduledAt: scheduledAt || undefined,
-        location: location || undefined,
+      const m = await api.criarPartida({
+        torneioId: tournamentId,
+        timeCasaId: homeTeamId,
+        timeVisitanteId: awayTeamId,
+        agendadoPara: scheduledAt || undefined,
+        local: location || undefined,
       });
       onCreated(m);
     } catch (e) { setError((e as Error).message); }
@@ -86,7 +86,7 @@ function CreateMatchModal({
             <label className="text-sm font-semibold text-foreground">Time da casa *</label>
             <select value={homeTeamId} onChange={e => setHomeTeamId(e.target.value)} className={selectClass}>
               <option value="">— Selecionar time —</option>
-              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {teams.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </select>
           </div>
 
@@ -100,7 +100,7 @@ function CreateMatchModal({
             <label className="text-sm font-semibold text-foreground">Time visitante *</label>
             <select value={awayTeamId} onChange={e => setAwayTeamId(e.target.value)} className={selectClass}>
               <option value="">— Selecionar time —</option>
-              {teams.filter(t => t.id !== homeTeamId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {teams.filter(t => t.id !== homeTeamId).map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </select>
           </div>
 
@@ -150,15 +150,15 @@ function MatchCard({
   onDelete,
   onOpen,
 }: {
-  match: Match;
+  match: Partida;
   canManage: boolean;
   onStart: () => void;
   onDelete: () => void;
   onOpen: () => void;
 }) {
-  const isLive     = match.status === "LIVE";
-  const isFinished = match.status === "FINISHED";
-  const isScheduled = match.status === "SCHEDULED" || match.status === "WARMUP";
+  const isLive = match.status === "AO_VIVO";
+  const isFinished = match.status === "FINALIZADA";
+  const isScheduled = match.status === "AGENDADA" || match.status === "AQUECIMENTO";
 
   return (
     <div
@@ -180,15 +180,15 @@ function MatchCard({
             {matchStatusLabel[match.status] ?? match.status}
           </Badge>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {match.scheduledAt && (
+            {match.agendadoPara && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {new Date(match.scheduledAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                {new Date(match.agendadoPara).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
-            {match.location && (
+            {match.local && (
               <span className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> {match.location}
+                <MapPin className="h-3 w-3" /> {match.local}
               </span>
             )}
           </div>
@@ -200,7 +200,7 @@ function MatchCard({
           onClick={!isScheduled || isLive ? onOpen : undefined}
         >
           <div className="flex-1 text-right">
-            <p className="font-display font-bold text-foreground">{match.homeTeamName}</p>
+            <p className="font-display font-bold text-foreground">{match.nomeTimeCasa}</p>
             <p className="text-xs text-muted-foreground">Casa</p>
           </div>
 
@@ -212,18 +212,18 @@ function MatchCard({
             <div className="px-4 py-2 rounded-xl text-center min-w-[5rem]"
               style={{ background: "linear-gradient(135deg, #0a0a0a, #0a3d1f)" }}>
               <span className="font-display text-2xl font-black text-white">
-                {match.homeSets}–{match.awaySets}
+                {match.setAtualCasa} – {match.setAtualVisitante}
               </span>
               {(isLive) && (
                 <p className="text-[10px] text-white/60 mt-0.5">
-                  {match.currentSetHome}–{match.currentSetAway}
+                  {match.setAtualCasa}–{match.setAtualVisitante}
                 </p>
               )}
             </div>
           )}
 
           <div className="flex-1 text-left">
-            <p className="font-display font-bold text-foreground">{match.awayTeamName}</p>
+            <p className="font-display font-bold text-foreground">{match.nomeTimeVisitante}</p>
             <p className="text-xs text-muted-foreground">Visitante</p>
           </div>
         </div>
@@ -266,20 +266,20 @@ function TournamentMatchesPage() {
   const { id: tournamentId } = Route.useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canManage = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
 
-  const [matches, setMatches]           = useState<Match[]>([]);
-  const [teams, setTeams]               = useState<Team[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [showCreate, setShowCreate]     = useState(false);
-  const [starting, setStarting]         = useState<string | null>(null);
+  const [matches, setMatches] = useState<Partida[]>([]);
+  const [teams, setTeams] = useState<Time[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [starting, setStarting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [ms, ts] = await Promise.all([
-        api.listMatches(tournamentId),
-        api.listTeams(tournamentId),
+        api.listarPartidas(tournamentId),
+        api.listarTimes(tournamentId),
       ]);
       setMatches(ms);
       setTeams(ts);
@@ -291,7 +291,7 @@ function TournamentMatchesPage() {
   const handleStart = async (matchId: string) => {
     setStarting(matchId);
     try {
-      const updated = await api.startMatch(matchId);
+      const updated = await api.começaPartida(matchId);
       setMatches(prev => prev.map(m => m.id === matchId ? updated : m));
       navigate({ to: "/matches/$id", params: { id: matchId } });
     } finally { setStarting(null); }
@@ -299,13 +299,13 @@ function TournamentMatchesPage() {
 
   const handleDelete = async (matchId: string) => {
     if (!confirm("Excluir esta partida?")) return;
-    await api.deleteMatch(matchId);
+    await api.removerPartida(matchId);
     setMatches(prev => prev.filter(m => m.id !== matchId));
   };
 
-  const liveMatches      = matches.filter(m => m.status === "LIVE");
-  const scheduledMatches = matches.filter(m => m.status === "SCHEDULED" || m.status === "WARMUP");
-  const finishedMatches  = matches.filter(m => m.status === "FINISHED");
+  const liveMatches = matches.filter(m => m.status === "AO_VIVO");
+  const scheduledMatches = matches.filter(m => m.status === "AGENDADA" || m.status === "AQUECIMENTO");
+  const finishedMatches = matches.filter(m => m.status === "FINALIZADA");
 
   return (
     <div className="min-h-screen bg-background">

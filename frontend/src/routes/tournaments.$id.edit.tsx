@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { api, type Tournament, type Team, type Player } from "@/lib/api";
+import { api, type Torneio, type Time, type Jogador } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -20,23 +20,23 @@ export const Route = createFileRoute("/tournaments/$id/edit")({
 
 /* ── Status helpers ───────────────────────────────────────── */
 const statusColor: Record<string, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  OPEN: "bg-success/20 text-success border-success/30",
-  ONGOING: "bg-primary/20 text-primary border-primary/30",
-  FINISHED: "bg-secondary text-secondary-foreground",
+  RASCUNHO: "bg-muted text-muted-foreground",
+  ABERTO: "bg-success/20 text-success border-success/30",
+  EM_ANDAMENTO: "bg-primary/20 text-primary border-primary/30",
+  FINALIZADO: "bg-secondary text-secondary-foreground",
 };
 const statusLabel: Record<string, string> = {
-  DRAFT: "Rascunho",
-  OPEN: "Inscrições abertas",
-  ONGOING: "Em andamento",
-  FINISHED: "Finalizado",
+  RASCUNHO: "Rascunho",
+  ABERTO: "Inscrições abertas",
+  EM_ANDAMENTO: "Em andamento",
+  FINALIZADO: "Finalizado",
 };
 
 const isPreparing = (status?: string) => status === "DRAFT" || status === "OPEN";
 
 /* ── Auto-assign jersey number ────────────────────────────── */
-function nextJerseyNumber(players: Player[]): number {
-  const used = new Set(players.map(p => p.jerseyNumber).filter(Boolean) as number[]);
+function nextJerseyNumber(players: Jogador[]): number {
+  const used = new Set(players.map(p => p.numeroCamisa).filter(Boolean) as number[]);
   let n = 1;
   while (used.has(n)) n++;
   return n;
@@ -46,13 +46,13 @@ function nextJerseyNumber(players: Player[]): number {
 function QuickSettingsModal({
   tournament, onClose, onSaved,
 }: {
-  tournament: Tournament;
+  tournament: Torneio;
   onClose: () => void;
-  onSaved: (t: Tournament) => void;
+  onSaved: (t: Torneio) => void;
 }) {
-  const [name, setName]               = useState(tournament.name);
-  const [description, setDescription] = useState(tournament.description ?? "");
-  const [location, setLocation]       = useState(tournament.location ?? "");
+  const [name, setName]               = useState(tournament.nome);
+  const [description, setDescription] = useState(tournament.descricao ?? "");
+  const [location, setLocation]       = useState(tournament.local ?? "");
   const [status, setStatus]           = useState(tournament.status ?? "DRAFT");
   const [saving, setSaving]           = useState(false);
   const [error, setError]             = useState<string | null>(null);
@@ -61,8 +61,8 @@ function QuickSettingsModal({
     if (!name.trim()) { setError("O nome é obrigatório"); return; }
     setSaving(true); setError(null);
     try {
-      const updated = await api.updateTournament(tournament.id, {
-        name, description, location, status: status as Tournament["status"],
+      const updated = await api.atualizarTorneio(tournament.id, {
+        nome: name.trim(), descricao: description, local: location, status: status as Torneio["status"],
       });
       onSaved(updated);
     } catch (e) { setError((e as Error).message); }
@@ -133,7 +133,7 @@ function CreateTeamModal({
   tournamentId, onCreated, onClose,
 }: {
   tournamentId: string;
-  onCreated: (t: Team) => void;
+  onCreated: (t: Time) => void;
   onClose: () => void;
 }) {
   const [name, setName]   = useState("");
@@ -144,7 +144,7 @@ function CreateTeamModal({
     if (!name.trim()) { setError("Informe o nome do time"); return; }
     setSaving(true); setError(null);
     try {
-      const t = await api.createTeam({ tournamentId, name: name.trim() });
+      const t = await api.criarTime({ torneioId:tournamentId, nome: name.trim() });
       onCreated(t);
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
@@ -262,9 +262,9 @@ function AddPlayerRow({
   teamId,
   onCreated,
 }: {
-  players: Player[];
+  players: Jogador[];
   teamId: string;
-  onCreated: (p: Player) => void;
+  onCreated: (p: Jogador) => void;
 }) {
   const [name, setName]       = useState("");
   const [jersey, setJersey]   = useState("");
@@ -278,10 +278,11 @@ function AddPlayerRow({
     setSaving(true); setError(null);
     const jerseyNum = jersey ? Number(jersey) : nextJerseyNumber(players);
     try {
-      const p = await api.createPlayer(teamId, {
-        name: name.trim(),
-        jerseyNumber: jerseyNum,
-        position: position || undefined,
+      const p = await api.criarJogador({
+        timeId: teamId,
+        nome: name.trim(),
+        numeroCamisa: jerseyNum,
+        posicao: position || undefined,
       });
       onCreated(p);
       setName(""); setJersey(""); setPosition("");
@@ -347,28 +348,27 @@ function TeamCard({
   onActivate,
   onDelete,
 }: {
-  team: Team;
+  team: Time;
   isActive: boolean;
   canManage: boolean;
   onActivate: () => void;
   onDelete: () => void;
 }) {
-  const [players, setPlayers]     = useState<Player[]>([]);
+  const [players, setPlayers]     = useState<Jogador[]>([]);
   const [loading, setLoading]     = useState(false);
   const [copied, setCopied]       = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
 
-  // Load players when team becomes active
   useEffect(() => {
     if (!isActive || players.length > 0) return;
     setLoading(true);
-    api.listPlayers(team.id)
+    api.listarJogadores(team.id)
       .then(setPlayers)
       .finally(() => setLoading(false));
   }, [isActive, team.id]);
 
-  const inviteUrl = team.inviteToken
-    ? `${window.location.origin}/join/${team.inviteToken}`
+  const inviteUrl = team.tokenConvite
+    ? `${window.location.origin}/join/${team.tokenConvite}`
     : null;
 
   const copyInvite = async () => {
@@ -386,13 +386,13 @@ function TeamCard({
 
   const deletePlayer = async (playerId: string) => {
     if (!confirm("Remover jogador?")) return;
-    await api.deletePlayer(team.id, playerId);
+    await api.deletarJogador(team.id, playerId);
     setPlayers(prev => prev.filter(p => p.id !== playerId));
   };
 
   const updatePlayer = async (playerId: string, data: Partial<Player>) => {
     try {
-      const updated = await api.updatePlayer(team.id, playerId, data);
+      const updated = await api.atualizarJogador(team.id, playerId, data);
       setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, ...updated } : p));
     } catch (e) { console.error(e); }
   };
@@ -417,7 +417,7 @@ function TeamCard({
           <Shield className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-display font-bold text-foreground">{team.name}</h3>
+          <h3 className="font-display font-bold text-foreground">{team.nome}</h3>
           <p className="text-xs text-muted-foreground">
             {isActive ? players.length : (team.playerCount ?? 0)} jogador{((isActive ? players.length : (team.playerCount ?? 0)) !== 1) ? "es" : ""}
           </p>
@@ -470,7 +470,7 @@ function TeamCard({
                           {/* Jersey */}
                           <div className="text-center">
                             <EditableCell
-                              value={p.jerseyNumber?.toString() ?? ""}
+                              value={p.numeroCamisa?.toString() ?? ""}
                               type="number"
                               placeholder="Nº"
                               onSave={v => updatePlayer(p.id, { jerseyNumber: v ? Number(v) : undefined })}
@@ -478,13 +478,13 @@ function TeamCard({
                           </div>
                           {/* Name */}
                           <EditableCell
-                            value={p.name}
+                            value={p.nome}
                             placeholder="Nome"
                             onSave={v => v.trim() && updatePlayer(p.id, { name: v.trim() })}
                           />
                           {/* Position */}
                           <EditableCell
-                            value={p.position ?? ""}
+                            value={p.posicao ?? ""}
                             placeholder="Posição"
                             isSelect
                             options={POSITIONS}
@@ -545,10 +545,10 @@ function TournamentManagePage() {
   const { id: tournamentId } = Route.useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canManage = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
 
-  const [tournament, setTournament]     = useState<Tournament | null>(null);
-  const [teams, setTeams]               = useState<Team[]>([]);
+  const [tournament, setTournament]     = useState<Torneio | null>(null);
+  const [teams, setTeams]               = useState<Time[]>([]);
   const [loading, setLoading]           = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
@@ -560,9 +560,9 @@ function TournamentManagePage() {
     setLoading(true);
     try {
       const [t, ts, ms] = await Promise.all([
-        api.getTournament(tournamentId),
-        api.listTeams(tournamentId),
-        api.listMatches(tournamentId),
+        api.buscarTorneio(tournamentId),
+        api.listarTimes(tournamentId),
+        api.listarPartidas(tournamentId),
       ]);
       setTournament(t);
       setTeams(ts);
@@ -574,13 +574,12 @@ function TournamentManagePage() {
 
   const deleteTeam = async (id: string) => {
     if (!confirm("Excluir este time?")) return;
-    await api.deleteTeam(id);
+    await api.removerTime(id);
     setTeams(prev => prev.filter(t => t.id !== id));
     if (activeTeamId === id) setActiveTeamId(null);
   };
 
   const handleActivate = (teamId: string) => {
-    // Toggle: click same team to close it, click different to switch
     setActiveTeamId(prev => prev === teamId ? null : teamId);
   };
 
@@ -677,17 +676,17 @@ function TournamentManagePage() {
                 </div>
               )}
               <div>
-                <h1 className="font-display text-2xl font-black text-white leading-tight">{tournament.name}</h1>
+                <h1 className="font-display text-2xl font-black text-white leading-tight">{tournament.nome}</h1>
                 <div className="flex items-center gap-3 mt-0.5">
-                  {tournament.location && (
+                  {tournament.local && (
                     <span className="text-xs text-white/70 flex items-center gap-1">
-                      <MapPin className="h-3 w-3" /> {tournament.location}
+                      <MapPin className="h-3 w-3" /> {tournament.local}
                     </span>
                   )}
-                  {tournament.startDate && (
+                  {tournament.dataInicio && (
                     <span className="text-xs text-white/70 flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {new Date(tournament.startDate).toLocaleDateString("pt-BR")}
+                      {new Date(tournament.dataInicio).toLocaleDateString("pt-BR")}
                     </span>
                   )}
                 </div>

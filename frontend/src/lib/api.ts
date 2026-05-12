@@ -275,20 +275,36 @@ export const api = {
         }
         return request<Time>(`/teams/${id}`, { method: "PUT", body: JSON.stringify(data) });
     },
+    removerTime: async (id: string): Promise<void> => {
+        if (useMock()) {
+            mockSet("vb_times", mockGet<Time>("vb_times").filter(x => x.id !== id));
+            return;
+        }
+        return request<void>(`/teams/${id}`, { method: "DELETE" });
+    },
 
     /* ── Jogadores ────────────────────────────────────────────────── */
     listarJogadores: async (timeId: string): Promise<Jogador[]> => {
-        if (useMock()) return mockGet<Jogador>("vb_jogadores").filter(j => j.timeId === timeId);
+        if (useMock()) {
+            return mockGet<Jogador>("vb_jogadores").filter(j => j.timeId === timeId)
+        };
         return request<Jogador[]>(`/players?teamId=${timeId}`);
     },
     criarJogador: async (data: Omit<Jogador, "id">): Promise<Jogador> => {
         if (useMock()) {
-            const j: Jogador = { ...data, id: crypto.randomUUID(), criadoEm: new Date().toISOString() };
+            const j: Jogador = {
+                ...data,
+                id: crypto.randomUUID(),
+                criadoEm: new Date().toISOString()
+            };
             mockSet("vb_jogadores", [...mockGet<Jogador>("vb_jogadores"), j]);
             return j;
         }
         return request<Jogador>("/players", { method: "POST", body: JSON.stringify(data) });
     },
+    atualizarJogador: async () => { },
+    deletarJogador: async () => { },
+
 
     /* ── Partidas ─────────────────────────────────────────────────── */
     listarPartidas: async (torneioId: string): Promise<Partida[]> => {
@@ -302,9 +318,18 @@ export const api = {
     criarPartida: async (data: Omit<Partida, "id">): Promise<Partida> => {
         if (useMock()) {
             const p: Partida = {
-                ...data, id: crypto.randomUUID(), status: data.status ?? "AGENDADA",
-                setsCasa: 0, setsVisitante: 0, setAtualCasa: 0, setAtualVisitante: 0, sets: [],
-                pontosParaVencerSet: 25, pontosParaVencerUltimoSet: 15, setsParaVencerPartida: 3, titularesPorTime: 6
+                ...data,
+                id: crypto.randomUUID(),
+                status: data.status ?? "AGENDADA",
+                setsCasa: 0, 
+                setsVisitante: 0, 
+                setAtualCasa: 0, 
+                setAtualVisitante: 0, 
+                sets: [],
+                pontosParaVencerSet: 25, 
+                pontosParaVencerUltimoSet: 15, 
+                setsParaVencerPartida: 3, 
+                titularesPorTime: 6
             };
             mockSet("vb_partidas", [...mockGet<Partida>("vb_partidas"), p]);
             return p;
@@ -319,14 +344,15 @@ export const api = {
         }
         return request<Partida>(`/matches/${id}`, { method: "PUT", body: JSON.stringify(data) });
     },
+    removerPartida: async (id: string) => { },
+    começaPartida: async () => { },
+    finalizarPartida: async () => { },
 
-    /* ── Elenco da Partida (Modal de Jogadores) ───────────────────── */
+    /* ── Elenco da Partida───────────────────── */
     listarJogadoresPartida: async (partidaId: string): Promise<JogadorPartida[]> => {
         if (useMock()) {
-            // Se o sistema mockado não tiver jogadores salvos para a partida, simulamos para você testar a UI
             let jogadores = mockGet<JogadorPartida>("vb_jogadores_partida").filter(j => j.partidaId === partidaId);
             if (jogadores.length === 0) {
-                // Preenche dados falsos para você testar a interface de selecionar quem pontuou
                 return [
                     { id: "1", partidaId, jogadorId: "j1", timeId: "tCasa", nomeJogador: "Atleta 1", numeroCamisa: 10, titular: true },
                     { id: "2", partidaId, jogadorId: "j2", timeId: "tCasa", nomeJogador: "Atleta 2", numeroCamisa: 7, titular: true },
@@ -366,7 +392,7 @@ export const api = {
             const todos = mockGet<EventoPartida>("vb_eventos");
             const ativos = todos.filter(e => e.partidaId === partidaId && !e.anulado);
             if (!ativos.length) throw new Error("Sem eventos para anular");
-            
+
             // Pega o ID do último evento e marca como anulado
             const lastId = ativos[ativos.length - 1].id;
             const idx = todos.findIndex(e => e.id === lastId);

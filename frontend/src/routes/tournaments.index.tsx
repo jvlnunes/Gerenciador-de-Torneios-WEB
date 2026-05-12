@@ -4,7 +4,7 @@ import { Trophy, Plus, MapPin, Calendar } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api, type Tournament } from "@/lib/api";
+import { api, type Torneio } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/tournaments/")({
@@ -38,7 +38,7 @@ function TournamentCard({
   onClick,
   onDelete,
 }: {
-  t: Tournament;
+  t: Torneio;
   canManage: boolean;
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
@@ -54,7 +54,7 @@ function TournamentCard({
         {t.bannerUrl ? (
           <img
             src={t.bannerUrl}
-            alt={`Banner ${t.name}`}
+            alt={`Banner ${t.nome}`}
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
@@ -78,7 +78,7 @@ function TournamentCard({
           {t.logoUrl ? (
             <img
               src={t.logoUrl}
-              alt={`Logo ${t.name}`}
+              alt={`Logo ${t.nome}`}
               className="h-12 w-12 rounded-xl object-cover border-2 border-white/40 shadow-md"
             />
           ) : (
@@ -103,28 +103,27 @@ function TournamentCard({
 
       {/* Body */}
       <div className="flex flex-col flex-1 p-5">
-        <h3 className="font-display text-xl font-bold text-foreground leading-tight">{t.name}</h3>
-        {t.description && (
+        <h3 className="font-display text-xl font-bold text-foreground leading-tight">{t.nome}</h3>
+        {t.descricao && (
           <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-            {t.description}
+            {t.descricao}
           </p>
         )}
 
         <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
-          {t.location && (
+          {t.local && (
             <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> {t.location}
+              <MapPin className="h-3 w-3" /> {t.local}
             </span>
           )}
-          {t.startDate && (
+          {t.dataInicio && (
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3 w-3" />{" "}
-              {new Date(t.startDate).toLocaleDateString("pt-BR")}
+              {new Date(t.dataInicio).toLocaleDateString("pt-BR")}
             </span>
           )}
         </div>
 
-        {/* Delete button for managers — stops propagation so card click doesn't fire */}
         {canManage && (
           <div className="mt-auto pt-4 border-t border-border mt-4 flex justify-end">
             <Button
@@ -145,16 +144,16 @@ function TournamentCard({
 function TournamentsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [list, setList] = useState<Tournament[]>([]);
+  const [list, setList] = useState<Torneio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const canManage = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
 
   const load = async () => {
     setLoading(true);
     try {
-      setList(await api.listTournaments());
+      setList(await api.listarTorneios());
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -170,7 +169,7 @@ function TournamentsPage() {
   const remove = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // prevent card click
     if (!confirm("Excluir este torneio?")) return;
-    await api.deleteTournament(id);
+    await api.removerTorneio(id);
     load();
   };
 
