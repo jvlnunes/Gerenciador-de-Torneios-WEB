@@ -266,7 +266,10 @@ export const api = {
         return request<Partida>(`/partidas/${id}`);
     },
     criarPartida: async (data: Omit<Partida, "id">): Promise<Partida> => {
-        return request<Partida>("/partidas", { method: "POST", body: JSON.stringify(data) });
+        return request<Partida>("/partidas", { 
+            method: "POST", 
+            body: JSON.stringify(data) 
+        });
     },
     comecaPartida: async (partidaId: string): Promise<Partida> => {
         return request<Partida>(`/partidas/${partidaId}`, {

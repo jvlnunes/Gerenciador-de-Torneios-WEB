@@ -100,9 +100,25 @@ model Torneio {
   formato      FormatoTorneio      @default(MATA_MATA)
   criadoEm     DateTime            @default(now())
 
+  regras RegrasTorneio?
+
   organizadores OrganizadorTorneios[]
   times         Time[]
   partidas      Partida[]
+}
+
+model RegrasTorneio {
+  id String @id @default(uuid())
+
+  setsParaVencer     Int     @default(2) 
+  pontosPorSet       Int     @default(25) 
+  pontosTieBreak     Int     @default(15) 
+  vantagemDoisPontos Boolean @default(true) 
+
+  limiteJogadoresPorTime Int?
+
+  torneioId String  @unique
+  torneio   Torneio @relation(fields: [torneioId], references: [id], onDelete: Cascade)
 }
 
 model OrganizadorTorneios {
@@ -194,18 +210,18 @@ model JogadorPartida {
 }
 
 model EventoPartida {
-  id              String      @id @default(uuid())
-  indiceSet       Int
-  lado            LadoPonto
+  id        String    @id @default(uuid())
+  indiceSet Int
+  lado      LadoPonto
 
-  tipo            TipoPonto
-  tipoErro        TipoErro?
-  tipoCartao      TipoCartao?
-  
+  tipo       TipoPonto
+  tipoErro   TipoErro?
+  tipoCartao TipoCartao?
+
   placarCasa      Int
   placarVisitante Int
-  horario         DateTime    @default(now())
-  anulado         Boolean     @default(false)
+  horario         DateTime @default(now())
+  anulado         Boolean  @default(false)
 
   partidaId String
   partida   Partida @relation(fields: [partidaId], references: [id], onDelete: Cascade)
