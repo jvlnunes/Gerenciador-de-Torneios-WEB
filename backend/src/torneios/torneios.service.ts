@@ -6,8 +6,17 @@ export class TorneiosService {
   constructor(private prisma: PrismaService) {}
 
   async criar(dados: any) {
+    const dadosTratados = { ...dados };
+
+    if (dadosTratados.dataInicio) {
+      dadosTratados.dataInicio = new Date(dadosTratados.dataInicio);
+    }
+    if (dadosTratados.dataFim) {
+      dadosTratados.dataFim = new Date(dadosTratados.dataFim);
+    }
+
     return this.prisma.torneio.create({
-      data: dados,
+      data: dadosTratados,
     });
   }
 
@@ -24,9 +33,18 @@ export class TorneiosService {
   }
 
   async atualizar(id: string, dados: any) {
+    const dadosTratados = { ...dados };
+
+    if (dadosTratados.dataInicio) {
+      dadosTratados.dataInicio = new Date(dadosTratados.dataInicio);
+    }
+    if (dadosTratados.dataFim) {
+      dadosTratados.dataFim = new Date(dadosTratados.dataFim);
+    }
+
     return this.prisma.torneio.update({
       where: { id },
-      data: dados,
+      data: dadosTratados,
     });
   }
 

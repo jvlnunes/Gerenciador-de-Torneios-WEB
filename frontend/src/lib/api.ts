@@ -31,7 +31,7 @@ export interface Torneio {
     dataFim?: string;
     status?: StatusTorneio;
     visibilidade?: VisibilidadeTorneio;
-    maxTimes?: number;
+    // maxTimes?: number;
     bannerUrl?: string;
     logoUrl?: string;
     tokenConvite?: string;
@@ -104,7 +104,6 @@ export interface Partida {
     setsParaVencerPartida: number;
     titularesPorTime: number;
 }
-
 
 // Funções para calculos 
 
@@ -212,201 +211,105 @@ export const api = {
 
     /* ── Torneios ─────────────────────────────────────────────────── */
     listarTorneios: async (): Promise<Torneio[]> => {
-        if (useMock()) {
-            return mockGet<Torneio>("vb_torneios");
-        }
-        return request<Torneio[]>("/tournaments");
+        return request<Torneio[]>("/torneios");
     },
     buscarTorneio: async (id: string): Promise<Torneio> => {
-        if (useMock()) {
-            const t = mockGetOne<Torneio>("vb_torneios", id);
-            if (!t) throw new Error("Torneio não encontrado");
-            return t;
-        }
-        return request<Torneio>(`/tournaments/${id}`);
+        return request<Torneio>(`/torneios/${id}`);
     },
     criarTorneio: async (data: Omit<Torneio, "id">): Promise<Torneio> => {
-        if (useMock()) {
-            const t: Torneio = {
-                ...data, id: crypto.randomUUID(), tokenConvite: crypto.randomUUID(),
-                status: data.status ?? "RASCUNHO", visibilidade: data.visibilidade ?? "PRIVADO",
-            };
-            mockSet("vb_torneios", [t, ...mockGet<Torneio>("vb_torneios")]);
-            return t;
-        }
-        return request<Torneio>("/tournaments", { method: "POST", body: JSON.stringify(data) });
+        return request<Torneio>("/torneios", { method: "POST", body: JSON.stringify(data) });
     },
     atualizarTorneio: async (id: string, data: Partial<Torneio>): Promise<Torneio> => {
-        if (useMock()) {
-            const lista = mockGet<Torneio>("vb_torneios");
-            const i = lista.findIndex(x => x.id === id);
-            if (i < 0) throw new Error("Não encontrado");
-            lista[i] = { ...lista[i], ...data }; mockSet("vb_torneios", lista); return lista[i];
-        }
-        return request<Torneio>(`/tournaments/${id}`, { method: "PUT", body: JSON.stringify(data) });
+        return request<Torneio>(`/torneios/${id}`, { method: "PUT", body: JSON.stringify(data) });
     },
     removerTorneio: async (id: string): Promise<void> => {
-        if (useMock()) { mockSet("vb_torneios", mockGet<Torneio>("vb_torneios").filter(x => x.id !== id)); return; }
-        return request<void>(`/tournaments/${id}`, { method: "DELETE" });
+        return request<void>(`/torneios/${id}`, { method: "DELETE" });
     },
 
     /* ── Times ────────────────────────────────────────────────────── */
     listarTimes: async (torneioId: string): Promise<Time[]> => {
-        if (useMock()) return mockGet<Time>("vb_times").filter(t => t.torneioId === torneioId);
-        return request<Time[]>(`/teams?tournamentId=${torneioId}`);
+        return request<Time[]>(`/times?torneioId=${torneioId}`);
     },
     buscarTime: async (id: string): Promise<Time> => {
-        if (useMock()) return mockGetOne<Time>("vb_times", id)!;
-        return request<Time>(`/teams/${id}`);
+        return request<Time>(`/times/${id}`);
     },
     criarTime: async (data: Omit<Time, "id">): Promise<Time> => {
-        if (useMock()) {
-            const t: Time = { ...data, id: crypto.randomUUID(), tokenConvite: crypto.randomUUID() };
-            mockSet("vb_times", [...mockGet<Time>("vb_times"), t]);
-            return t;
-        }
-        return request<Time>("/teams", { method: "POST", body: JSON.stringify(data) });
+        return request<Time>("/times", { method: "POST", body: JSON.stringify(data) });
     },
     atualizarTime: async (id: string, data: Partial<Time>): Promise<Time> => {
-        if (useMock()) {
-            const lista = mockGet<Time>("vb_times");
-            const i = lista.findIndex(x => x.id === id);
-            lista[i] = { ...lista[i], ...data }; mockSet("vb_times", lista); return lista[i];
-        }
-        return request<Time>(`/teams/${id}`, { method: "PUT", body: JSON.stringify(data) });
+        return request<Time>(`/times/${id}`, { method: "PUT", body: JSON.stringify(data) });
     },
     removerTime: async (id: string): Promise<void> => {
-        if (useMock()) {
-            mockSet("vb_times", mockGet<Time>("vb_times").filter(x => x.id !== id));
-            return;
-        }
-        return request<void>(`/teams/${id}`, { method: "DELETE" });
+        return request<void>(`/times/${id}`, { method: "DELETE" });
     },
 
     /* ── Jogadores ────────────────────────────────────────────────── */
     listarJogadores: async (timeId: string): Promise<Jogador[]> => {
-        if (useMock()) {
-            return mockGet<Jogador>("vb_jogadores").filter(j => j.timeId === timeId)
-        };
-        return request<Jogador[]>(`/players?teamId=${timeId}`);
+        return request<Jogador[]>(`/jogadores?teamId=${timeId}`);
     },
     criarJogador: async (data: Omit<Jogador, "id">): Promise<Jogador> => {
-        if (useMock()) {
-            const j: Jogador = {
-                ...data,
-                id: crypto.randomUUID(),
-                criadoEm: new Date().toISOString()
-            };
-            mockSet("vb_jogadores", [...mockGet<Jogador>("vb_jogadores"), j]);
-            return j;
-        }
-        return request<Jogador>("/players", { method: "POST", body: JSON.stringify(data) });
+        return request<Jogador>("/jogadores", { method: "POST", body: JSON.stringify(data) });
     },
-    atualizarJogador: async () => { },
-    deletarJogador: async () => { },
+    atualizarJogador: async (timeId: string, jogadorId: string, data: Partial<Jogador>): Promise<Jogador> => {
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}`, { method: "PUT", body: JSON.stringify(data) });
+    },
+    deletarJogador: async (timeId: string, jogadorId: string): Promise<void> => {
+        return request<void>(`/times/${timeId}/jogadores/${jogadorId}`, { method: "DELETE" });
+    },
 
 
     /* ── Partidas ─────────────────────────────────────────────────── */
     listarPartidas: async (torneioId: string): Promise<Partida[]> => {
-        if (useMock()) return mockGet<Partida>("vb_partidas").filter(p => p.torneioId === torneioId);
-        return request<Partida[]>(`/matches?tournamentId=${torneioId}`);
+        return request<Partida[]>(`/partidas?torneioId=${torneioId}`);
     },
     buscarPartida: async (id: string): Promise<Partida> => {
-        if (useMock()) return mockGetOne<Partida>("vb_partidas", id)!;
-        return request<Partida>(`/matches/${id}`);
+        return request<Partida>(`/partidas/${id}`);
     },
     criarPartida: async (data: Omit<Partida, "id">): Promise<Partida> => {
-        if (useMock()) {
-            const p: Partida = {
-                ...data,
-                id: crypto.randomUUID(),
-                status: data.status ?? "AGENDADA",
-                setsCasa: 0, 
-                setsVisitante: 0, 
-                setAtualCasa: 0, 
-                setAtualVisitante: 0, 
-                sets: [],
-                pontosParaVencerSet: 25, 
-                pontosParaVencerUltimoSet: 15, 
-                setsParaVencerPartida: 3, 
-                titularesPorTime: 6
-            };
-            mockSet("vb_partidas", [...mockGet<Partida>("vb_partidas"), p]);
-            return p;
-        }
-        return request<Partida>("/matches", { method: "POST", body: JSON.stringify(data) });
+        return request<Partida>("/partidas", { method: "POST", body: JSON.stringify(data) });
+    },
+    comecaPartida: async (partidaId: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: "AO_VIVO" })
+        });
     },
     atualizarPartida: async (id: string, data: Partial<Partida>): Promise<Partida> => {
-        if (useMock()) {
-            const lista = mockGet<Partida>("vb_partidas");
-            const i = lista.findIndex(x => x.id === id);
-            lista[i] = { ...lista[i], ...data }; mockSet("vb_partidas", lista); return lista[i];
-        }
-        return request<Partida>(`/matches/${id}`, { method: "PUT", body: JSON.stringify(data) });
+        return request<Partida>(`/partidas/${id}`, { 
+            method: "PUT", 
+            body: JSON.stringify(data) 
+        });
     },
-    removerPartida: async (id: string) => { },
-    começaPartida: async () => { },
-    finalizarPartida: async () => { },
+    removerPartida: async (id: string): Promise<void> => {
+        return request<void>(`/partidas/${id}`, { 
+            method: "DELETE" 
+        });
+    },
+    finalizarPartida: async (partidaId: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: "FINALIZADA" })
+        });
+    },
 
     /* ── Elenco da Partida───────────────────── */
     listarJogadoresPartida: async (partidaId: string): Promise<JogadorPartida[]> => {
-        if (useMock()) {
-            let jogadores = mockGet<JogadorPartida>("vb_jogadores_partida").filter(j => j.partidaId === partidaId);
-            if (jogadores.length === 0) {
-                return [
-                    { id: "1", partidaId, jogadorId: "j1", timeId: "tCasa", nomeJogador: "Atleta 1", numeroCamisa: 10, titular: true },
-                    { id: "2", partidaId, jogadorId: "j2", timeId: "tCasa", nomeJogador: "Atleta 2", numeroCamisa: 7, titular: true },
-                    { id: "3", partidaId, jogadorId: "j3", timeId: "tVisitante", nomeJogador: "Atleta 3", numeroCamisa: 11, titular: true },
-                    { id: "4", partidaId, jogadorId: "j4", timeId: "tVisitante", nomeJogador: "Atleta 4", numeroCamisa: 9, titular: true },
-                ];
-            }
-            return jogadores;
-        }
-        return request<JogadorPartida[]>(`/matches/${partidaId}/players`);
+        return request<JogadorPartida[]>(`/partidas/${partidaId}/jogadores`);
     },
 
     /* ── Eventos / Placar Ao Vivo ─────────────────────────────────── */
     listarEventosPartida: async (partidaId: string): Promise<EventoPartida[]> => {
-        if (useMock()) return mockGet<EventoPartida>("vb_eventos").filter(e => e.partidaId === partidaId && !e.anulado);
-        return request<EventoPartida[]>(`/matches/${partidaId}/events`);
+        return request<EventoPartida[]>(`/partidas/${partidaId}/eventos`);
     },
     registrarEvento: async (partidaId: string, data: Omit<EventoPartida, "id" | "partidaId" | "horario">): Promise<{ evento: EventoPartida; partida: Partida }> => {
-        if (useMock()) {
-            // Cria o evento
-            const evento: EventoPartida = { ...data, id: crypto.randomUUID(), partidaId, horario: new Date().toISOString() };
-            const todosEventos = [...mockGet<EventoPartida>("vb_eventos"), evento];
-            mockSet("vb_eventos", todosEventos);
-
-            // Recalcula o placar da partida com o novo evento e salva
-            let partida = mockGetOne<Partida>("vb_partidas", partidaId);
-            if (partida) {
-                partida = recalcularPartida(partida, todosEventos);
-                await api.atualizarPartida(partidaId, partida);
-            }
-            return { evento, partida: partida! };
-        }
-        return request(`/matches/${partidaId}/events`, { method: "POST", body: JSON.stringify(data) });
+        return request(`/partidas/${partidaId}/eventos`, { 
+            method: "POST", 
+            body: JSON.stringify(data) 
+        });
     },
     anularUltimoEvento: async (partidaId: string): Promise<{ partida: Partida }> => {
-        if (useMock()) {
-            const todos = mockGet<EventoPartida>("vb_eventos");
-            const ativos = todos.filter(e => e.partidaId === partidaId && !e.anulado);
-            if (!ativos.length) throw new Error("Sem eventos para anular");
-
-            // Pega o ID do último evento e marca como anulado
-            const lastId = ativos[ativos.length - 1].id;
-            const idx = todos.findIndex(e => e.id === lastId);
-            todos[idx].anulado = true;
-            mockSet("vb_eventos", todos);
-
-            // Recalcula o placar removendo o efeito daquele ponto/erro
-            let partida = mockGetOne<Partida>("vb_partidas", partidaId);
-            if (partida) {
-                partida = recalcularPartida(partida, todos);
-                await api.atualizarPartida(partidaId, partida);
-            }
-            return { partida: partida! };
-        }
-        return request(`/matches/${partidaId}/events/void-last`, { method: "POST" });
+        return request(`/partidas/${partidaId}/eventos/anular-ultimo`, { 
+            method: "POST" 
+        });
     }
 };

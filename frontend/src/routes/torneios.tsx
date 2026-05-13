@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 // (/tournaments/new e /tournaments/$id/edit) sejam exibidas.
 // A lista de torneios ficou em tournaments.index.tsx
 
-export const Route = createFileRoute("/tournaments")({
+export const Route = createFileRoute("/torneios")({
   component: TournamentsLayout,
   errorComponent: ({ error, reset }) => (
     <div className="min-h-screen bg-background">

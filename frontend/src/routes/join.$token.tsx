@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { api, type Team } from "@/lib/api";
+import { api, type Time } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,13 @@ function JoinTeamPage() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [team, setTeam]       = useState<(Team & { tournamentName: string }) | null>(null);
+  const [team, setTeam]       = useState<(Time & { tournamentName: string }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [joined, setJoined]   = useState(false);
   const [submitting, setSub]  = useState(false);
 
-  const [name, setName]           = useState(user?.name ?? "");
+  const [name, setName]           = useState(user?.nome ?? "");
   const [jersey, setJersey]       = useState("");
   const [position, setPosition]   = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ function JoinTeamPage() {
   }, [token]);
 
   useEffect(() => {
-    if (user?.name) setName(user.name);
+    if (user?.nome) setName(user.nome);
   }, [user]);
 
   const handleJoin = async () => {
@@ -68,7 +68,7 @@ function JoinTeamPage() {
         </div>
         <h1 className="font-display text-2xl font-bold text-foreground">Link inválido</h1>
         <p className="text-muted-foreground text-sm">{error ?? "Este link de convite não existe ou expirou."}</p>
-        <Button asChild><Link to="/tournaments">Ver torneios</Link></Button>
+        <Button asChild><Link to="/torneios">Ver torneios</Link></Button>
       </div>
     </div>
   );
@@ -82,9 +82,9 @@ function JoinTeamPage() {
         </div>
         <h1 className="font-display text-2xl font-bold text-foreground">Você entrou no time!</h1>
         <p className="text-muted-foreground text-sm">
-          Bem-vindo ao <strong>{team.name}</strong> — {team.tournamentName}
+          Bem-vindo ao <strong>{team.nome}</strong> — {team.tournamentName}
         </p>
-        <Button asChild><Link to="/tournaments">Ver torneios</Link></Button>
+        <Button asChild><Link to="/torneios">Ver torneios</Link></Button>
       </div>
     </div>
   );
@@ -102,10 +102,10 @@ function JoinTeamPage() {
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide flex items-center justify-center gap-1">
               <Trophy className="h-3 w-3" /> {team.tournamentName}
             </p>
-            <h1 className="font-display text-3xl font-bold text-foreground mt-1">{team.name}</h1>
+            <h1 className="font-display text-3xl font-bold text-foreground mt-1">{team.nome}</h1>
           </div>
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5">
-            <Users className="h-4 w-4" /> {team.playerCount ?? 0} jogador{(team.playerCount ?? 0) !== 1 ? "es" : ""} no time
+            <Users className="h-4 w-4" /> {team.quantidadeJogadores ?? 0} jogador{(team.quantidadeJogadores ?? 0) !== 1 ? "es" : ""} no time
           </p>
         </div>
 

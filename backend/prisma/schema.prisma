@@ -197,9 +197,11 @@ model EventoPartida {
   id              String      @id @default(uuid())
   indiceSet       Int
   lado            LadoPonto
+
   tipo            TipoPonto
   tipoErro        TipoErro?
   tipoCartao      TipoCartao?
+  
   placarCasa      Int
   placarVisitante Int
   horario         DateTime    @default(now())

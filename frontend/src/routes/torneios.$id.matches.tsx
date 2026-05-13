@@ -11,7 +11,7 @@ import {
   Clock, CheckCircle2, X, Calendar, MapPin, Trash2,
 } from "lucide-react";
 
-export const Route = createFileRoute("/tournaments/$id/matches")({
+export const Route = createFileRoute("/torneios/$id/matches")({
   component: TournamentMatchesPage,
 });
 
@@ -59,7 +59,7 @@ function CreateMatchModal({
         timeVisitanteId: awayTeamId,
         agendadoPara: scheduledAt || undefined,
         local: location || undefined,
-      });
+      } as unknown as Omit<Partida, "id">);
       onCreated(m);
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
@@ -291,9 +291,9 @@ function TournamentMatchesPage() {
   const handleStart = async (matchId: string) => {
     setStarting(matchId);
     try {
-      const updated = await api.começaPartida(matchId);
+      const updated = await api.comecaPartida(matchId);
       setMatches(prev => prev.map(m => m.id === matchId ? updated : m));
-      navigate({ to: "/matches/$id", params: { id: matchId } });
+      navigate({ to: "/partidas/$id", params: { id: matchId } });
     } finally { setStarting(null); }
   };
 
@@ -303,9 +303,9 @@ function TournamentMatchesPage() {
     setMatches(prev => prev.filter(m => m.id !== matchId));
   };
 
-  const liveMatches = matches.filter(m => m.status === "AO_VIVO");
+  const liveMatches      = matches.filter(m => m.status === "AO_VIVO");
   const scheduledMatches = matches.filter(m => m.status === "AGENDADA" || m.status === "AQUECIMENTO");
-  const finishedMatches = matches.filter(m => m.status === "FINALIZADA");
+  const finishedMatches  = matches.filter(m => m.status === "FINALIZADA");
 
   return (
     <div className="min-h-screen bg-background">
@@ -323,7 +323,7 @@ function TournamentMatchesPage() {
       <div className="container mx-auto max-w-2xl px-4 py-10">
         {/* Back */}
         <Link
-          to="/tournaments/$id/edit"
+          to="/torneios/$id/edit"
           params={{ id: tournamentId }}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
@@ -368,7 +368,7 @@ function TournamentMatchesPage() {
             )}
             {teams.length < 2 && (
               <Button variant="outline" className="mt-6 gap-2" asChild>
-                <Link to="/tournaments/$id/edit" params={{ id: tournamentId }}>
+                <Link to="/torneios/$id/edit" params={{ id: tournamentId }}>
                   Adicionar times
                 </Link>
               </Button>
@@ -389,7 +389,7 @@ function TournamentMatchesPage() {
                     canManage={canManage}
                     onStart={() => handleStart(m.id)}
                     onDelete={() => handleDelete(m.id)}
-                    onOpen={() => navigate({ to: "/matches/$id", params: { id: m.id } })}
+                    onOpen={() => navigate({ to: "/partidas/$id", params: { id: m.id } })}
                   />
                 ))}
               </section>
@@ -408,7 +408,7 @@ function TournamentMatchesPage() {
                     canManage={canManage}
                     onStart={() => handleStart(m.id)}
                     onDelete={() => handleDelete(m.id)}
-                    onOpen={() => navigate({ to: "/matches/$id", params: { id: m.id } })}
+                    onOpen={() => navigate({ to: "/partidas/$id", params: { id: m.id } })}
                   />
                 ))}
                 {/* Loading overlay for individual match being started */}
@@ -433,7 +433,7 @@ function TournamentMatchesPage() {
                     canManage={canManage}
                     onStart={() => handleStart(m.id)}
                     onDelete={() => handleDelete(m.id)}
-                    onOpen={() => navigate({ to: "/matches/$id", params: { id: m.id } })}
+                    onOpen={() => navigate({ to: "/partidas/$id", params: { id: m.id } })}
                   />
                 ))}
               </section>

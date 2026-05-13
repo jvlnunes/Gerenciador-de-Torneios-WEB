@@ -9,19 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TournamentsRouteImport } from './routes/tournaments'
+import { Route as TorneiosRouteImport } from './routes/torneios'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TournamentsIndexRouteImport } from './routes/tournaments.index'
-import { Route as TournamentsNewRouteImport } from './routes/tournaments.new'
-import { Route as MatchesIdRouteImport } from './routes/matches.$id'
+import { Route as TorneiosIndexRouteImport } from './routes/torneios.index'
+import { Route as TorneiosNewRouteImport } from './routes/torneios.new'
+import { Route as PartidasIdRouteImport } from './routes/partidas.$id'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
-import { Route as TournamentsIdMatchesRouteImport } from './routes/tournaments.$id.matches'
-import { Route as TournamentsIdEditRouteImport } from './routes/tournaments.$id.edit'
+import { Route as TorneiosIdMatchesRouteImport } from './routes/torneios.$id.matches'
+import { Route as TorneiosIdEditRouteImport } from './routes/torneios.$id.edit'
 
-const TournamentsRoute = TournamentsRouteImport.update({
-  id: '/tournaments',
-  path: '/tournaments',
+const TorneiosRoute = TorneiosRouteImport.update({
+  id: '/torneios',
+  path: '/torneios',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -34,19 +34,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TournamentsIndexRoute = TournamentsIndexRouteImport.update({
+const TorneiosIndexRoute = TorneiosIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => TournamentsRoute,
+  getParentRoute: () => TorneiosRoute,
 } as any)
-const TournamentsNewRoute = TournamentsNewRouteImport.update({
+const TorneiosNewRoute = TorneiosNewRouteImport.update({
   id: '/new',
   path: '/new',
-  getParentRoute: () => TournamentsRoute,
+  getParentRoute: () => TorneiosRoute,
 } as any)
-const MatchesIdRoute = MatchesIdRouteImport.update({
-  id: '/matches/$id',
-  path: '/matches/$id',
+const PartidasIdRoute = PartidasIdRouteImport.update({
+  id: '/partidas/$id',
+  path: '/partidas/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JoinTokenRoute = JoinTokenRouteImport.update({
@@ -54,100 +54,100 @@ const JoinTokenRoute = JoinTokenRouteImport.update({
   path: '/join/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TournamentsIdMatchesRoute = TournamentsIdMatchesRouteImport.update({
+const TorneiosIdMatchesRoute = TorneiosIdMatchesRouteImport.update({
   id: '/$id/matches',
   path: '/$id/matches',
-  getParentRoute: () => TournamentsRoute,
+  getParentRoute: () => TorneiosRoute,
 } as any)
-const TournamentsIdEditRoute = TournamentsIdEditRouteImport.update({
+const TorneiosIdEditRoute = TorneiosIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
-  getParentRoute: () => TournamentsRoute,
+  getParentRoute: () => TorneiosRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/tournaments': typeof TournamentsRouteWithChildren
+  '/torneios': typeof TorneiosRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
-  '/matches/$id': typeof MatchesIdRoute
-  '/tournaments/new': typeof TournamentsNewRoute
-  '/tournaments/': typeof TournamentsIndexRoute
-  '/tournaments/$id/edit': typeof TournamentsIdEditRoute
-  '/tournaments/$id/matches': typeof TournamentsIdMatchesRoute
+  '/partidas/$id': typeof PartidasIdRoute
+  '/torneios/new': typeof TorneiosNewRoute
+  '/torneios/': typeof TorneiosIndexRoute
+  '/torneios/$id/edit': typeof TorneiosIdEditRoute
+  '/torneios/$id/matches': typeof TorneiosIdMatchesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/join/$token': typeof JoinTokenRoute
-  '/matches/$id': typeof MatchesIdRoute
-  '/tournaments/new': typeof TournamentsNewRoute
-  '/tournaments': typeof TournamentsIndexRoute
-  '/tournaments/$id/edit': typeof TournamentsIdEditRoute
-  '/tournaments/$id/matches': typeof TournamentsIdMatchesRoute
+  '/partidas/$id': typeof PartidasIdRoute
+  '/torneios/new': typeof TorneiosNewRoute
+  '/torneios': typeof TorneiosIndexRoute
+  '/torneios/$id/edit': typeof TorneiosIdEditRoute
+  '/torneios/$id/matches': typeof TorneiosIdMatchesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/tournaments': typeof TournamentsRouteWithChildren
+  '/torneios': typeof TorneiosRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
-  '/matches/$id': typeof MatchesIdRoute
-  '/tournaments/new': typeof TournamentsNewRoute
-  '/tournaments/': typeof TournamentsIndexRoute
-  '/tournaments/$id/edit': typeof TournamentsIdEditRoute
-  '/tournaments/$id/matches': typeof TournamentsIdMatchesRoute
+  '/partidas/$id': typeof PartidasIdRoute
+  '/torneios/new': typeof TorneiosNewRoute
+  '/torneios/': typeof TorneiosIndexRoute
+  '/torneios/$id/edit': typeof TorneiosIdEditRoute
+  '/torneios/$id/matches': typeof TorneiosIdMatchesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
-    | '/tournaments'
+    | '/torneios'
     | '/join/$token'
-    | '/matches/$id'
-    | '/tournaments/new'
-    | '/tournaments/'
-    | '/tournaments/$id/edit'
-    | '/tournaments/$id/matches'
+    | '/partidas/$id'
+    | '/torneios/new'
+    | '/torneios/'
+    | '/torneios/$id/edit'
+    | '/torneios/$id/matches'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/join/$token'
-    | '/matches/$id'
-    | '/tournaments/new'
-    | '/tournaments'
-    | '/tournaments/$id/edit'
-    | '/tournaments/$id/matches'
+    | '/partidas/$id'
+    | '/torneios/new'
+    | '/torneios'
+    | '/torneios/$id/edit'
+    | '/torneios/$id/matches'
   id:
     | '__root__'
     | '/'
     | '/login'
-    | '/tournaments'
+    | '/torneios'
     | '/join/$token'
-    | '/matches/$id'
-    | '/tournaments/new'
-    | '/tournaments/'
-    | '/tournaments/$id/edit'
-    | '/tournaments/$id/matches'
+    | '/partidas/$id'
+    | '/torneios/new'
+    | '/torneios/'
+    | '/torneios/$id/edit'
+    | '/torneios/$id/matches'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
-  TournamentsRoute: typeof TournamentsRouteWithChildren
+  TorneiosRoute: typeof TorneiosRouteWithChildren
   JoinTokenRoute: typeof JoinTokenRoute
-  MatchesIdRoute: typeof MatchesIdRoute
+  PartidasIdRoute: typeof PartidasIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tournaments': {
-      id: '/tournaments'
-      path: '/tournaments'
-      fullPath: '/tournaments'
-      preLoaderRoute: typeof TournamentsRouteImport
+    '/torneios': {
+      id: '/torneios'
+      path: '/torneios'
+      fullPath: '/torneios'
+      preLoaderRoute: typeof TorneiosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -164,25 +164,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tournaments/': {
-      id: '/tournaments/'
+    '/torneios/': {
+      id: '/torneios/'
       path: '/'
-      fullPath: '/tournaments/'
-      preLoaderRoute: typeof TournamentsIndexRouteImport
-      parentRoute: typeof TournamentsRoute
+      fullPath: '/torneios/'
+      preLoaderRoute: typeof TorneiosIndexRouteImport
+      parentRoute: typeof TorneiosRoute
     }
-    '/tournaments/new': {
-      id: '/tournaments/new'
+    '/torneios/new': {
+      id: '/torneios/new'
       path: '/new'
-      fullPath: '/tournaments/new'
-      preLoaderRoute: typeof TournamentsNewRouteImport
-      parentRoute: typeof TournamentsRoute
+      fullPath: '/torneios/new'
+      preLoaderRoute: typeof TorneiosNewRouteImport
+      parentRoute: typeof TorneiosRoute
     }
-    '/matches/$id': {
-      id: '/matches/$id'
-      path: '/matches/$id'
-      fullPath: '/matches/$id'
-      preLoaderRoute: typeof MatchesIdRouteImport
+    '/partidas/$id': {
+      id: '/partidas/$id'
+      path: '/partidas/$id'
+      fullPath: '/partidas/$id'
+      preLoaderRoute: typeof PartidasIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/join/$token': {
@@ -192,47 +192,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tournaments/$id/matches': {
-      id: '/tournaments/$id/matches'
+    '/torneios/$id/matches': {
+      id: '/torneios/$id/matches'
       path: '/$id/matches'
-      fullPath: '/tournaments/$id/matches'
-      preLoaderRoute: typeof TournamentsIdMatchesRouteImport
-      parentRoute: typeof TournamentsRoute
+      fullPath: '/torneios/$id/matches'
+      preLoaderRoute: typeof TorneiosIdMatchesRouteImport
+      parentRoute: typeof TorneiosRoute
     }
-    '/tournaments/$id/edit': {
-      id: '/tournaments/$id/edit'
+    '/torneios/$id/edit': {
+      id: '/torneios/$id/edit'
       path: '/$id/edit'
-      fullPath: '/tournaments/$id/edit'
-      preLoaderRoute: typeof TournamentsIdEditRouteImport
-      parentRoute: typeof TournamentsRoute
+      fullPath: '/torneios/$id/edit'
+      preLoaderRoute: typeof TorneiosIdEditRouteImport
+      parentRoute: typeof TorneiosRoute
     }
   }
 }
 
-interface TournamentsRouteChildren {
-  TournamentsNewRoute: typeof TournamentsNewRoute
-  TournamentsIndexRoute: typeof TournamentsIndexRoute
-  TournamentsIdEditRoute: typeof TournamentsIdEditRoute
-  TournamentsIdMatchesRoute: typeof TournamentsIdMatchesRoute
+interface TorneiosRouteChildren {
+  TorneiosNewRoute: typeof TorneiosNewRoute
+  TorneiosIndexRoute: typeof TorneiosIndexRoute
+  TorneiosIdEditRoute: typeof TorneiosIdEditRoute
+  TorneiosIdMatchesRoute: typeof TorneiosIdMatchesRoute
 }
 
-const TournamentsRouteChildren: TournamentsRouteChildren = {
-  TournamentsNewRoute: TournamentsNewRoute,
-  TournamentsIndexRoute: TournamentsIndexRoute,
-  TournamentsIdEditRoute: TournamentsIdEditRoute,
-  TournamentsIdMatchesRoute: TournamentsIdMatchesRoute,
+const TorneiosRouteChildren: TorneiosRouteChildren = {
+  TorneiosNewRoute: TorneiosNewRoute,
+  TorneiosIndexRoute: TorneiosIndexRoute,
+  TorneiosIdEditRoute: TorneiosIdEditRoute,
+  TorneiosIdMatchesRoute: TorneiosIdMatchesRoute,
 }
 
-const TournamentsRouteWithChildren = TournamentsRoute._addFileChildren(
-  TournamentsRouteChildren,
+const TorneiosRouteWithChildren = TorneiosRoute._addFileChildren(
+  TorneiosRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
-  TournamentsRoute: TournamentsRouteWithChildren,
+  TorneiosRoute: TorneiosRouteWithChildren,
   JoinTokenRoute: JoinTokenRoute,
-  MatchesIdRoute: MatchesIdRoute,
+  PartidasIdRoute: PartidasIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

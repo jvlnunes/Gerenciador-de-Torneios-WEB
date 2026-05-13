@@ -69,7 +69,7 @@ function Index() {
                 className="h-12 px-7 font-bold text-sm tracking-wide"
                 style={{ background: "#00843D", color: "#fff", border: "none" }}
               >
-                <Link to="/tournaments/new">
+                <Link to="/torneios/new">
                   Criar torneio <ChevronRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
@@ -78,7 +78,7 @@ function Index() {
                 className="h-12 px-7 font-bold text-sm"
                 style={{ borderColor: "rgba(255,255,255,0.20)", background: "rgba(255,255,255,0.05)", color: "#fff" }}
               >
-                <Link to="/tournaments">Ver torneios</Link>
+                <Link to="/torneios">Ver torneios</Link>
               </Button>
             </div>
 
@@ -264,7 +264,7 @@ function Index() {
               className="mt-8 h-12 px-10 font-bold"
               style={{ background: "#00843D", color: "#fff", border: "none" }}
             >
-              <Link to="/tournaments/new">
+              <Link to="/torneios/new">
                 Criar torneio <ChevronRight className="ml-1 h-5 w-5" />
               </Link>
             </Button>

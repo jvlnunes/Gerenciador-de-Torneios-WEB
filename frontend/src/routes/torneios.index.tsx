@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { api, type Torneio } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/tournaments/")({
+export const Route = createFileRoute("/torneios/")({
   head: () => ({
     meta: [
       { title: "Torneios — VolleyHub" },
@@ -188,7 +188,7 @@ function TournamentsPage() {
           </div>
           {canManage && (
             <Button asChild>
-              <Link to="/tournaments/new">
+              <Link to="/torneios/new">
                 <Plus className="mr-1 h-4 w-4" /> Novo torneio
               </Link>
             </Button>
@@ -216,7 +216,7 @@ function TournamentsPage() {
             <p className="mt-2 text-muted-foreground">Crie o primeiro torneio para começar.</p>
             {canManage ? (
               <Button className="mt-6" asChild>
-                <Link to="/tournaments/new">
+                <Link to="/torneios/new">
                   <Plus className="mr-1 h-4 w-4" /> Criar torneio
                 </Link>
               </Button>
@@ -235,7 +235,7 @@ function TournamentsPage() {
                 key={t.id}
                 t={t}
                 canManage={canManage}
-                onClick={() => navigate({ to: "/tournaments/$id/edit", params: { id: t.id } })}
+                onClick={() => navigate({ to: "/torneios/$id/edit", params: { id: t.id } })}
                 onDelete={(e) => remove(e, t.id)}
               />
             ))}

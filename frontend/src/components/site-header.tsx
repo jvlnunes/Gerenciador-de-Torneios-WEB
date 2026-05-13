@@ -20,7 +20,7 @@ export function SiteHeader() {
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "text-primary" }} className="hover:text-primary transition-colors">
             Início
           </Link>
-          <Link to="/tournaments" activeProps={{ className: "text-primary" }} className="hover:text-primary transition-colors">
+          <Link to="/torneios" activeProps={{ className: "text-primary" }} className="hover:text-primary transition-colors">
             Torneios
           </Link>
         </nav>
@@ -28,8 +28,8 @@ export function SiteHeader() {
           {isAuthenticated ? (
             <>
               <span className="hidden text-sm text-muted-foreground sm:inline">
-                Olá, <span className="font-semibold text-foreground">{user?.name}</span>
-                <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{user?.role}</span>
+                Olá, <span className="font-semibold text-foreground">{user?.nome}</span>
+                <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{user?.perfil}</span>
               </span>
               <Button variant="ghost" size="sm" onClick={() => { logout(); navigate({ to: "/" }); }}>
                 <LogOut className="h-4 w-4" />

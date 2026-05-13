@@ -4,21 +4,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, type Tournament } from "@/lib/api";
+import { api, type Torneio } from "@/lib/api";
 
 interface Props {
-  initial?: Tournament;
-  onDone: (t: Tournament) => void;
+  initial?: Torneio;
+  onDone: (t: Torneio) => void;
 }
 
 export function TournamentForm({ initial, onDone }: Props) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [description, setDescription] = useState(initial?.description ?? "");
-  const [location, setLocation] = useState(initial?.location ?? "");
-  const [startDate, setStartDate] = useState(initial?.startDate?.slice(0, 10) ?? "");
-  const [endDate, setEndDate] = useState(initial?.endDate?.slice(0, 10) ?? "");
-  const [maxTeams, setMaxTeams] = useState<number>(initial?.maxTeams ?? 8);
-  const [status, setStatus] = useState<NonNullable<Tournament["status"]>>(initial?.status ?? "DRAFT");
+  const [name, setName] = useState(initial?.nome ?? "");
+  const [description, setDescription] = useState(initial?.descricao ?? "");
+  const [location, setLocation] = useState(initial?.local ?? "");
+  const [startDate, setStartDate] = useState(initial?.dataInicio?.slice(0, 10) ?? "");
+  const [endDate, setEndDate] = useState(initial?.dataFim?.slice(0, 10) ?? "");
+  // const [maxTeams, setMaxTeams] = useState<number>(initial?.maxTeams ?? 8);
+  const [status, setStatus] = useState<NonNullable<Torneio["status"]>>(initial?.status ?? "RASCUNHO");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,10 +27,10 @@ export function TournamentForm({ initial, onDone }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const payload = { name, description, location, startDate, endDate, maxTeams: Number(maxTeams), status };
+      const payload = { nome: name, descricao: description, local: location, dataInicio: startDate, dataFim: endDate, status };
       const t = initial
-        ? await api.updateTournament(initial.id, payload)
-        : await api.createTournament(payload);
+        ? await api.atualizarTorneio(initial.id, payload)
+        : await api.criarTorneio(payload);
       onDone(t);
     } catch (e) {
       setError((e as Error).message);
@@ -54,10 +54,10 @@ export function TournamentForm({ initial, onDone }: Props) {
           <Label htmlFor="loc">Local</Label>
           <Input id="loc" value={location} onChange={e => setLocation(e.target.value)} placeholder="Ginásio Municipal" />
         </div>
-        <div className="grid gap-2">
+        {/* <div className="grid gap-2">
           <Label htmlFor="max">Máx. de times</Label>
           <Input id="max" type="number" min={2} value={maxTeams} onChange={e => setMaxTeams(Number(e.target.value))} />
-        </div>
+        </div> */}
         <div className="grid gap-2">
           <Label htmlFor="start">Data de início</Label>
           <Input id="start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />

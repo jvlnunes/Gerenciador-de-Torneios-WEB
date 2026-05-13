@@ -212,10 +212,10 @@ export function CreateTournamentForm() {
         local: basicInfo.location,
         dataInicio: basicInfo.startDate || undefined,
         dataFim: basicInfo.endDate || undefined,
-        maxTimes: basicInfo.maxTeams,
+        // maxTimes: basicInfo.maxTeams,
         status: basicInfo.status,
       })
-      navigate({ to: "/tournaments" })
+      navigate({ to: "/torneios" })
     } catch (e) {
       setError((e as Error).message)
       setSubmitting(false)

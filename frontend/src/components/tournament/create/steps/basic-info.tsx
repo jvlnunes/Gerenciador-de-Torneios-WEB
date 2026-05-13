@@ -12,8 +12,8 @@ interface BasicInfoData {
   location: string
   startDate: string
   endDate: string
-  maxTeams: number
-  status: "DRAFT" | "OPEN" | "ONGOING" | "FINISHED"
+  // maxTeams: number
+  status: "RASCUNHO" | "ABERTO" | "EM_ANDAMENTO" | "FINALIZADO"
 }
 
 interface Props {
@@ -138,10 +138,10 @@ export function BasicInfoStep({ data, setData, onNext }: Props) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="DRAFT">🗒️ Rascunho</SelectItem>
-            <SelectItem value="OPEN">✅ Inscrições abertas</SelectItem>
-            <SelectItem value="ONGOING">🏐 Em andamento</SelectItem>
-            <SelectItem value="FINISHED">🏆 Finalizado</SelectItem>
+            <SelectItem value="RASCUNHO">🗒️ Rascunho</SelectItem>
+            <SelectItem value="ABERTO">✅ Inscrições abertas</SelectItem>
+            <SelectItem value="EM_ANDAMENTO">🏐 Em andamento</SelectItem>
+            {/* <SelectItem value="FINALIZADO">🏆 Finalizado</SelectItem> */}
           </SelectContent>
         </Select>
       </div>

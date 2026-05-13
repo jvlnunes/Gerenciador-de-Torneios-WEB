@@ -14,7 +14,7 @@ import {
   Calendar, ChevronRight, Trash2, Link2, RefreshCw, ChevronDown,
 } from "lucide-react";
 
-export const Route = createFileRoute("/tournaments/$id/edit")({
+export const Route = createFileRoute("/torneios/$id/edit")({
   component: TournamentManagePage,
 });
 
@@ -109,10 +109,10 @@ function QuickSettingsModal({
               onChange={e => setStatus(e.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="DRAFT">🗒️ Rascunho</option>
-              <option value="OPEN">✅ Inscrições abertas</option>
-              <option value="ONGOING">🏐 Em andamento</option>
-              <option value="FINISHED">🏆 Finalizado</option>
+              <option value="RASCUNHO">🗒️ Rascunho</option>
+              <option value="ABERTO">✅ Inscrições abertas</option>
+              <option value="EM_ANDAMENTO">🏐 Em andamento</option>
+              <option value="FINALIZADO">🏆 Finalizado</option>
             </select>
           </div>
         </div>
@@ -130,9 +130,9 @@ function QuickSettingsModal({
 
 /* ── Create Team Modal ────────────────────────────────────── */
 function CreateTeamModal({
-  tournamentId, onCreated, onClose,
+  torneioId, onCreated, onClose,
 }: {
-  tournamentId: string;
+  torneioId: string;
   onCreated: (t: Time) => void;
   onClose: () => void;
 }) {
@@ -144,7 +144,7 @@ function CreateTeamModal({
     if (!name.trim()) { setError("Informe o nome do time"); return; }
     setSaving(true); setError(null);
     try {
-      const t = await api.criarTime({ torneioId:tournamentId, nome: name.trim() });
+      const t = await api.criarTime({ torneioId:torneioId, nome: name.trim() });
       onCreated(t);
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
@@ -380,8 +380,8 @@ function TeamCard({
 
   const regenInvite = async () => {
     setRegenLoading(true);
-    try { await api.regenerateTeamInvite(team.id); }
-    finally { setRegenLoading(false); }
+    // try { await api.regenerateTeamInvite(team.id); }
+    // finally { setRegenLoading(false); }
   };
 
   const deletePlayer = async (playerId: string) => {
@@ -390,7 +390,7 @@ function TeamCard({
     setPlayers(prev => prev.filter(p => p.id !== playerId));
   };
 
-  const updatePlayer = async (playerId: string, data: Partial<Player>) => {
+  const updatePlayer = async (playerId: string, data: Partial<Jogador>) => {
     try {
       const updated = await api.atualizarJogador(team.id, playerId, data);
       setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, ...updated } : p));
@@ -419,7 +419,7 @@ function TeamCard({
         <div className="flex-1 min-w-0">
           <h3 className="font-display font-bold text-foreground">{team.nome}</h3>
           <p className="text-xs text-muted-foreground">
-            {isActive ? players.length : (team.playerCount ?? 0)} jogador{((isActive ? players.length : (team.playerCount ?? 0)) !== 1) ? "es" : ""}
+            {isActive ? players.length : (team.quantidadeJogadores ?? 0)} jogador{((isActive ? players.length : (team.quantidadeJogadores ?? 0)) !== 1) ? "es" : ""}
           </p>
         </div>
         {isActive
@@ -473,14 +473,14 @@ function TeamCard({
                               value={p.numeroCamisa?.toString() ?? ""}
                               type="number"
                               placeholder="Nº"
-                              onSave={v => updatePlayer(p.id, { jerseyNumber: v ? Number(v) : undefined })}
+                              onSave={v => updatePlayer(p.id, { numeroCamisa: v ? Number(v) : undefined })}
                             />
                           </div>
                           {/* Name */}
                           <EditableCell
                             value={p.nome}
                             placeholder="Nome"
-                            onSave={v => v.trim() && updatePlayer(p.id, { name: v.trim() })}
+                            onSave={v => v.trim() && updatePlayer(p.id, { nome: v.trim() })}
                           />
                           {/* Position */}
                           <EditableCell
@@ -488,7 +488,7 @@ function TeamCard({
                             placeholder="Posição"
                             isSelect
                             options={POSITIONS}
-                            onSave={v => updatePlayer(p.id, { position: v || undefined })}
+                            onSave={v => updatePlayer(p.id, { posicao: v || undefined })}
                           />
                           {/* Delete */}
                           {canManage && (
@@ -542,7 +542,7 @@ function TeamCard({
 
 /* ── Main Page ────────────────────────────────────────────── */
 function TournamentManagePage() {
-  const { id: tournamentId } = Route.useParams();
+  const { id: torneioId } = Route.useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
@@ -560,15 +560,15 @@ function TournamentManagePage() {
     setLoading(true);
     try {
       const [t, ts, ms] = await Promise.all([
-        api.buscarTorneio(tournamentId),
-        api.listarTimes(tournamentId),
-        api.listarPartidas(tournamentId),
+        api.buscarTorneio(torneioId),
+        api.listarTimes(torneioId),
+        api.listarPartidas(torneioId),
       ]);
       setTournament(t);
       setTeams(ts);
       setMatchCount(ms.length);
     } finally { setLoading(false); }
-  }, [tournamentId]);
+  }, [torneioId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -617,7 +617,7 @@ function TournamentManagePage() {
 
       {showCreateTeam && (
         <CreateTeamModal
-          tournamentId={tournamentId}
+          torneioId={torneioId}
           onCreated={t => {
             setTeams(prev => [...prev, t]);
             setShowCreateTeam(false);
@@ -631,7 +631,7 @@ function TournamentManagePage() {
       <div className="container mx-auto max-w-3xl px-4 py-10">
         {/* Back */}
         <Link
-          to="/tournaments"
+          to="/torneios"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar para torneios
@@ -711,7 +711,7 @@ function TournamentManagePage() {
         {!preparing && (
           <div
             className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 mb-6 flex items-center justify-between cursor-pointer hover:border-primary/60 transition-all"
-            onClick={() => navigate({ to: "/tournaments/$id/matches", params: { id: tournamentId } })}
+            onClick={() => navigate({ to: "/torneios/$id/matches", params: { id: torneioId } })}
           >
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/15 grid place-items-center">
@@ -776,7 +776,7 @@ function TournamentManagePage() {
             <Button
               variant="outline"
               className="w-full gap-2 h-11"
-              onClick={() => navigate({ to: "/tournaments/$id/matches", params: { id: tournamentId } })}
+              onClick={() => navigate({ to: "/torneios/$id/matches", params: { id: torneioId } })}
             >
               <Swords className="h-4 w-4" /> Ir para partidas
             </Button>

@@ -2,13 +2,14 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { TournamentsModule } from './tournaments/tournaments.module';
-import { MatchesModule } from './matches/matches.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TorneiosModule } from './torneios/torneios.module';
+import { PartidasModule } from './partidas/partidas.module';
+import { TimesModule } from './times/times.module';
+import { JogadoresModule } from './jogadores/jogadores.module';
 
 @Module({
-  imports: [AuthModule, TournamentsModule, MatchesModule, PrismaModule, TorneiosModule],
+  imports: [AuthModule, PrismaModule, TorneiosModule, PartidasModule, TimesModule, JogadoresModule],
   controllers: [AppController],
   providers: [AppService],
 })

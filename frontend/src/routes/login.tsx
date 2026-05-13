@@ -28,7 +28,7 @@ function LoginPage() {
     try {
       if (mode === "register") await api.register(name, email, password);
       await api.login(email, password);
-      navigate({ to: search.redirect || "/tournaments" });
+      navigate({ to: search.redirect || "/torneios" });
     } catch (e) {
       setError((e as Error).message);
     } finally { setLoading(false); }
