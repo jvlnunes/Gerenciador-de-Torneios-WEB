@@ -1,21 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import {
-  api,
-  type Partida,
-  type EventoPartida,
-  type TipoPonto,
-  type TipoErro,
-  type LadoPonto,
-  type JogadorPartida,
-} from "@/lib/api";
+import { api, type Partida, type EventoPartida, type TipoPonto, type TipoErro, type LadoPonto, type JogadorPartida } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
 import { cn } from "@/lib/utils";
-import {
-  RotateCcw, Flag, Loader2, Trophy, CheckCircle2,
-  AlertTriangle, Activity, ArrowLeft,
-} from "lucide-react";
+import { RotateCcw, Flag, Loader2, Trophy, CheckCircle2, AlertTriangle, Activity, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/partidas/$id")({
   component: LiveMatchPage,
@@ -25,104 +14,134 @@ export const Route = createFileRoute("/partidas/$id")({
 type ActionDef = { type: TipoPonto; label: string; emoji: string };
 
 const ACOES_PONTO: ActionDef[] = [
-  { type: "SAQUE",    label: "Saque",    emoji: "🏐" },
-  { type: "ATAQUE",   label: "Ataque",   emoji: "⚡" },
+  { type: "SAQUE", label: "Saque", emoji: "🏐" },
+  { type: "ATAQUE", label: "Ataque", emoji: "⚡" },
   { type: "BLOQUEIO", label: "Bloqueio", emoji: "🛡️" },
 ];
 const ACOES_EXTRAS: ActionDef[] = [
-  { type: "ERRO_ADVERSARIO",   label: "Erro adversário",   emoji: "✕" },
+  { type: "ERRO_ADVERSARIO", label: "Erro adversário", emoji: "✕" },
   { type: "CARTAO_ADVERSARIO", label: "Cartão adversário", emoji: "□" },
 ];
 
-/* ─── Layout posições quadra (rotação oficial) ───────────────── */
-// Frente(rede): 4 | 3 | 2
-// Fundo(saque): 5 | 6 | 1
-const SLOTS = [
-  { slot: 4, row: 0, col: 0 },
-  { slot: 3, row: 0, col: 1 },
-  { slot: 2, row: 0, col: 2 },
-  { slot: 5, row: 1, col: 0 },
-  { slot: 6, row: 1, col: 1 },
-  { slot: 1, row: 1, col: 2 },
-];
 
 /* ─── Utilitários ────────────────────────────────────────────── */
 function tipoEmoji(t: TipoPonto) {
   const m: Record<string, string> = {
-    SAQUE:"🏐", ATAQUE:"⚡", BLOQUEIO:"🛡️", ERRO_ADVERSARIO:"❌", CARTAO_ADVERSARIO:"🟨",
+    SAQUE: "🏐", ATAQUE: "⚡", BLOQUEIO: "🛡️", ERRO_ADVERSARIO: "❌", CARTAO_ADVERSARIO: "🟨",
   };
   return m[t] ?? "•";
 }
+
 function tipoLabel(t: TipoPonto, err?: string) {
-  if (t === "ERRO_ADVERSARIO") return err ? err.replace(/_/g," ") : "Erro Adv.";
+  if (t === "ERRO_ADVERSARIO") return err ? err.replace(/_/g, " ") : "Erro Adv.";
   const m: Record<string, string> = {
-    SAQUE:"Saque", ATAQUE:"Ataque", BLOQUEIO:"Bloqueio", CARTAO_ADVERSARIO:"Cartão",
+    SAQUE: "Saque", ATAQUE: "Ataque", BLOQUEIO: "Bloqueio", CARTAO_ADVERSARIO: "Cartão",
   };
   return m[t] ?? t;
 }
+
 function verificarFimSet(p: Partida, casa: number, vis: number) {
   const setIdx = p.setsCasa + p.setsVisitante;
   const totalSets = (p.setsParaVencerPartida ?? 3) * 2 - 1;
   const isUltimo = setIdx >= totalSets - 1;
   const pontoMin = isUltimo ? (p.pontosParaVencerUltimoSet ?? 15) : (p.pontosParaVencerSet ?? 25);
+
   if (Math.max(casa, vis) >= pontoMin && Math.abs(casa - vis) >= 2) {
     const vSet: LadoPonto = casa > vis ? "CASA" : "VISITANTE";
     const nC = p.setsCasa + (vSet === "CASA" ? 1 : 0);
     const nV = p.setsVisitante + (vSet === "VISITANTE" ? 1 : 0);
     const sv = p.setsParaVencerPartida ?? 3;
+
     if (nC >= sv || nV >= sv) {
-      return { fimSet:true, vSet, fimPartida:true, vPartida:(nC >= sv ? "CASA" : "VISITANTE") as LadoPonto };
+      return { fimSet: true, vSet, fimPartida: true, vPartida: (nC >= sv ? "CASA" : "VISITANTE") as LadoPonto };
+
     }
-    return { fimSet:true, vSet, fimPartida:false, vPartida:null };
+    return { fimSet: true, vSet, fimPartida: false, vPartida: null };
+
   }
-  return { fimSet:false, vSet:null, fimPartida:false, vPartida:null };
+  return { fimSet: false, vSet: null, fimPartida: false, vPartida: null };
 }
 
-/* ─── Quadra de Vôlei ────────────────────────────────────────── */
-function Quadra({ jogadores, cor }: { jogadores: JogadorPartida[]; cor: "primary" | "amber" }) {
-  const get = (slot: number) => jogadores[slot - 1] ?? null;
-  const accentCls = cor === "primary" ? "text-primary" : "text-amber-500";
-  return (
-    <div
-      className="rounded-lg overflow-hidden border border-white/10 grid grid-rows-2 gap-px"
-      style={{ background: "#071c0b" }}
-    >
-      {/* Label rede no topo */}
-      <div className="col-span-3 flex items-center justify-center bg-primary/20 py-0.5">
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/70">rede</span>
+/* ─── Quadra de Vôlei unificada e com Rodízio ────────────────────────────────────────── */
+function Quadra({ jCasa, jVisit, rotCasa, rotVisit, sacador, corCasa = "primary", corVisit = "amber" }: {
+  jCasa: JogadorPartida[];
+  jVisit: JogadorPartida[];
+  rotCasa: number;
+  rotVisit: number;
+  sacador: LadoPonto;
+  corCasa?: string;
+  corVisit?: string;
+}) {
+  const getJogador = (j: JogadorPartida[], vSlot: number, rot: number) => {
+    const idxOriginal = (vSlot - 1 + rot) % 6;
+    return j[idxOriginal] ?? null;
+  }
+
+  const Slot = ({ lado, vSlot, isServer, cor}: { lado: "CASA"|"VISIT", vSlot: number, isServer: boolean, cor: string }) => {
+    const j = getJogador(lado === "CASA"? jCasa : jVisit, vSlot, lado === "CASA"? rotCasa : rotVisit);
+    const bgCor = cor === "primary" ? "bg-primary" : "bg-amber-600";
+
+    return(
+      <div className="relative flex flex-col items-center justify-center min-h-[65px] border border-white/10 transition-all duration-300">
+         {/* Número da posição na quadra */}
+         <span className="absolute top-1 left-1.5 text-[10px] font-black text-white/30">{vSlot}</span>
+
+         {/* Indicador de quem está no Saque (Bola) */}
+         {isServer && vSlot === 1 && (
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center animate-bounce shadow-lg z-20 text-[10px]">
+              🏐
+            </div>
+         )}
+
+         {/* Avatar do Jogador */}
+         {j && (
+            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shadow-md border-2 border-white text-white z-10", bgCor)}>
+              {j.numeroCamisa ?? "?"}
+            </div>
+         )}
+         {j && (
+            <span className="text-[9px] text-white font-bold mt-1 truncate max-w-[90%] px-1 text-center bg-black/40 rounded px-1.5 py-0.5">
+              {j.nomeJogador.split(" ")[0]}
+            </span>
+         )}
       </div>
-      {[0, 1].map(row => (
-        <div key={row} className="grid grid-cols-3 gap-px">
-          {SLOTS.filter(s => s.row === row).map(({ slot }) => {
-            const j = get(slot);
-            const isSaque = slot === 1;
-            return (
-              <div key={slot} className={cn(
-                "relative flex flex-col items-center justify-center py-1.5 min-h-[44px] transition-all",
-                j ? "bg-white/[0.08]" : "bg-white/[0.02]",
-              )}>
-                {isSaque && (
-                  <span className="absolute top-0.5 right-0.5 text-[7px] text-primary/70 font-black">↑</span>
-                )}
-                {j ? (
-                  <>
-                    <span className={cn("font-black text-sm leading-none", accentCls)}>
-                      {j.numeroCamisa ?? "?"}
-                    </span>
-                    <span className="text-white/50 text-[9px] mt-0.5 truncate max-w-full px-1 leading-tight">
-                      {j.nomeJogador.split(" ")[0]}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-white/10 text-[9px] font-bold">{slot}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+    );
+  }
+  return (
+    <div className="w-full bg-[#E56E3B] rounded-xl border-4 border-white relative flex overflow-hidden aspect-[1.8/1] shadow-inner max-w-2xl mx-auto">
+       {/* Antena / Rede Central */}
+       <div className="absolute top-0 bottom-0 left-1/2 w-1.5 bg-white -translate-x-1/2 z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)] flex flex-col justify-between items-center py-1">
+          <div className="w-3 h-3 bg-white rounded-full absolute -top-1" />
+          <div className="w-3 h-3 bg-white rounded-full absolute -bottom-1" />
+       </div>
+
+       {/* LADO CASA (Esquerda) */}
+       {/* 2/3 fundo (pos 5,6,1) e 1/3 rede (pos 4,3,2) */}
+       <div className="flex-1 grid grid-cols-[2fr_1fr] grid-rows-3 border-r-2 border-white/40">
+          <Slot lado="CASA" vSlot={5} isServer={false} cor="primary" />
+          <Slot lado="CASA" vSlot={4} isServer={false} cor="primary" />
+
+          <Slot lado="CASA" vSlot={6} isServer={false} cor="primary" />
+          <Slot lado="CASA" vSlot={3} isServer={false} cor="primary" />
+
+          <Slot lado="CASA" vSlot={1} isServer={sacador === "CASA"} cor="primary" />
+          <Slot lado="CASA" vSlot={2} isServer={false} cor="primary" />
+       </div>
+
+       {/* LADO VISITANTE (Direita) */}
+       {/* 1/3 rede (pos 4,3,2) e 2/3 fundo (pos 5,6,1) */}
+       <div className="flex-1 grid grid-cols-[1fr_2fr] grid-rows-3 border-l-2 border-white/40">
+          <Slot lado="VISIT" vSlot={4} isServer={false} cor="amber" />
+          <Slot lado="VISIT" vSlot={5} isServer={false} cor="amber" />
+
+          <Slot lado="VISIT" vSlot={3} isServer={false} cor="amber" />
+          <Slot lado="VISIT" vSlot={6} isServer={false} cor="amber" />
+
+          <Slot lado="VISIT" vSlot={2} isServer={false} cor="amber" />
+          <Slot lado="VISIT" vSlot={1} isServer={sacador === "VISITANTE"} cor="amber" />
+       </div>
     </div>
-  );
+  )
 }
 
 /* ─── Modal de ação ──────────────────────────────────────────── */
@@ -150,10 +169,10 @@ function ModalAcao({
         <div className="p-4 space-y-3">
           {isErro && !erro && (
             <div className="grid grid-cols-2 gap-1.5">
-              {(["ERRO_SAQUE","ERRO_ATAQUE","TOQUE_REDE","DOIS_TOQUES","QUATRO_TOQUES","BOLA_FORA","INVASAO"] as TipoErro[]).map(e => (
+              {(["ERRO_SAQUE", "ERRO_ATAQUE", "TOQUE_REDE", "DOIS_TOQUES", "QUATRO_TOQUES", "BOLA_FORA", "INVASAO"] as TipoErro[]).map(e => (
                 <button key={e} onClick={() => setErro(e)}
                   className="text-left text-xs px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted/60 font-medium transition-colors">
-                  {e.replace("ERRO_","").replace(/_/g," ")}
+                  {e.replace("ERRO_", "").replace(/_/g, " ")}
                 </button>
               ))}
             </div>
@@ -192,14 +211,14 @@ function LiveMatchPage() {
   const { id: partidaId } = Route.useParams();
   const { user } = useAuth();
 
-  const [partida, setPartida]     = useState<Partida | null>(null);
-  const [eventos, setEventos]     = useState<EventoPartida[]>([]);
+  const [partida, setPartida] = useState<Partida | null>(null);
+  const [eventos, setEventos] = useState<EventoPartida[]>([]);
   const [jogadores, setJogadores] = useState<JogadorPartida[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [modal, setModal]         = useState<{ lado: LadoPonto; acao: ActionDef } | null>(null);
-  const [alerta, setAlerta]       = useState<{ msg: string; onOk: () => void } | null>(null);
-  const [salvando, setSalvando]   = useState(false);
-  const [setAtivo, setSetAtivo]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState<{ lado: LadoPonto; acao: ActionDef } | null>(null);
+  const [alerta, setAlerta] = useState<{ msg: string; onOk: () => void } | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [setAtivo, setSetAtivo] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -234,9 +253,11 @@ function LiveMatchPage() {
       const res = verificarFimSet(p, nC, nV);
       if (res.fimPartida) {
         const nome = res.vPartida === "CASA" ? p.nomeTimeCasa : p.nomeTimeVisitante;
-        setAlerta({ msg: `🏆 ${nome} venceu a partida! Encerrar?`, onOk: async () => {
-          await api.finalizarPartida(partidaId); await load(); setAlerta(null);
-        }});
+        setAlerta({
+          msg: `🏆 ${nome} venceu a partida! Encerrar?`, onOk: async () => {
+            await api.finalizarPartida(partidaId); await load(); setAlerta(null);
+          }
+        });
       } else if (res.fimSet) {
         const nome = res.vSet === "CASA" ? p.nomeTimeCasa : p.nomeTimeVisitante;
         setAlerta({ msg: `${nome} venceu o set! Continuar para o próximo?`, onOk: () => setAlerta(null) });
@@ -253,12 +274,12 @@ function LiveMatchPage() {
   if (!partida) return <div className="p-10 text-center text-muted-foreground">Partida não encontrada</div>;
 
   const podeGerenciar = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
-  const isAoVivo    = partida.status === "AO_VIVO";
-  const isAgendada  = partida.status === "AGENDADA" || partida.status === "AQUECIMENTO";
+  const isAoVivo = partida.status === "AO_VIVO";
+  const isAgendada = partida.status === "AGENDADA" || partida.status === "AQUECIMENTO";
   const isFinalizada = partida.status === "FINALIZADA";
 
   const jCasa = jogadores.filter(j => j.timeId === partida.timeCasaId);
-  const jVis  = jogadores.filter(j => j.timeId === partida.timeVisitanteId);
+  const jVis = jogadores.filter(j => j.timeId === partida.timeVisitanteId);
 
   const jModal = modal
     ? (modal.acao.type === "ERRO_ADVERSARIO" || modal.acao.type === "CARTAO_ADVERSARIO")
@@ -271,6 +292,25 @@ function LiveMatchPage() {
   const setLabels = Array.from({ length: totalSetsDisputa }, (_, i) => `S${i + 1}`);
 
   const evSetAtivo = eventos.filter(e => !e.anulado && e.indiceSet === setAtivo).reverse();
+
+  // Calcular Rodízio
+  const eventosCronologicos = [...evSetAtivo].reverse();
+  let sacadorAtual: LadoPonto = "CASA"
+  if (eventosCronologicos.length > 0 ){
+    sacadorAtual = eventosCronologicos[0].lado;
+  }
+
+  let rotCasa = 0;
+  let rotVisit = 0;
+  let serverAtivo = sacadorAtual;
+
+  for (const ev of eventosCronologicos) {
+    if (ev.lado !== serverAtivo) {
+      serverAtivo = ev.lado;
+      if (ev.lado === 'CASA') rotCasa++;
+      else rotVisit++;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -326,7 +366,7 @@ function LiveMatchPage() {
               <div className="flex items-center gap-1.5">
                 {isAgendada && (
                   <button
-                    onClick={async () => { if (confirm("Iniciar a partida?")) { const p = await api.comecaPartida(partidaId); setPartida(p); }}}
+                    onClick={async () => { if (confirm("Iniciar a partida?")) { const p = await api.comecaPartida(partidaId); setPartida(p); } }}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold transition-colors"
                   >
                     <Flag className="h-3 w-3" /> Iniciar
@@ -335,13 +375,13 @@ function LiveMatchPage() {
                 {isAoVivo && (
                   <>
                     <button
-                      onClick={async () => { if (confirm("Anular último ponto?")) { const { partida: p } = await api.anularUltimoEvento(partidaId); setPartida(p); await load(); }}}
+                      onClick={async () => { if (confirm("Anular último ponto?")) { const { partida: p } = await api.anularUltimoEvento(partidaId); setPartida(p); await load(); } }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-background hover:bg-muted text-[10px] font-semibold text-foreground transition-colors"
                     >
                       <RotateCcw className="h-3 w-3" /> Anular último ponto
                     </button>
                     <button
-                      onClick={async () => { if (confirm("Encerrar a partida permanentemente?")) { const p = await api.finalizarPartida(partidaId); setPartida(p); await load(); }}}
+                      onClick={async () => { if (confirm("Encerrar a partida permanentemente?")) { const p = await api.finalizarPartida(partidaId); setPartida(p); await load(); } }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-[10px] font-bold transition-colors"
                     >
                       <Flag className="h-3 w-3" /> Encerrar partida
@@ -405,10 +445,10 @@ function LiveMatchPage() {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 rounded-xl border border-border bg-card text-[10px]">
           {[
             { icon: "🏆", k: "Sets para vencer", v: partida.setsParaVencerPartida ?? 3 },
-            { icon: "📊", k: "Pts/set",          v: partida.pontosParaVencerSet ?? 25 },
-            { icon: "⚡", k: "Set decisivo",     v: `${partida.pontosParaVencerUltimoSet ?? 15} pts` },
-            { icon: "👥", k: "Titulares",        v: partida.titularesPorTime ?? 6 },
-            { icon: "🔁", k: "Vencer por 2",     v: "Sim" },
+            { icon: "📊", k: "Pts/set", v: partida.pontosParaVencerSet ?? 25 },
+            { icon: "⚡", k: "Set decisivo", v: `${partida.pontosParaVencerUltimoSet ?? 15} pts` },
+            { icon: "👥", k: "Titulares", v: partida.titularesPorTime ?? 6 },
+            // { icon: "🔁", k: "Vencer por 2", v: "Sim" },
           ].map(r => (
             <span key={r.k} className="flex items-center gap-1 shrink-0 text-muted-foreground">
               {r.icon}
@@ -418,25 +458,27 @@ function LiveMatchPage() {
           ))}
         </div>
 
-        {/* ══ BLOCO 3: QUADRAS + AÇÕES (2 colunas) ════════════════ */}
-        <div className="grid grid-cols-2 gap-2.5">
+        {/* ══ BLOCO 3: QUADRA UNIFICADA + AÇÕES ════════════════ */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-2 border-b border-border bg-muted/20">
+            <span className="text-[11px] font-black uppercase tracking-widest text-primary">{partida.nomeTimeCasa}</span>
+            <span className="text-[11px] font-black uppercase tracking-widest text-amber-500">{partida.nomeTimeVisitante}</span>
+          </div>
+          
+          <div className="p-3 sm:p-5 bg-[#071c0b]">
+            <Quadra 
+              jCasa={jCasa} 
+              jVisit={jVis} 
+              rotCasa={rotCasa} 
+              rotVisit={rotVisit} 
+              sacador={serverAtivo} 
+            />
+          </div>
 
-          {/* Casa */}
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="px-3 py-2 border-b border-border bg-muted/20">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                <span className="text-primary">{partida.nomeTimeCasa}</span>
-              </p>
-            </div>
-            <div className="p-2">
-              <Quadra jogadores={jCasa} cor="primary" />
-            </div>
-
-            {isAoVivo && podeGerenciar && (
-              <div className="px-2 pb-2 space-y-1.5 border-t border-border pt-2">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-1">
-                  Ações — <span className="text-primary">Casa</span>
-                </p>
+          {isAoVivo && podeGerenciar && (
+            <div className="grid grid-cols-2 divide-x divide-border border-t border-border bg-muted/10">
+              {/* Ações Casa */}
+              <div className="p-2 space-y-1.5">
                 <div className="grid grid-cols-3 gap-1">
                   {ACOES_PONTO.map(a => (
                     <button key={a.type} onClick={() => setModal({ lado: "CASA", acao: a })}
@@ -446,44 +488,19 @@ function LiveMatchPage() {
                     </button>
                   ))}
                 </div>
-                <div className="space-y-1">
-                  {ACOES_EXTRAS.map(a => (
-                    <button key={a.type} onClick={() => setModal({ lado: "CASA", acao: a })}
-                      className={cn(
-                        "w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg border bg-background hover:bg-muted/50 active:scale-95 text-[10px] font-semibold transition-all",
-                        a.type === "ERRO_ADVERSARIO"
-                          ? "border-orange-500/30 text-orange-700"
-                          : "border-yellow-400/30 text-yellow-700"
-                      )}>
-                      <span className={cn(
-                        "w-4 h-4 rounded text-[9px] font-black grid place-items-center shrink-0",
-                        a.type === "ERRO_ADVERSARIO" ? "bg-orange-500/20" : "bg-yellow-400/20"
-                      )}>{a.emoji}</span>
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
+                {ACOES_EXTRAS.map(a => (
+                  <button key={a.type} onClick={() => setModal({ lado: "CASA", acao: a })}
+                    className={cn(
+                      "w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-background hover:bg-muted/50 active:scale-95 text-[10px] font-semibold transition-all",
+                      a.type === "ERRO_ADVERSARIO" ? "border-orange-500/30 text-orange-700" : "border-yellow-400/30 text-yellow-700"
+                    )}>
+                    {a.emoji} {a.label}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
 
-          {/* Visitante */}
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="px-3 py-2 border-b border-border bg-muted/20">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                <span className="text-amber-500">{partida.nomeTimeVisitante}</span>{" "}
-                <span className="font-normal normal-case text-muted-foreground/60">(visit.)</span>
-              </p>
-            </div>
-            <div className="p-2">
-              <Quadra jogadores={jVis} cor="amber" />
-            </div>
-
-            {isAoVivo && podeGerenciar && (
-              <div className="px-2 pb-2 space-y-1.5 border-t border-border pt-2">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground px-1">
-                  Ações — <span className="text-amber-500">Visitante</span>
-                </p>
+              {/* Ações Visitante */}
+              <div className="p-2 space-y-1.5">
                 <div className="grid grid-cols-3 gap-1">
                   {ACOES_PONTO.map(a => (
                     <button key={a.type} onClick={() => setModal({ lado: "VISITANTE", acao: a })}
@@ -493,54 +510,55 @@ function LiveMatchPage() {
                     </button>
                   ))}
                 </div>
-                <div className="space-y-1">
-                  {ACOES_EXTRAS.map(a => (
-                    <button key={a.type} onClick={() => setModal({ lado: "VISITANTE", acao: a })}
-                      className={cn(
-                        "w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg border bg-background hover:bg-muted/50 active:scale-95 text-[10px] font-semibold transition-all",
-                        a.type === "ERRO_ADVERSARIO"
-                          ? "border-orange-500/30 text-orange-700"
-                          : "border-yellow-400/30 text-yellow-700"
-                      )}>
-                      <span className={cn(
-                        "w-4 h-4 rounded text-[9px] font-black grid place-items-center shrink-0",
-                        a.type === "ERRO_ADVERSARIO" ? "bg-orange-500/20" : "bg-yellow-400/20"
-                      )}>{a.emoji}</span>
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
+                {ACOES_EXTRAS.map(a => (
+                  <button key={a.type} onClick={() => setModal({ lado: "VISITANTE", acao: a })}
+                    className={cn(
+                      "w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-background hover:bg-muted/50 active:scale-95 text-[10px] font-semibold transition-all",
+                      a.type === "ERRO_ADVERSARIO" ? "border-orange-500/30 text-orange-700" : "border-yellow-400/30 text-yellow-700"
+                    )}>
+                    {a.emoji} {a.label}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* ══ BLOCO 4: HISTÓRICO ═══════════════════════════════════ */}
+        {/* ══ BLOCO 4: HISTÓRICO COM NOME DESTACADO ════════════════ */}
         {evSetAtivo.length > 0 && (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/20">
               <Activity className="h-3 w-3 text-primary" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-foreground">
-                Histórico de pontos — {setAtivo === partida.setsCasa + partida.setsVisitante ? "Set atual" : `Set ${setAtivo + 1}`}
+                Histórico — {setAtivo === partida.setsCasa + partida.setsVisitante ? "Set atual" : `Set ${setAtivo + 1}`}
               </span>
               <span className="ml-auto text-[10px] text-muted-foreground">{evSetAtivo.length} pts</span>
             </div>
             <div className="divide-y divide-border/40 max-h-44 overflow-y-auto">
               {evSetAtivo.map((ev, i) => (
-                <div key={ev.id} className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-xs",
-                  i === 0 && "bg-primary/5"
-                )}>
-                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ev.lado === "CASA" ? "bg-primary" : "bg-amber-500")} />
+                <div key={ev.id} className={cn("flex items-center gap-2 px-3 py-2 text-xs", i === 0 && "bg-primary/5")}>
+                  <span className={cn("h-2 w-2 rounded-full shrink-0", ev.lado === "CASA" ? "bg-primary" : "bg-amber-500")} />
                   <span className="text-sm leading-none">{tipoEmoji(ev.tipo)}</span>
-                  <span className="flex-1 min-w-0 text-[11px]">
-                    <span className="font-semibold text-foreground">
-                      {ev.lado === "CASA" ? partida.nomeTimeCasa : partida.nomeTimeVisitante}
-                    </span>
-                    <span className="text-muted-foreground"> · {tipoLabel(ev.tipo, ev.tipoErro)}</span>
-                    {ev.nomeJogador && <span className="text-muted-foreground"> — {ev.nomeJogador.split(" ")[0]}</span>}
+                  
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <span className="font-semibold text-foreground">
+                        {ev.lado === "CASA" ? partida.nomeTimeCasa : partida.nomeTimeVisitante}
+                      </span>
+                      <span className="text-muted-foreground">· {tipoLabel(ev.tipo, ev.tipoErro)}</span>
+                    </div>
+                    {/* AQUI ESTÁ O DESTAQUE DO JOGADOR NO HISTÓRICO */}
+                    {ev.nomeJogador && (
+                      <span className="font-bold text-[10px] text-foreground/80 mt-0.5">
+                        {ev.tipo === "ERRO_ADVERSARIO" || ev.tipo === "CARTAO_ADVERSARIO" ? "FALHA DE: " : "AUTOR: "} 
+                        <span className="text-foreground">{ev.nomeJogador}</span>
+                      </span>
+                    )}
+                  </div>
+                  
+                  <span className="font-mono text-sm font-black text-foreground shrink-0 tabular-nums">
+                    {ev.placarCasa}<span className="text-muted-foreground font-normal mx-0.5">-</span>{ev.placarVisitante}
                   </span>
-                  <span className="font-mono text-[10px] font-bold text-muted-foreground shrink-0">{ev.placarCasa}–{ev.placarVisitante}</span>
                 </div>
               ))}
             </div>
