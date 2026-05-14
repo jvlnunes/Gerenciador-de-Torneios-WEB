@@ -77,7 +77,7 @@ export interface EventoPartida {
     tipoErro?: TipoErro;
     tipoCartao?: TipoCartao;
     jogadorId?: string;
-    nomeJogador?: string;
+    jogadorNome?: string;
     placarCasa: number;
     placarVisitante: number;
     horario: string;

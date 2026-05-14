@@ -10,17 +10,14 @@ export class PartidasService {
     
     const str = typeof valor === 'string' ? valor : valor.toString();
     
-    // Se já tem timezone, retorna como está
     if (/[Z+-]\d{2}:\d{2}|Z$/.test(str)) {
       return str;
     }
     
-    // Se tem segundos mas sem timezone (formato "2026-05-13T19:22:00"), adiciona Z
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
       return str + 'Z';
     }
     
-    // Se tem apenas até minutos (formato "2026-05-13T19:22"), adiciona :00Z
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
       return str + ':00Z';
     }

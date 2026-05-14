@@ -81,26 +81,16 @@ function Quadra({ jCasa, jVisit, rotCasa, rotVisit, sacador, corCasa = "primary"
     const j = getJogador(lado === "CASA"? jCasa : jVisit, vSlot, lado === "CASA"? rotCasa : rotVisit);
     const bgCor = cor === "primary" ? "bg-primary" : "bg-amber-600";
 
-    return(
-      <div className="relative flex flex-col items-center justify-center min-h-[65px] border border-white/10 transition-all duration-300">
-         {/* Número da posição na quadra */}
-         <span className="absolute top-1 left-1.5 text-[10px] font-black text-white/30">{vSlot}</span>
-
-         {/* Indicador de quem está no Saque (Bola) */}
-         {isServer && vSlot === 1 && (
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center animate-bounce shadow-lg z-20 text-[10px]">
-              🏐
-            </div>
-         )}
-
-         {/* Avatar do Jogador */}
+    return (
+      <div className="relative flex flex-col items-center justify-center min-h-[65px] z-10 transition-all duration-300">
+         <span className="absolute top-1 left-1.5 text-[10px] font-black text-white/40">{vSlot}</span>
          {j && (
             <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shadow-md border-2 border-white text-white z-10", bgCor)}>
               {j.numeroCamisa ?? "?"}
             </div>
          )}
          {j && (
-            <span className="text-[9px] text-white font-bold mt-1 truncate max-w-[90%] px-1 text-center bg-black/40 rounded px-1.5 py-0.5">
+            <span className="text-[9px] text-white font-bold mt-1 truncate max-w-[90%] px-1 text-center bg-black/40 rounded py-0.5">
               {j.nomeJogador.split(" ")[0]}
             </span>
          )}
@@ -110,35 +100,25 @@ function Quadra({ jCasa, jVisit, rotCasa, rotVisit, sacador, corCasa = "primary"
   return (
     <div className="w-full bg-[#E56E3B] rounded-xl border-4 border-white relative flex overflow-hidden aspect-[1.8/1] shadow-inner max-w-2xl mx-auto">
        {/* Antena / Rede Central */}
-       <div className="absolute top-0 bottom-0 left-1/2 w-1.5 bg-white -translate-x-1/2 z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)] flex flex-col justify-between items-center py-1">
+       <div className="absolute top-0 bottom-0 left-1/2 w-1.5 bg-white -translate-x-1/2 z-20 shadow-[0_0_10px_rgba(0,0,0,0.5)] flex flex-col justify-between items-center py-1">
           <div className="w-3 h-3 bg-white rounded-full absolute -top-1" />
           <div className="w-3 h-3 bg-white rounded-full absolute -bottom-1" />
        </div>
 
        {/* LADO CASA (Esquerda) */}
-       {/* 2/3 fundo (pos 5,6,1) e 1/3 rede (pos 4,3,2) */}
-       <div className="flex-1 grid grid-cols-[2fr_1fr] grid-rows-3 border-r-2 border-white/40">
-          <Slot lado="CASA" vSlot={5} isServer={false} cor="primary" />
-          <Slot lado="CASA" vSlot={4} isServer={false} cor="primary" />
-
-          <Slot lado="CASA" vSlot={6} isServer={false} cor="primary" />
-          <Slot lado="CASA" vSlot={3} isServer={false} cor="primary" />
-
-          <Slot lado="CASA" vSlot={1} isServer={sacador === "CASA"} cor="primary" />
-          <Slot lado="CASA" vSlot={2} isServer={false} cor="primary" />
+       <div className="flex-1 grid grid-cols-[2fr_1fr] grid-rows-3 relative">
+          <div className="absolute top-0 bottom-0 right-[33.33%] w-[2px] bg-white/40 z-0" />
+          <Slot lado="CASA" vSlot={5} cor="primary" /> <Slot lado="CASA" vSlot={4} cor="primary" />
+          <Slot lado="CASA" vSlot={6} cor="primary" /> <Slot lado="CASA" vSlot={3} cor="primary" />
+          <Slot lado="CASA" vSlot={1} cor="primary" /> <Slot lado="CASA" vSlot={2} cor="primary" />
        </div>
 
-       {/* LADO VISITANTE (Direita) */}
-       {/* 1/3 rede (pos 4,3,2) e 2/3 fundo (pos 5,6,1) */}
-       <div className="flex-1 grid grid-cols-[1fr_2fr] grid-rows-3 border-l-2 border-white/40">
-          <Slot lado="VISIT" vSlot={4} isServer={false} cor="amber" />
-          <Slot lado="VISIT" vSlot={5} isServer={false} cor="amber" />
-
-          <Slot lado="VISIT" vSlot={3} isServer={false} cor="amber" />
-          <Slot lado="VISIT" vSlot={6} isServer={false} cor="amber" />
-
-          <Slot lado="VISIT" vSlot={2} isServer={false} cor="amber" />
-          <Slot lado="VISIT" vSlot={1} isServer={sacador === "VISITANTE"} cor="amber" />
+       {/* LADO VISITANTE (Direita) - Posição 1 no topo direito */}
+       <div className="flex-1 grid grid-cols-[1fr_2fr] grid-rows-3 relative">
+          <div className="absolute top-0 bottom-0 left-[33.33%] w-[2px] bg-white/40 z-0" />
+          <Slot lado="VISIT" vSlot={2} cor="amber" /> <Slot lado="VISIT" vSlot={1} cor="amber" />
+          <Slot lado="VISIT" vSlot={3} cor="amber" /> <Slot lado="VISIT" vSlot={6} cor="amber" />
+          <Slot lado="VISIT" vSlot={4} cor="amber" /> <Slot lado="VISIT" vSlot={5} cor="amber" />
        </div>
     </div>
   )
@@ -146,16 +126,25 @@ function Quadra({ jCasa, jVisit, rotCasa, rotVisit, sacador, corCasa = "primary"
 
 /* ─── Modal de ação ──────────────────────────────────────────── */
 function ModalAcao({
-  acao, lado, jogadores, partida, onRegistrar, onClose,
+  acao, lado, jogadores, partida, onRegistrar, onClose,  idSacador, ladoSaque = "CASA"
 }: {
-  acao: ActionDef; lado: LadoPonto; jogadores: JogadorPartida[];
-  partida: Partida; onRegistrar: (id?: string, err?: TipoErro) => void; onClose: () => void;
+  acao: ActionDef; 
+  lado: LadoPonto; 
+  jogadores: JogadorPartida[];
+  partida: Partida; 
+  ladoSaque: LadoPonto;
+  idSacador?: string;
+  onRegistrar: (id?: string, err?: TipoErro) => void; onClose: () => void;
 }) {
   const [erro, setErro] = useState<TipoErro | null>(null);
   const isErro = acao.type === "ERRO_ADVERSARIO";
   const timeNome = lado === "CASA" ? partida.nomeTimeCasa : partida.nomeTimeVisitante;
+  const timeQueErrou = lado === "CASA" ? "VISITANTE" : "CASA"; 
+  const isErroDoSacador = isErro && timeQueErrou === ladoSaque;
 
-  return (
+  console.log("ModalAcao", { acao, lado, jogadores, partida, ladoSaque, idSacador, isErro, isErroDoSacador });
+
+  return (    
     <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50">
       <div className="bg-card w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl border border-border shadow-2xl overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
@@ -169,11 +158,19 @@ function ModalAcao({
         <div className="p-4 space-y-3">
           {isErro && !erro && (
             <div className="grid grid-cols-2 gap-1.5">
-              {(["ERRO_SAQUE", "ERRO_ATAQUE", "TOQUE_REDE", "DOIS_TOQUES", "QUATRO_TOQUES", "BOLA_FORA", "INVASAO"] as TipoErro[]).map(e => (
-                <button key={e} onClick={() => setErro(e)}
-                  className="text-left text-xs px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted/60 font-medium transition-colors">
-                  {e.replace("ERRO_", "").replace(/_/g, " ")}
-                </button>
+              {(["ERRO_SAQUE","ERRO_ATAQUE","TOQUE_REDE","DOIS_TOQUES","QUATRO_TOQUES","BOLA_FORA","INVASAO"] as TipoErro[])
+                // .filter(e => e === "ERRO_SAQUE" ? isErroDoSacador : true) // Só mostra Erro de Saque se for o time que saca
+                .map(e => (
+                  <button key={e} onClick={() => {
+                    if (e === "ERRO_SAQUE") {
+                      onRegistrar(idSacador, e); 
+                    } else {
+                      setErro(e);
+                    }
+                  }}
+                    className="text-left text-xs px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted/60 font-medium transition-colors">
+                    {e.replace("ERRO_","").replace(/_/g," ")}
+                  </button>
               ))}
             </div>
           )}
@@ -245,7 +242,7 @@ function LiveMatchPage() {
     try {
       const { partida: p } = await api.registrarEvento(partidaId, {
         indiceSet: partida.setsCasa + partida.setsVisitante,
-        lado: modal.lado, tipo: modal.acao.type, tipoErro, jogadorId,
+        lado: modal.lado, tipo: modal.acao.type, tipoErro, jogadorId, jogadorNome,
         placarCasa: nC, placarVisitante: nV,
       });
       setPartida(p);
@@ -302,11 +299,11 @@ function LiveMatchPage() {
 
   let rotCasa = 0;
   let rotVisit = 0;
-  let serverAtivo = sacadorAtual;
+  let ladoSaque = sacadorAtual;
 
   for (const ev of eventosCronologicos) {
-    if (ev.lado !== serverAtivo) {
-      serverAtivo = ev.lado;
+    if (ev.lado !== ladoSaque) {
+      ladoSaque = ev.lado;
       if (ev.lado === 'CASA') rotCasa++;
       else rotVisit++;
     }
@@ -471,7 +468,7 @@ function LiveMatchPage() {
               jVisit={jVis} 
               rotCasa={rotCasa} 
               rotVisit={rotVisit} 
-              sacador={serverAtivo} 
+              sacador={ladoSaque} 
             />
           </div>
 
@@ -548,10 +545,10 @@ function LiveMatchPage() {
                       <span className="text-muted-foreground">· {tipoLabel(ev.tipo, ev.tipoErro)}</span>
                     </div>
                     {/* AQUI ESTÁ O DESTAQUE DO JOGADOR NO HISTÓRICO */}
-                    {ev.nomeJogador && (
+                    {ev.jogadorNome && (
                       <span className="font-bold text-[10px] text-foreground/80 mt-0.5">
                         {ev.tipo === "ERRO_ADVERSARIO" || ev.tipo === "CARTAO_ADVERSARIO" ? "FALHA DE: " : "AUTOR: "} 
-                        <span className="text-foreground">{ev.nomeJogador}</span>
+                        <span className="text-foreground">{ev.jogadorNome}</span>
                       </span>
                     )}
                   </div>

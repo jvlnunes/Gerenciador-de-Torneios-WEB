@@ -227,5 +227,6 @@ model EventoPartida {
   partida   Partida @relation(fields: [partidaId], references: [id], onDelete: Cascade)
 
   jogadorId String?
-  jogador   Jogador? @relation(fields: [jogadorId], references: [id], onDelete: SetNull)
+  jogadorNome String?
+  jogador   Jogador? @relation(fields: [jogadorId], references: [id], onDelete: SetNull)  
 }
