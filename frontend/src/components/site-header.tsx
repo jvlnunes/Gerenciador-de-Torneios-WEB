@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Trophy, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,20 +10,38 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        
+        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight">
           <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: "var(--gradient-primary)" }}>
             <Trophy className="h-5 w-5 text-primary-foreground" />
           </span>
           <span>VolleyHub</span>
         </Link>
+
+        {/* Menu de Navegação */}
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "text-primary" }} className="hover:text-primary transition-colors">
+          <NavLink 
+            to="/" 
+            end /* O 'end' faz o papel do antigo activeOptions={{ exact: true }} */
+            className={({ isActive }) => 
+              `transition-colors hover:text-primary ${isActive ? "text-primary" : ""}`
+            }
+          >
             Início
-          </Link>
-          <Link to="/torneios" activeProps={{ className: "text-primary" }} className="hover:text-primary transition-colors">
+          </NavLink>
+          
+          <NavLink 
+            to="/torneios" 
+            className={({ isActive }) => 
+              `transition-colors hover:text-primary ${isActive ? "text-primary" : ""}`
+            }
+          >
             Torneios
-          </Link>
+          </NavLink>
         </nav>
+
+        {/* Ações do Usuário */}
         <div className="flex items-center gap-2">
           {isAuthenticated ? (
             <>
@@ -31,17 +49,26 @@ export function SiteHeader() {
                 Olá, <span className="font-semibold text-foreground">{user?.nome}</span>
                 <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{user?.perfil}</span>
               </span>
-              <Button variant="ghost" size="sm" onClick={() => { logout(); navigate({ to: "/" }); }}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => { 
+                  logout(); 
+                  navigate("/"); // Corrigido de navigate({ to: "/" }) para navigate("/")
+                }}
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/login" search={{}}>Entrar</Link>
+                {/* Removido o search={{}} */}
+                <Link to="/login">Entrar</Link> 
               </Button>
               <Button size="sm" asChild>
-                <Link to="/login" search={{}}>Começar</Link>
+                {/* Removido o search={{}} */}
+                <Link to="/login">Começar</Link>
               </Button>
             </>
           )}

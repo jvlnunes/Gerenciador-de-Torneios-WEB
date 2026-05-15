@@ -28,7 +28,7 @@ export default function LoginPage() {
       await api.login(email, password);
       
       // Navegação estilo react-router-dom (passamos apenas a string do caminho)
-      navigate(redirect || "/dashboard");
+      navigate(redirect || "/torneios");
     } catch (e) {
       setError((e as Error).message);
     } finally { 
