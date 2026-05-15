@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { auth, type AuthUser } from "@/lib/api";
+import { auth, type AuthUser } from "@/services/api";
 
 export function useAuth() {
   // Inicializa como null no servidor; no cliente hidrata com localStorage

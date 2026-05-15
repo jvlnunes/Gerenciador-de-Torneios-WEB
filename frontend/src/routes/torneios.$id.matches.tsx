@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { api, type Partida, type Time } from "@/lib/api";
+import { api, type Partida, type Time } from "@/services/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn } from "@/services/utils";
 import {
   ArrowLeft, Plus, Loader2, Swords, Trophy, Play,
   Clock, CheckCircle2, X, Calendar, MapPin, Trash2,

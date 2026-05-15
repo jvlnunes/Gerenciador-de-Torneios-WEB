@@ -1,11 +1,11 @@
 import { createFileRoute, useOutletContext } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { api, type Torneio } from "@/lib/api";
+import { api, type Torneio } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn } from "@/services/utils";
 import {
   ChevronDown, Check, Loader2, AlertCircle,
   Info, Settings, Layers, Users, Image, Target, Shield,

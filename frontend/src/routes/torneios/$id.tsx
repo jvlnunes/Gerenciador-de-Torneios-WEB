@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { api, type Torneio, type Partida } from "@/lib/api";
+import { api, type Torneio, type Partida } from "@/services/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
-import { TournamentSidebar } from "@/components/tournament/sidebar/tournament-sidebar";
+import { TournamentSidebar } from "@/pages/Torneio/Sidebar";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/torneios/$id")({

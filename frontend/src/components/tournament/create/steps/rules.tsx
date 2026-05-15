@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronLeft, ChevronRight, Users, Target, Info } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/services/utils"
 
 export interface TournamentRules {
   startersPerTeam: number      // titulares por equipe (ex: 6 para vôlei padrão)

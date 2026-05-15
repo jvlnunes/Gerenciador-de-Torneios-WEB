@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, Info } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/services/utils"
 
 export type PhaseFormat = "RACHA" | "MATA_MATA" | "PONTOS" | "HIBRIDO"
 

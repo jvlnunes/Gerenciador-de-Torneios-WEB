@@ -4,7 +4,7 @@ import { Trophy, Plus, MapPin, Calendar } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api, type Torneio } from "@/lib/api";
+import { api, type Torneio } from "@/services/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/torneios/")({

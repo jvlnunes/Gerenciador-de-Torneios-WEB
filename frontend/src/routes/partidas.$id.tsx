@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { api, type Partida, type EventoPartida, type TipoPonto, type TipoErro, type LadoPonto, type JogadorPartida } from "@/lib/api";
+import { api, type Partida, type EventoPartida, type TipoPonto, type TipoErro, type LadoPonto, type JogadorPartida } from "@/services/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
-import { cn } from "@/lib/utils";
+import { cn } from "@/services/utils";
 import { RotateCcw, Flag, Loader2, Trophy, CheckCircle2, AlertTriangle, Activity, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/partidas/$id")({

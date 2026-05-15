@@ -1,20 +1,17 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, type FormEvent } from "react";
 import { Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/lib/api";
+import { api } from "@/services/api";
 
-export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({ redirect: (s.redirect as string) || undefined }),
-  head: () => ({ meta: [{ title: "Entrar — VolleyHub" }] }),
-  component: LoginPage,
-});
-
-function LoginPage() {
+export default function LoginPage() {
   const navigate = useNavigate();
-  const search = Route.useSearch();
+  // Usamos useSearchParams do react-router-dom para pegar parâmetros da URL
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
+
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,14 +21,19 @@ function LoginPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true); setError(null);
+    setLoading(true); 
+    setError(null);
     try {
       if (mode === "register") await api.register(name, email, password);
       await api.login(email, password);
-      navigate({ to: search.redirect || "/torneios" });
+      
+      // Navegação estilo react-router-dom (passamos apenas a string do caminho)
+      navigate(redirect || "/dashboard");
     } catch (e) {
       setError((e as Error).message);
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (

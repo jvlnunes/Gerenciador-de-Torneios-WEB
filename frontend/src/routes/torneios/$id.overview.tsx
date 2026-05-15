@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { api, type Partida, type Torneio } from "@/lib/api";
+import { api, type Partida, type Torneio } from "@/services/api";
 import { useOutletContext } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/services/utils";
 import {
   Swords, Plus, Clock, MapPin, Trophy, Calendar,
   Users, Loader2, ChevronRight, MessageCircle, Send,

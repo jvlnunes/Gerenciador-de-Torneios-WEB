@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronLeft, ChevronRight, Upload, X, Plus, Trash2, Link2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/services/utils"
 
 export interface SocialLink {
   id: string

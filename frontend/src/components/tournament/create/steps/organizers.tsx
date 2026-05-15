@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronLeft, ChevronRight, Plus, Trash2, User, Mail, Phone, Crown } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/services/utils"
 
 export interface Organizer {
   id: string
