@@ -4,142 +4,212 @@ import { api, type Torneio, type Partida, type Time } from "@/services/api";
 
 interface TorneioCtx { torneio: Torneio; torneioId: string; liveCount: number; }
 
-function Badge({ children, className = "" }: { children: React.ReactNode, className?: string }) {
-  return <span className={`live-badge ${className}`}><span className="live-dot" />{children}</span>;
-}
-
 export default function TorneioOverview() {
   const { torneio, torneioId } = useOutletContext<TorneioCtx>();
   const navigate = useNavigate();
-  
+
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [times, setTimes] = useState<Time[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Buscando os dados reais do seu Backend
   useEffect(() => {
-    async function carregarDados() {
+    async function carregar() {
       try {
-        const [partidasRes, timesRes] = await Promise.all([
+        const [pRes, tRes] = await Promise.all([
           api.listarPartidas(torneioId),
-          api.listarTimes(torneioId)
+          api.listarTimes(torneioId),
         ]);
-        setPartidas(partidasRes);
-        setTimes(timesRes);
-      } catch (error) {
-        console.error("Erro ao carregar dados do torneio:", error);
+        setPartidas(pRes);
+        setTimes(tRes);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     }
-    carregarDados();
+    carregar();
   }, [torneioId]);
 
-  if (loading) {
-    return <div className="p-6 text-muted-foreground">Carregando painel...</div>;
-  }
-
   const liveMatches = partidas.filter(p => p.status === "AO_VIVO");
-  
-  // Como o backend ainda não retorna pontos, vamos simular os líderes para o visual não quebrar
-  const topTimes = times.slice(0, 3).map(t => ({
-    ...t, pts: 0, v: 0, d: 0
-  }));
+  const topTimes = times.slice(0, 3);
+
+  if (loading) return (
+    <div className="p-6 text-muted-foreground text-sm">Carregando painel...</div>
+  );
 
   return (
-    <div className="page">
+    <div className="p-6 space-y-6 max-w-4xl">
+
       {/* Banner */}
-      <div className="hero-banner">
-        <div className="grid-overlay" />
-        <div className="hero-glow" />
-        <div className="hero-content">
-          <div className="hero-logo">🏐</div>
+      <div
+        className="relative rounded-2xl overflow-hidden h-36"
+        style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #0d1a0d 50%, #0a3d1f 100%)" }}
+      >
+        <div className="absolute inset-0 flex items-end p-5 gap-3">
+          <div className="h-12 w-12 rounded-xl border-2 border-white/20 grid place-items-center text-2xl bg-primary/20">
+            🏐
+          </div>
           <div>
-            <div className="hero-title">{torneio.nome}</div>
-            <div className="hero-meta">
-              <span>📍 {torneio.local || "Local não definido"}</span>
-              <span>📅 {torneio.dataInicio ? new Date(torneio.dataInicio).toLocaleDateString() : "Em breve"}</span>
-              <span>🏆 {times.length} times</span>
+            <p className="font-display text-xl font-black text-white">{torneio.nome}</p>
+            <div className="flex items-center gap-3 mt-0.5">
+              {torneio.local && <span className="text-xs text-white/60">📍 {torneio.local}</span>}
+              {torneio.dataInicio && (
+                <span className="text-xs text-white/60">
+                  📅 {new Date(torneio.dataInicio).toLocaleDateString("pt-BR")}
+                </span>
+              )}
+              <span className="text-xs text-white/60">🏆 {times.length} times</span>
             </div>
           </div>
-          <div style={{ marginLeft: "auto" }}>
-            <Badge>{torneio.status === "EM_ANDAMENTO" ? "Em andamento" : torneio.status}</Badge>
+          <div className="ml-auto">
+            <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(0,132,61,0.25)", border: "1px solid rgba(0,132,61,0.4)", color: "#4ade80" }}>
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              {torneio.status === "EM_ANDAMENTO" ? "Em andamento" : torneio.status}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Stats strip */}
-      <div className="stats-strip">
+      <div className="grid grid-cols-4 gap-3">
         {[
-          { n: times.length.toString(),  l: "Times" },
-          { n: liveMatches.length.toString(), l: "Ao vivo" },
-          { n: partidas.length.toString(), l: "Partidas" },
-          { n: "-", l: "Jogadores" }, // Pode ser implementado depois
+          { n: String(times.length),    l: "Times" },
+          { n: String(liveMatches.length), l: "Ao vivo", green: true },
+          { n: String(partidas.length), l: "Partidas" },
+          { n: "—",                     l: "Jogadores" },
         ].map(s => (
-          <div className="stat-cell" key={s.l}>
-            <div className="stat-num">{s.n}</div>
-            <div className="stat-lbl">{s.l}</div>
+          <div key={s.l} className="rounded-xl border bg-card p-4 text-center shadow-sm">
+            <p className={`font-display text-2xl font-black ${s.green && liveMatches.length > 0 ? "text-green-600" : "text-foreground"}`}>
+              {s.n}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{s.l}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid-2">
-        {/* Partidas ao vivo e recentes */}
-        <div className="card">
-          <div className="card-header">
-            <h3>⚡ Partidas</h3>
-            <button className="see-all" onClick={() => navigate("partidas")}>ver todas →</button>
-          </div>
-          
-          {partidas.length === 0 && (
-            <div className="p-4 text-center text-sm text-muted-foreground">Nenhuma partida cadastrada.</div>
-          )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {partidas.slice(0, 4).map(m => (
-            <div className="match-row" key={m.id}>
-              <div className={`match-status ${m.status === "AO_VIVO" ? "live" : m.status === "FINALIZADA" ? "done" : "sched"}`} />
-              <div className="match-teams">
-                <div className="tm">{m.nomeTimeCasa}</div>
-                <div className="tm" style={{ color: "var(--text-muted)" }}>{m.nomeTimeVisitante}</div>
-              </div>
-              <div>
-                {m.status === "AO_VIVO" && (
-                  <div className="match-score">{m.setAtualCasa} – {m.setAtualVisitante}</div>
-                )}
-                {m.status === "FINALIZADA" && (
-                  <div className="match-score" style={{ color: "var(--text-muted)" }}>{m.setsCasa}×{m.setsVisitante}</div>
-                )}
-                {m.status === "AGENDADA" && (
-                  <div style={{ fontSize: 11, color: "var(--amber)" }}>{m.agendadoPara ? new Date(m.agendadoPara).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "A definir"}</div>
-                )}
-                <div className="match-location">{m.local || "-"}</div>
-              </div>
+        {/* Partidas recentes */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+            <h3 className="text-sm font-semibold text-foreground">⚡ Partidas</h3>
+            <button
+              onClick={() => navigate("partidas")}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              ver todas →
+            </button>
+          </div>
+
+          {partidas.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className="text-sm text-muted-foreground">Nenhuma partida cadastrada.</p>
+              <button
+                onClick={() => navigate("partidas")}
+                className="mt-3 text-xs font-semibold text-primary hover:underline"
+              >
+                Criar primeira partida →
+              </button>
             </div>
-          ))}
+          ) : (
+            <div className="divide-y divide-border">
+              {partidas.slice(0, 5).map(m => (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className={`h-2 w-2 rounded-full shrink-0 ${
+                    m.status === "AO_VIVO" ? "bg-green-500 animate-pulse" :
+                    m.status === "FINALIZADA" ? "bg-muted-foreground" : "bg-amber-400"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {m.nomeTimeCasa} <span className="text-muted-foreground font-normal">vs</span> {m.nomeTimeVisitante}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {m.local || (m.agendadoPara ? new Date(m.agendadoPara).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }) : "—")}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {m.status === "AO_VIVO" && (
+                      <span className="font-display font-black text-sm text-foreground">
+                        {m.setAtualCasa} – {m.setAtualVisitante}
+                      </span>
+                    )}
+                    {m.status === "FINALIZADA" && (
+                      <span className="font-display font-black text-sm text-muted-foreground">
+                        {m.setsCasa}×{m.setsVisitante}
+                      </span>
+                    )}
+                    {(m.status === "AGENDADA" || m.status === "AQUECIMENTO") && (
+                      <span className="text-xs font-semibold text-amber-600">
+                        {m.agendadoPara ? new Date(m.agendadoPara).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "A definir"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Top 3 Líderes */}
-        <div className="card">
-          <div className="card-header">
-            <h3>🥇 Times Participantes</h3>
-            <button className="see-all" onClick={() => navigate("times")}>ver todos →</button>
+        {/* Times participantes */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+            <h3 className="text-sm font-semibold text-foreground">🥇 Times participantes</h3>
+            <button
+              onClick={() => navigate("times")}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              ver todos →
+            </button>
           </div>
-          
-          {times.length === 0 && (
-            <div className="p-4 text-center text-sm text-muted-foreground">Nenhum time inscrito.</div>
-          )}
 
-          {topTimes.map((t, i) => (
-            <div className="team-row" key={t.id}>
-              <div className="team-rank top">{i + 1}</div>
-              <div className="team-icon">{t.nome[0]}</div>
-              <div className="team-name">{t.nome}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t.v}V {t.d}D</div>
-              <div className="team-pts">{t.pts}</div>
+          {times.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className="text-sm text-muted-foreground">Nenhum time inscrito ainda.</p>
             </div>
-          ))}
+          ) : (
+            <div className="divide-y divide-border">
+              {topTimes.map((t, i) => (
+                <div key={t.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className={`text-sm font-black w-5 text-center shrink-0 ${
+                    i === 0 ? "text-yellow-500" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"
+                  }`}>
+                    {i + 1}
+                  </span>
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 grid place-items-center text-xs font-black text-primary shrink-0">
+                    {t.nome[0].toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-foreground flex-1 truncate">{t.nome}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {t.quantidadeJogadores ?? 0} jog.
+                  </span>
+                </div>
+              ))}
+              {times.length > 3 && (
+                <div className="px-4 py-2">
+                  {times.slice(3).map((t, i) => (
+                    <div key={t.id} className="flex items-center gap-3 py-1.5">
+                      <span className="text-xs text-muted-foreground w-5 text-center">{i + 4}</span>
+                      <div className="h-6 w-6 rounded bg-muted grid place-items-center text-[10px] font-bold text-muted-foreground">
+                        {t.nome[0].toUpperCase()}
+                      </div>
+                      <span className="text-xs text-muted-foreground flex-1 truncate">{t.nome}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Descrição */}
+      {torneio.descricao && (
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Sobre o torneio</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{torneio.descricao}</p>
+        </div>
+      )}
     </div>
   );
 }

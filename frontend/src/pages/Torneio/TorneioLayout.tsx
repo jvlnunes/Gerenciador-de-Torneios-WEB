@@ -7,7 +7,6 @@ import {
   ChevronLeft, ChevronRight, Loader2, Trophy,
 } from "lucide-react";
 
-// ── Tipos ─────────────────────────────────────────────────────
 interface NavItem {
   to: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -16,7 +15,6 @@ interface NavItem {
   end?: boolean;
 }
 
-// ── Sidebar ───────────────────────────────────────────────────
 function TorneioSidebar({
   torneio,
   torneioId,
@@ -33,23 +31,44 @@ function TorneioSidebar({
   const base = `/torneios/${torneioId}`;
 
   const navItems: NavItem[] = [
-    { to: base,                     icon: Home,      label: "Visão geral",  end: true },
-    { to: `${base}/partidas`,       icon: Swords,    label: "Partidas",     badge: liveCount > 0 ? liveCount : undefined },
-    { to: `${base}/times`,          icon: Users,     label: "Times" },
-    { to: `${base}/classificacao`,  icon: BarChart3, label: "Classificação" },
-    { to: `${base}/configuracoes`,  icon: Settings,  label: "Configurações" },
+    { to: base,                    icon: Home,      label: "Visão geral",  end: true },
+    { to: `${base}/partidas`,      icon: Swords,    label: "Partidas",     badge: liveCount > 0 ? liveCount : undefined },
+    { to: `${base}/times`,         icon: Users,     label: "Times" },
+    { to: `${base}/classificacao`, icon: BarChart3, label: "Classificação" },
+    { to: `${base}/configuracoes`, icon: Settings,  label: "Configurações" },
   ];
 
   return (
     <aside
-      className="sidebar-torneio"
-      style={{ width: collapsed ? 56 : 220 }}
+      style={{
+        width: collapsed ? 56 : 220,
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--card)",
+        borderRight: "1px solid var(--color-border)",
+        transition: "width 200ms cubic-bezier(0.4,0,0.2,1)",
+        height: "100%",
+        overflow: "hidden",
+      }}
     >
-      {/* Toggle button */}
+      {/* Toggle */}
       <button
         onClick={onToggle}
-        className="sidebar-toggle-btn"
         title={collapsed ? "Expandir" : "Recolher"}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          padding: "10px 12px",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          color: "var(--color-muted-foreground)",
+          borderBottom: "1px solid var(--color-border)",
+          flexShrink: 0,
+          transition: "color 200ms",
+        }}
       >
         {collapsed
           ? <ChevronRight className="h-3.5 w-3.5" />
@@ -58,40 +77,115 @@ function TorneioSidebar({
 
       {/* Tournament info */}
       {!collapsed && (
-        <div className="sidebar-torneio-info">
-          <div className="sidebar-torneio-logo">
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 14px",
+          borderBottom: "1px solid var(--color-border)",
+          flexShrink: 0,
+          overflow: "hidden",
+        }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 9,
+            background: "color-mix(in oklch, var(--color-primary) 15%, transparent)",
+            border: "1px solid color-mix(in oklch, var(--color-primary) 30%, transparent)",
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}>
             {torneio.logoUrl
-              ? <img src={torneio.logoUrl} alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
-              : <Trophy className="h-4 w-4" style={{ color: "var(--torneio-primary)" }} />}
+              ? <img src={torneio.logoUrl} alt="Logo" className="h-6 w-6 rounded object-cover" />
+              : <Trophy className="h-4 w-4" style={{ color: "var(--color-primary)" }} />}
           </div>
-          <div className="sidebar-torneio-nome-wrap">
-            <p className="sidebar-torneio-nome">{torneio.nome}</p>
+          <div style={{ minWidth: 0 }}>
+            <p style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: "var(--color-foreground)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              lineHeight: 1.3,
+            }}>
+              {torneio.nome}
+            </p>
             {torneio.local && (
-              <p className="sidebar-torneio-meta">📍 {torneio.local}</p>
+              <p style={{
+                fontSize: 10,
+                color: "var(--color-muted-foreground)",
+                marginTop: 2,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}>
+                📍 {torneio.local}
+              </p>
             )}
           </div>
         </div>
       )}
 
       {/* Nav */}
-      <nav className="sidebar-torneio-nav">
+      <nav style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
         {navItems.map(({ to, icon: Icon, label, badge, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             title={collapsed ? label : undefined}
+            style={({ isActive }) => ({
+              display: "flex",
+              alignItems: "center",
+              gap: collapsed ? 0 : 10,
+              justifyContent: collapsed ? "center" : "flex-start",
+              padding: collapsed ? "10px" : "9px 14px",
+              textDecoration: "none",
+              fontSize: 13,
+              fontWeight: isActive ? 600 : 500,
+              color: isActive
+                ? "var(--color-primary)"
+                : "var(--color-muted-foreground)",
+              background: isActive
+                ? "color-mix(in oklch, var(--color-primary) 10%, transparent)"
+                : "transparent",
+              borderLeft: `2px solid ${isActive ? "var(--color-primary)" : "transparent"}`,
+              transition: "all 200ms",
+              whiteSpace: "nowrap",
+              position: "relative",
+            })}
             className={({ isActive }) =>
-              `sidebar-nav-item${isActive ? " active" : ""}${collapsed ? " collapsed" : ""}`
+              `hover:bg-muted hover:text-foreground ${isActive ? "" : ""}`
             }
           >
-            <Icon className="sidebar-nav-icon" />
-            {!collapsed && <span className="sidebar-nav-label">{label}</span>}
+            <Icon className="h-4 w-4 shrink-0" />
+            {!collapsed && <span style={{ flex: 1 }}>{label}</span>}
             {!collapsed && badge !== undefined && (
-              <span className="sidebar-nav-badge live">{badge} ao vivo</span>
+              <span style={{
+                fontSize: 9,
+                fontWeight: 700,
+                padding: "2px 7px",
+                borderRadius: 99,
+                background: "color-mix(in oklch, var(--color-primary) 18%, transparent)",
+                color: "var(--color-primary)",
+                border: "1px solid color-mix(in oklch, var(--color-primary) 30%, transparent)",
+                animation: "pulse 1.6s ease infinite",
+              }}>
+                {badge} ao vivo
+              </span>
             )}
             {collapsed && badge !== undefined && (
-              <span className="sidebar-nav-badge-dot" />
+              <span style={{
+                position: "absolute",
+                top: 6,
+                right: 6,
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "var(--color-primary)",
+              }} />
             )}
           </NavLink>
         ))}
@@ -100,7 +194,6 @@ function TorneioSidebar({
   );
 }
 
-// ── Layout principal ──────────────────────────────────────────
 export default function TorneioLayout() {
   const { torneioId } = useParams<{ torneioId: string }>();
   const navigate = useNavigate();
@@ -142,9 +235,9 @@ export default function TorneioLayout() {
   if (!torneio) return null;
 
   return (
-    <div className="torneio-shell">
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
       <SiteHeader />
-      <div className="torneio-body">
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <TorneioSidebar
           torneio={torneio}
           torneioId={torneioId!}
@@ -152,8 +245,7 @@ export default function TorneioLayout() {
           collapsed={collapsed}
           onToggle={() => setCollapsed((c) => !c)}
         />
-        <main className="torneio-main">
-          {/* Passa o torneio pelo context para as páginas filhas usarem */}
+        <main style={{ flex: 1, overflowY: "auto", background: "var(--color-background)" }}>
           <Outlet context={{ torneio, setTorneio, torneioId, liveCount }} />
         </main>
       </div>

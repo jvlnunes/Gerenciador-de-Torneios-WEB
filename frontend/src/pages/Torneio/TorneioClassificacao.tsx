@@ -1,95 +1,87 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { api, type Torneio, type Time } from "@/services/api";
+import { Loader2 } from "lucide-react";
 
 interface TorneioCtx { torneio: Torneio; torneioId: string; liveCount: number; }
 
 export default function TorneioClassificacao() {
   const { torneio, torneioId } = useOutletContext<TorneioCtx>();
-  
   const [times, setTimes] = useState<Time[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function carregarTimes() {
-      try {
-        // Futuramente trocar por: await api.buscarClassificacao(torneioId)
-        const timesRes = await api.listarTimes(torneioId);
-        setTimes(timesRes);
-      } catch (error) {
-        console.error("Erro ao carregar classificação", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    carregarTimes();
+    api.listarTimes(torneioId).then(setTimes).finally(() => setLoading(false));
   }, [torneioId]);
 
-  const formVitDer = (v: number, d: number) => {
-    const total = v + d;
-    if (total === 0) return [];
-    return Array.from({ length: Math.min(total, 5) }, (_, i) => i < v ? "V" : "D").reverse();
-  };
-
-  if (loading) return <div className="p-6">Carregando classificação...</div>;
+  if (loading) return (
+    <div className="p-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+  );
 
   return (
-    <div className="page">
-      <div style={{ marginBottom: 20 }}>
-        <div className="section-title">Classificação</div>
-        <div className="section-sub">{torneio.nome} • Visão geral dos times</div>
+    <div className="p-6 max-w-2xl">
+      <div className="mb-6">
+        <h1 className="font-display text-3xl font-black text-foreground">Classificação</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{torneio.nome} · Visão geral dos times</p>
       </div>
 
-      <div className="card">
-        {/* Header da Tabela */}
-        <div className="tabela-header">
-          <div>#</div>
-          <div />
-          <div>Time</div>
-          <div style={{ textAlign: "center" }}>PTS</div>
-          <div style={{ textAlign: "center" }}>V</div>
-          <div style={{ textAlign: "center" }}>D</div>
-          <div style={{ textAlign: "center" }}>Sets</div>
-          <div style={{ textAlign: "center" }}>Form.</div>
-          <div style={{ textAlign: "right" }}>%V</div>
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem_3rem] gap-2 px-4 py-3 bg-muted/40 border-b border-border text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <span>#</span>
+          <span>Time</span>
+          <span className="text-center">PTS</span>
+          <span className="text-center">V</span>
+          <span className="text-center">D</span>
+          <span className="text-center">Sets</span>
+          <span className="text-right">%V</span>
         </div>
 
-        {times.length === 0 && (
-          <div className="p-6 text-center text-muted-foreground text-sm">
+        {times.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
             Nenhum time registrado neste torneio ainda.
           </div>
-        )}
-
-        {times.map((t, i) => {
-          // Valores zerados temporários (aguardando backend de classificação)
-          const isLeader = i === 0;
-          const v = 0, d = 0, pts = 0, setsPro = 0, setsContra = 0;
-          const pct = 0;
-          const form = formVitDer(v, d);
-
-          return (
-            <div className={`tabela-row ${isLeader && times.length > 1 ? "leader" : ""}`} key={t.id}>
-              <div className="t-rank">{i + 1}</div>
-              <div>
-                <div className="t-ico">{t.nome[0].toUpperCase()}</div>
-              </div>
-              <div className="t-n">{t.nome}</div>
-              <div className="t-pts-cell">{pts}</div>
-              <div className="t-v">{v}</div>
-              <div className="t-d">{d}</div>
-              <div className="t-sets">{setsPro}/{setsContra}</div>
-              <div>
-                <div className="form-badges">
-                  {form.length > 0 ? form.map((r, fi) => (
-                    <div key={fi} className={`fb ${r}`}>{r}</div>
-                  )) : <span className="text-xs text-muted-foreground">-</span>}
+        ) : (
+          <div className="divide-y divide-border">
+            {times.map((t, i) => {
+              const isLeader = i === 0 && times.length > 1;
+              return (
+                <div
+                  key={t.id}
+                  className={`grid grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem_3rem] gap-2 px-4 py-3 items-center ${isLeader ? "bg-primary/5" : "hover:bg-muted/20"} transition-colors`}
+                >
+                  <span className={`text-sm font-black text-center ${
+                    i === 0 ? "text-yellow-500" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"
+                  }`}>
+                    {i + 1}
+                  </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="h-7 w-7 rounded-md bg-primary/10 grid place-items-center text-xs font-bold text-primary shrink-0">
+                      {t.nome[0].toUpperCase()}
+                    </div>
+                    <span className="text-sm font-semibold text-foreground truncate">{t.nome}</span>
+                    {isLeader && (
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">
+                        Líder
+                      </span>
+                    )}
+                  </div>
+                  {/* Valores zerados — backend de classificação pendente */}
+                  <span className="text-sm font-black text-foreground text-center">0</span>
+                  <span className="text-sm text-muted-foreground text-center">0</span>
+                  <span className="text-sm text-muted-foreground text-center">0</span>
+                  <span className="text-sm text-muted-foreground text-center">0/0</span>
+                  <span className="text-sm text-muted-foreground text-right">0%</span>
                 </div>
-              </div>
-              <div className="t-pct">{pct}%</div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      <p className="mt-3 text-xs text-muted-foreground text-center">
+        Classificação calculada automaticamente à medida que as partidas forem registradas.
+      </p>
     </div>
   );
 }
