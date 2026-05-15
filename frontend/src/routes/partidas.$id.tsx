@@ -515,7 +515,7 @@ function LiveMatchPage() {
                     )}>
                     {a.emoji} {a.label}
                   </button>
-                ))}
+                ))} 
               </div>
             </div>
           )}

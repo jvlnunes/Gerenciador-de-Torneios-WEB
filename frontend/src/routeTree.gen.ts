@@ -14,8 +14,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TorneiosIndexRouteImport } from './routes/torneios.index'
 import { Route as TorneiosNewRouteImport } from './routes/torneios.new'
+import { Route as TorneiosIdRouteImport } from './routes/torneios/$id'
 import { Route as PartidasIdRouteImport } from './routes/partidas.$id'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
+import { Route as TorneiosIdSettingsRouteImport } from './routes/torneios/$id.settings'
+import { Route as TorneiosIdOverviewRouteImport } from './routes/torneios/$id.overview'
 import { Route as TorneiosIdMatchesRouteImport } from './routes/torneios.$id.matches'
 import { Route as TorneiosIdEditRouteImport } from './routes/torneios.$id.edit'
 
@@ -44,6 +47,11 @@ const TorneiosNewRoute = TorneiosNewRouteImport.update({
   path: '/new',
   getParentRoute: () => TorneiosRoute,
 } as any)
+const TorneiosIdRoute = TorneiosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => TorneiosRoute,
+} as any)
 const PartidasIdRoute = PartidasIdRouteImport.update({
   id: '/partidas/$id',
   path: '/partidas/$id',
@@ -54,15 +62,25 @@ const JoinTokenRoute = JoinTokenRouteImport.update({
   path: '/join/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TorneiosIdSettingsRoute = TorneiosIdSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => TorneiosIdRoute,
+} as any)
+const TorneiosIdOverviewRoute = TorneiosIdOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => TorneiosIdRoute,
+} as any)
 const TorneiosIdMatchesRoute = TorneiosIdMatchesRouteImport.update({
-  id: '/$id/matches',
-  path: '/$id/matches',
-  getParentRoute: () => TorneiosRoute,
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => TorneiosIdRoute,
 } as any)
 const TorneiosIdEditRoute = TorneiosIdEditRouteImport.update({
-  id: '/$id/edit',
-  path: '/$id/edit',
-  getParentRoute: () => TorneiosRoute,
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => TorneiosIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -71,20 +89,26 @@ export interface FileRoutesByFullPath {
   '/torneios': typeof TorneiosRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/partidas/$id': typeof PartidasIdRoute
+  '/torneios/$id': typeof TorneiosIdRouteWithChildren
   '/torneios/new': typeof TorneiosNewRoute
   '/torneios/': typeof TorneiosIndexRoute
   '/torneios/$id/edit': typeof TorneiosIdEditRoute
   '/torneios/$id/matches': typeof TorneiosIdMatchesRoute
+  '/torneios/$id/overview': typeof TorneiosIdOverviewRoute
+  '/torneios/$id/settings': typeof TorneiosIdSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/join/$token': typeof JoinTokenRoute
   '/partidas/$id': typeof PartidasIdRoute
+  '/torneios/$id': typeof TorneiosIdRouteWithChildren
   '/torneios/new': typeof TorneiosNewRoute
   '/torneios': typeof TorneiosIndexRoute
   '/torneios/$id/edit': typeof TorneiosIdEditRoute
   '/torneios/$id/matches': typeof TorneiosIdMatchesRoute
+  '/torneios/$id/overview': typeof TorneiosIdOverviewRoute
+  '/torneios/$id/settings': typeof TorneiosIdSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,10 +117,13 @@ export interface FileRoutesById {
   '/torneios': typeof TorneiosRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/partidas/$id': typeof PartidasIdRoute
+  '/torneios/$id': typeof TorneiosIdRouteWithChildren
   '/torneios/new': typeof TorneiosNewRoute
   '/torneios/': typeof TorneiosIndexRoute
   '/torneios/$id/edit': typeof TorneiosIdEditRoute
   '/torneios/$id/matches': typeof TorneiosIdMatchesRoute
+  '/torneios/$id/overview': typeof TorneiosIdOverviewRoute
+  '/torneios/$id/settings': typeof TorneiosIdSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,20 +133,26 @@ export interface FileRouteTypes {
     | '/torneios'
     | '/join/$token'
     | '/partidas/$id'
+    | '/torneios/$id'
     | '/torneios/new'
     | '/torneios/'
     | '/torneios/$id/edit'
     | '/torneios/$id/matches'
+    | '/torneios/$id/overview'
+    | '/torneios/$id/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/join/$token'
     | '/partidas/$id'
+    | '/torneios/$id'
     | '/torneios/new'
     | '/torneios'
     | '/torneios/$id/edit'
     | '/torneios/$id/matches'
+    | '/torneios/$id/overview'
+    | '/torneios/$id/settings'
   id:
     | '__root__'
     | '/'
@@ -127,10 +160,13 @@ export interface FileRouteTypes {
     | '/torneios'
     | '/join/$token'
     | '/partidas/$id'
+    | '/torneios/$id'
     | '/torneios/new'
     | '/torneios/'
     | '/torneios/$id/edit'
     | '/torneios/$id/matches'
+    | '/torneios/$id/overview'
+    | '/torneios/$id/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -178,6 +214,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TorneiosNewRouteImport
       parentRoute: typeof TorneiosRoute
     }
+    '/torneios/$id': {
+      id: '/torneios/$id'
+      path: '/$id'
+      fullPath: '/torneios/$id'
+      preLoaderRoute: typeof TorneiosIdRouteImport
+      parentRoute: typeof TorneiosRoute
+    }
     '/partidas/$id': {
       id: '/partidas/$id'
       path: '/partidas/$id'
@@ -192,35 +235,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/torneios/$id/settings': {
+      id: '/torneios/$id/settings'
+      path: '/settings'
+      fullPath: '/torneios/$id/settings'
+      preLoaderRoute: typeof TorneiosIdSettingsRouteImport
+      parentRoute: typeof TorneiosIdRoute
+    }
+    '/torneios/$id/overview': {
+      id: '/torneios/$id/overview'
+      path: '/overview'
+      fullPath: '/torneios/$id/overview'
+      preLoaderRoute: typeof TorneiosIdOverviewRouteImport
+      parentRoute: typeof TorneiosIdRoute
+    }
     '/torneios/$id/matches': {
       id: '/torneios/$id/matches'
-      path: '/$id/matches'
+      path: '/matches'
       fullPath: '/torneios/$id/matches'
       preLoaderRoute: typeof TorneiosIdMatchesRouteImport
-      parentRoute: typeof TorneiosRoute
+      parentRoute: typeof TorneiosIdRoute
     }
     '/torneios/$id/edit': {
       id: '/torneios/$id/edit'
-      path: '/$id/edit'
+      path: '/edit'
       fullPath: '/torneios/$id/edit'
       preLoaderRoute: typeof TorneiosIdEditRouteImport
-      parentRoute: typeof TorneiosRoute
+      parentRoute: typeof TorneiosIdRoute
     }
   }
 }
 
-interface TorneiosRouteChildren {
-  TorneiosNewRoute: typeof TorneiosNewRoute
-  TorneiosIndexRoute: typeof TorneiosIndexRoute
+interface TorneiosIdRouteChildren {
   TorneiosIdEditRoute: typeof TorneiosIdEditRoute
   TorneiosIdMatchesRoute: typeof TorneiosIdMatchesRoute
+  TorneiosIdOverviewRoute: typeof TorneiosIdOverviewRoute
+  TorneiosIdSettingsRoute: typeof TorneiosIdSettingsRoute
+}
+
+const TorneiosIdRouteChildren: TorneiosIdRouteChildren = {
+  TorneiosIdEditRoute: TorneiosIdEditRoute,
+  TorneiosIdMatchesRoute: TorneiosIdMatchesRoute,
+  TorneiosIdOverviewRoute: TorneiosIdOverviewRoute,
+  TorneiosIdSettingsRoute: TorneiosIdSettingsRoute,
+}
+
+const TorneiosIdRouteWithChildren = TorneiosIdRoute._addFileChildren(
+  TorneiosIdRouteChildren,
+)
+
+interface TorneiosRouteChildren {
+  TorneiosIdRoute: typeof TorneiosIdRouteWithChildren
+  TorneiosNewRoute: typeof TorneiosNewRoute
+  TorneiosIndexRoute: typeof TorneiosIndexRoute
 }
 
 const TorneiosRouteChildren: TorneiosRouteChildren = {
+  TorneiosIdRoute: TorneiosIdRouteWithChildren,
   TorneiosNewRoute: TorneiosNewRoute,
   TorneiosIndexRoute: TorneiosIndexRoute,
-  TorneiosIdEditRoute: TorneiosIdEditRoute,
-  TorneiosIdMatchesRoute: TorneiosIdMatchesRoute,
 }
 
 const TorneiosRouteWithChildren = TorneiosRoute._addFileChildren(
