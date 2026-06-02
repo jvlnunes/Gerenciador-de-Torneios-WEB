@@ -4,7 +4,7 @@ import { api, type Torneio, type Time, type Jogador } from "@/services/api";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Plus, Loader2, X, Shield, Users, Copy, Check,
-  ChevronDown, Trash2, Link2, RefreshCw,
+  ChevronDown, Trash2, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +18,13 @@ interface TorneioCtx {
 
 const POSITIONS = ["Levantador", "Ponteiro", "Oposto", "Central", "Líbero", "Outro"];
 
-function nextJerseyNumber(players: Jogador[]): number {
+function proximoNumCamisa(players: Jogador[]): number {
   const used = new Set(players.map((p) => p.numeroCamisa).filter(Boolean) as number[]);
   let n = 1;
   while (used.has(n)) n++;
   return n;
 }
 
-/* ── Inline editable cell ─────────────────────────────────── */
 function EditableCell({
   value,
   type = "text",
@@ -94,7 +93,6 @@ function EditableCell({
   );
 }
 
-/* ── Add Player Row ───────────────────────────────────────── */
 function AddPlayerRow({
   players,
   teamId,
@@ -105,7 +103,7 @@ function AddPlayerRow({
   onCreated: (p: Jogador) => void;
 }) {
   const [name, setName] = useState("");
-  const [jersey, setJersey] = useState("");
+  const [numCamisa, setNumCamisa] = useState("");
   const [position, setPosition] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,16 +112,16 @@ function AddPlayerRow({
   const submit = async () => {
     if (!name.trim()) { setError("Nome obrigatório"); nameRef.current?.focus(); return; }
     setSaving(true); setError(null);
-    const jerseyNum = jersey ? Number(jersey) : nextJerseyNumber(players);
+    const numeroCamisa = numCamisa ? Number(numCamisa) : proximoNumCamisa(players);
     try {
       const p = await api.criarJogador({
         timeId: teamId,
         nome: name.trim(),
-        numeroCamisa: jerseyNum,
+        numeroCamisa: numeroCamisa,
         posicao: position || undefined,
       });
       onCreated(p);
-      setName(""); setJersey(""); setPosition("");
+      setName(""); setNumCamisa(""); setPosition("");
       nameRef.current?.focus();
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
@@ -137,8 +135,8 @@ function AddPlayerRow({
           type="number"
           min={1}
           max={99}
-          value={jersey}
-          onChange={(e) => setJersey(e.target.value)}
+          value={numCamisa}
+          onChange={(e) => setNumCamisa(e.target.value)}
           placeholder="Nº"
           className="h-8 w-12 rounded-md border border-input bg-background px-2 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary shrink-0"
         />
@@ -433,7 +431,6 @@ export default function TorneioTimes() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
-  // track real player counts after loading
   const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
@@ -459,7 +456,6 @@ export default function TorneioTimes() {
     if (activeTeamId === id) setActiveTeamId(null);
   };
 
-  // Merge real player counts into teams display
   const teamsWithCounts = teams.map((t) => ({
     ...t,
     quantidadeJogadores: playerCounts[t.id] ?? t.quantidadeJogadores ?? 0,

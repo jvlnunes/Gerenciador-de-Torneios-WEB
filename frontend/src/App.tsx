@@ -4,7 +4,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LoginPage         from "./pages/Login";
 import TorneiosListPage  from "./pages/Torneios/ListarTorneios";
 import CriarTorneioPage  from "./pages/Torneios/CriarTorneio";
-import PartidaLivePage   from "./pages/Partida/PartidaAoVivo";
+import PartidaLivePage   from "./pages/Partida/index";
+// import PartidaLivePage   from "./pages/Partida/PartidaAoVivo";
 
 // Layout interno do torneio (com sidebar)
 import TorneioLayout     from "./pages/Torneio/TorneioLayout";

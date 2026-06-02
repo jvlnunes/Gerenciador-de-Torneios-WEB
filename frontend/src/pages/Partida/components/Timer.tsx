@@ -1,16 +1,14 @@
-import {
-  Play, Pause, Timer
-} from "lucide-react";
+import { Timer as TimerIcon, Play, Pause } from "lucide-react";
+import { cn } from "@/services/utils";
+import { formatTime } from "../utils/LogicaPartida";
 
-function SetTimer({
-  running,
-  seconds,
-  onToggle,
-}: {
+interface SetTimerProps {
   running: boolean;
   seconds: number;
   onToggle: () => void;
-}) {
+}
+
+export function SetTimer({ running, seconds, onToggle }: SetTimerProps) {
   return (
     <div className="flex items-center gap-2">
       <div className={cn(
@@ -19,7 +17,7 @@ function SetTimer({
           ? "bg-green-50 border-green-300 text-green-700"
           : "bg-gray-100 border-gray-200 text-gray-500"
       )}>
-        <Timer className="h-3.5 w-3.5 inline mr-1 -mt-0.5" />
+        <TimerIcon className="h-3.5 w-3.5 inline mr-1 -mt-0.5" />
         {formatTime(seconds)}
       </div>
       <button

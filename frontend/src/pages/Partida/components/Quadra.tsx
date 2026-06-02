@@ -1,17 +1,15 @@
-import {
-  type LadoPonto,
-  type JogadorPartida,
-} from "@/services/api";
+import { JogadorPartida, LadoPonto } from "@/services/api";
+import { cn } from "@/services/utils";
 
-function Quadra({
-  jCasa, jVisit, rotCasa, rotVisit, sacador,
-}: {
+interface QuadraProps {
   jCasa: JogadorPartida[];
   jVisit: JogadorPartida[];
   rotCasa: number;
   rotVisit: number;
   sacador: LadoPonto;
-}) {
+}
+
+export function Quadra({ jCasa, jVisit, rotCasa, rotVisit, sacador }: QuadraProps) {
   const getJogador = (j: JogadorPartida[], vSlot: number, rot: number) => {
     const idx = (vSlot - 1 + rot) % 6;
     return j[idx] ?? null;

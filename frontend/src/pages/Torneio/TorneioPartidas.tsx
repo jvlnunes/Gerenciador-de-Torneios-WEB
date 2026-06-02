@@ -16,18 +16,18 @@ interface TorneioCtx {
   liveCount: number;
 }
 
-/* ── Status helpers ─────────────────────────────────────── */
 const matchStatusColor: Record<string, string> = {
-  AGENDADA:    "bg-muted text-muted-foreground",
+  AGENDADA: "bg-muted text-muted-foreground",
   AQUECIMENTO: "bg-amber-100 text-amber-700 border-amber-200",
-  AO_VIVO:     "bg-green-100 text-green-700 border-green-200",
-  FINALIZADA:  "bg-secondary text-secondary-foreground",
+  AO_VIVO: "bg-green-100 text-green-700 border-green-200",
+  FINALIZADA: "bg-secondary text-secondary-foreground",
 };
+
 const matchStatusLabel: Record<string, string> = {
-  AGENDADA:    "Agendada",
+  AGENDADA: "Agendada",
   AQUECIMENTO: "Aquecimento",
-  AO_VIVO:     "Ao vivo",
-  FINALIZADA:  "Finalizada",
+  AO_VIVO: "Ao vivo",
+  FINALIZADA: "Finalizada",
 };
 
 /* ── Create Match Modal ──────────────────────────────────── */
@@ -158,7 +158,7 @@ function MatchCard({
   onDelete: () => void;
   onOpen: () => void;
 }) {
-  const isLive     = match.status === "AO_VIVO";
+  const isLive = match.status === "AO_VIVO";
   const isFinished = match.status === "FINALIZADA";
   const isScheduled = match.status === "AGENDADA" || match.status === "AQUECIMENTO";
 
@@ -215,7 +215,7 @@ function MatchCard({
               </span>
               {(match.setsCasa > 0 || match.setsVisitante > 0) && (
                 <p className="text-[10px] text-white/60 mt-0.5">
-                  {match.setsCasa}×{match.setsVisitante} sets
+                  {match.setsCasa}×{match.setsVisitante}
                 </p>
               )}
             </div>
@@ -303,9 +303,9 @@ export default function TorneioPartidas() {
     setMatches((prev) => prev.filter((m) => m.id !== matchId));
   };
 
-  const live      = matches.filter((m) => m.status === "AO_VIVO");
+  const live = matches.filter((m) => m.status === "AO_VIVO");
   const scheduled = matches.filter((m) => m.status === "AGENDADA" || m.status === "AQUECIMENTO");
-  const finished  = matches.filter((m) => m.status === "FINALIZADA");
+  const finished = matches.filter((m) => m.status === "FINALIZADA");
 
   return (
     <div className="p-6 max-w-2xl mx-auto">

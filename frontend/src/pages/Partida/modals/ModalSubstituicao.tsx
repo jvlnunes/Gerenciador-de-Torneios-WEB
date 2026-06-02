@@ -1,16 +1,9 @@
 import { useState } from "react";
+import { JogadorPartida, LadoPonto } from "@/services/api";
 import { cn } from "@/services/utils";
-import {
-  type LadoPonto,
-  type JogadorPartida,
-} from "@/services/api";
-import {
-  CheckCircle2,
-  ArrowLeftRight
-} from "lucide-react";
+import { CheckCircle2, ArrowLeftRight } from "lucide-react";
 
-
-interface SubModalProps {
+export interface SubModalProps {
   lado: LadoPonto;
   nomeCasa: string;
   nomeVis: string;
@@ -20,7 +13,7 @@ interface SubModalProps {
   onClose: () => void;
 }
 
-function SubModal({ lado, nomeCasa, nomeVis, titulares, reservas, onConfirm, onClose }: SubModalProps) {
+export function SubModal({ lado, nomeCasa, nomeVis, titulares, reservas, onConfirm, onClose }: SubModalProps) {
   const [entrando, setEntrando] = useState<string>("");
   const [saindo, setSaindo] = useState<string>("");
 
