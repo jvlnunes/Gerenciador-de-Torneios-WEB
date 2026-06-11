@@ -34,7 +34,8 @@ function TorneioSidebar({
     { to: base,                    icon: Home,      label: "Visão geral",  end: true },
     { to: `${base}/partidas`,      icon: Swords,    label: "Partidas",     badge: liveCount > 0 ? liveCount : undefined },
     { to: `${base}/times`,         icon: Users,     label: "Times" },
-    { to: `${base}/classificacao`, icon: BarChart3, label: "Classificação" },
+    { to: `${base}/classificacao`, icon: Trophy,    label: "Classificação" },
+    { to: `${base}/estatisticas`,  icon: BarChart3, label: "Estatísticas" },
     { to: `${base}/configuracoes`, icon: Settings,  label: "Configurações" },
   ];
 

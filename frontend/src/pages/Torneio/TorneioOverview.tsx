@@ -1,215 +1,369 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { api, type Torneio, type Partida, type Time } from "@/services/api";
+import { Loader2, Shield, Swords, Users, ChevronLeft, ChevronRight, Trophy, Zap, Award } from "lucide-react";
+import { cn } from "@/services/utils";
 
-interface TorneioCtx { torneio: Torneio; torneioId: string; liveCount: number; }
+interface TorneioCtx {
+  torneio: Torneio;
+  torneioId: string;
+  liveCount: number;
+}
+
+interface PlayerStats {
+  id: string;
+  nome: string;
+  time: string;
+  pontos: number;
+  saques: number;
+  bloqueios: number;
+}
 
 export default function TorneioOverview() {
   const { torneio, torneioId } = useOutletContext<TorneioCtx>();
   const navigate = useNavigate();
 
-  const [partidas, setPartidas] = useState<Partida[]>([]);
-  const [times, setTimes] = useState<Time[]>([]);
   const [loading, setLoading] = useState(true);
+  const [times, setTimes] = useState<Time[]>([]);
+  const [partidas, setPartidas] = useState<Partida[]>([]);
+  const [estatisticasAtletas, setEstatisticasAtletas] = useState<PlayerStats[]>([]);
+  
+  // Controle de estado do Slider de Categorias (0: Pontos, 1: Saques, 2: Bloqueios)
+  const [categoriaAtiva, setCategoriaAtiva] = useState(0);
 
   useEffect(() => {
-    async function carregar() {
+    async function loadData() {
       try {
-        const [pRes, tRes] = await Promise.all([
-          api.listarPartidas(torneioId),
+        const [ts, ps] = await Promise.all([
           api.listarTimes(torneioId),
+          api.listarPartidas(torneioId),
         ]);
-        setPartidas(pRes);
-        setTimes(tRes);
-      } catch (e) {
-        console.error(e);
+        setTimes(ts);
+        setPartidas(ps);
+
+        const timeNomeMap = new Map(ts.map((t) => [t.id, t.nome]));
+        const partidasValidas = ps.filter((p) => p.status === "FINALIZADA" || p.status === "AO_VIVO");
+        
+        const playerMap = new Map<string, PlayerStats>();
+
+        // Busca todos os eventos em paralelo
+        const eventosByPartida = await Promise.all(
+          partidasValidas.map((p) =>
+            api.listarEventosPartida(p.id).then((evs) => ({ partida: p, evs }))
+          )
+        );
+
+        // Agregação das ações individuais
+        eventosByPartida.forEach(({ partida, evs }) => {
+          evs.filter((e) => !e.anulado).forEach((ev) => {
+            if (!ev.jogadorId || !ev.jogadorNome) return;
+
+            if (!playerMap.has(ev.jogadorId)) {
+              const timeId = ev.lado === "CASA" ? partida.timeCasaId : partida.timeVisitanteId;
+              playerMap.set(ev.jogadorId, {
+                id: ev.jogadorId,
+                nome: ev.jogadorNome,
+                time: timeNomeMap.get(timeId) ?? "Desconhecido",
+                pontos: 0,
+                saques: 0,
+                bloqueios: 0,
+              });
+            }
+
+            const pData = playerMap.get(ev.jogadorId)!;
+            
+            if (ev.tipo === "SAQUE") {
+              pData.pontos++;
+              pData.saques++;
+            } else if (ev.tipo === "ATAQUE") {
+              pData.pontos++;
+            } else if (ev.tipo === "BLOQUEIO") {
+              pData.pontos++;
+              pData.bloqueios++;
+            }
+          });
+        });
+
+        setEstatisticasAtletas(Array.from(playerMap.values()));
+
+      } catch (err) {
+        console.error("Erro ao carregar dados do dashboard:", err);
       } finally {
         setLoading(false);
       }
     }
-    carregar();
+    loadData();
   }, [torneioId]);
 
-  const liveMatches = partidas.filter(p => p.status === "AO_VIVO");
-  const topTimes = times.slice(0, 3);
+  // Cálculo de totalização de atletas inscritos
+  const totalJogadores = useMemo(() => {
+    return times.reduce((acc, t) => acc + (t.quantidadeJogadores || 0), 0);
+  }, [times]);
 
-  if (loading) return (
-    <div className="p-6 text-muted-foreground text-sm">Carregando painel...</div>
-  );
+  // Cálculo da tabela simplificada (Time, J, PTS)
+  const miniStandings = useMemo(() => {
+    const map = new Map<string, { jogos: number; pts: number }>();
+    times.forEach((t) => map.set(t.id, { jogos: 0, pts: 0 }));
+
+    partidas
+      .filter((p) => p.status === "FINALIZADA")
+      .forEach((p) => {
+        const casa = map.get(p.timeCasaId);
+        const visit = map.get(p.timeVisitanteId);
+        if (!casa || !visit) return;
+
+        casa.jogos++;
+        visit.jogos++;
+
+        if (p.setsCasa > p.setsVisitante) {
+          if (p.setsVisitante === 2) {
+            casa.pts += 2;
+            visit.pts += 1;
+          } else {
+            casa.pts += 3;
+          }
+        } else {
+          if (p.setsCasa === 2) {
+            visit.pts += 2;
+            casa.pts += 1;
+          } else {
+            visit.pts += 3;
+          }
+        }
+      });
+
+    return times
+      .map((t) => ({
+        id: t.id,
+        nome: t.nome,
+        jogos: map.get(t.id)?.jogos ?? 0,
+        pts: map.get(t.id)?.pts ?? 0,
+      }))
+      .sort((a, b) => b.pts - a.pts);
+  }, [times, partidas]);
+
+  // Cálculo dos pódios isolados
+  const { topPontuadores, topSaques, topBloqueios } = useMemo(() => {
+    const base = [...estatisticasAtletas];
+    return {
+      topPontuadores: [...base].sort((a, b) => b.pontos - a.pontos).slice(0, 3),
+      topSaques: [...base].sort((a, b) => b.saques - a.saques).slice(0, 3),
+      topBloqueios: [...base].sort((a, b) => b.bloqueios - a.bloqueios).slice(0, 3),
+    };
+  }, [estatisticasAtletas]);
+
+  const slides = [
+    {
+      titulo: "Maiores Pontuadores",
+      icone: <Trophy className="h-4 w-4 text-yellow-500" />,
+      chaveValor: "pontos",
+      sufixo: "pts",
+      dados: topPontuadores
+    },
+    {
+      titulo: "Reis dos Aces",
+      icone: <Zap className="h-4 w-4 text-blue-500" />,
+      chaveValor: "saques",
+      sufixo: "aces",
+      dados: topSaques
+    },
+    {
+      titulo: "Muralhas do Bloqueio",
+      icone: <Shield className="h-4 w-4 text-purple-500" />,
+      chaveValor: "bloqueios",
+      sufixo: "blocks",
+      dados: topBloqueios
+    }
+  ];
+
+  const slideAtual = slides[categoriaAtiva];
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
+      
+      {/* 1. SEÇÃO HERO: Mantendo logo, capa e identidade original do Torneio */}
+      <div className="relative h-48 md:h-64 rounded-2xl overflow-hidden shadow-md border border-border group">
+        {torneio.capaUrl ? (
+          <img src={torneio.capaUrl} alt="Capa do Torneio" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-primary/80 to-primary/40" />
+        )}
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+        
+        <div className="absolute bottom-4 left-6 right-6 flex items-end gap-4">
+          <div className="h-20 w-20 md:h-24 md:w-24 rounded-full border-4 border-background bg-background overflow-hidden shrink-0 shadow-xl">
+            {torneio.logoUrl ? (
+              <img src={torneio.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-muted flex items-center justify-center text-3xl font-black text-muted-foreground">
+                {torneio.nome.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div className="flex-1 pb-1">
+            <h1 className="text-2xl md:text-4xl font-display font-black text-white drop-shadow-md">
+              {torneio.nome}
+            </h1>
+            <p className="text-white/80 text-sm md:text-base font-medium mt-1 line-clamp-1">
+              {torneio.descricao || "Acompanhe as estatísticas e partidas em tempo real."}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* Banner */}
-      <div
-        className="relative rounded-2xl overflow-hidden h-36"
-        style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #0d1a0d 50%, #0a3d1f 100%)" }}
-      >
-        <div className="absolute inset-0 flex items-end p-5 gap-3">
-          <div className="h-12 w-12 rounded-xl border-2 border-white/20 grid place-items-center text-2xl bg-primary/20">
-            🏐
+      {/* 2. GRID DE CONTADORES: Times, Jogadores e Partidas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+          <div className="h-12 w-12 rounded-xl bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+            <Shield className="h-6 w-6" />
           </div>
           <div>
-            <p className="font-display text-xl font-black text-white">{torneio.nome}</p>
-            <div className="flex items-center gap-3 mt-0.5">
-              {torneio.local && <span className="text-xs text-white/60">📍 {torneio.local}</span>}
-              {torneio.dataInicio && (
-                <span className="text-xs text-white/60">
-                  📅 {new Date(torneio.dataInicio).toLocaleDateString("pt-BR")}
-                </span>
-              )}
-              <span className="text-xs text-white/60">🏆 {times.length} times</span>
-            </div>
+            <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Times</p>
+            <p className="text-3xl font-black text-foreground mt-0.5">{times.length}</p>
           </div>
-          <div className="ml-auto">
-            <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(0,132,61,0.25)", border: "1px solid rgba(0,132,61,0.4)", color: "#4ade80" }}>
-              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-              {torneio.status === "EM_ANDAMENTO" ? "Em andamento" : torneio.status}
-            </span>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+          <div className="h-12 w-12 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center">
+            <Users className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Jogadores</p>
+            <p className="text-3xl font-black text-foreground mt-0.5">{totalJogadores}</p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+          <div className="h-12 w-12 rounded-xl bg-orange-50/50 dark:bg-orange-900/20 text-orange-600 flex items-center justify-center">
+            <Swords className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Partidas</p>
+            <p className="text-3xl font-black text-foreground mt-0.5">{partidas.length}</p>
           </div>
         </div>
       </div>
 
-      {/* Stats strip */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { n: String(times.length),    l: "Times" },
-          { n: String(liveMatches.length), l: "Ao vivo", green: true },
-          { n: String(partidas.length), l: "Partidas" },
-          { n: "—",                     l: "Jogadores" },
-        ].map(s => (
-          <div key={s.l} className="rounded-xl border bg-card p-4 text-center shadow-sm">
-            <p className={`font-display text-2xl font-black ${s.green && liveMatches.length > 0 ? "text-green-600" : "text-foreground"}`}>
-              {s.n}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.l}</p>
+      {/* 3. GRID SECUNDÁRIO: Classificação Simplificada vs Listas do Top 3 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* COLUNA ESQUERDA: CLASSIFICAÇÃO SIMPLIFICADA (Time, J, PTS) */}
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-base font-bold text-foreground">Classificação Geral</h3>
+            <button onClick={() => navigate("classificacao")} className="text-xs font-bold text-primary hover:underline">Tabela Completa →</button>
           </div>
-        ))}
-      </div>
+          
+          {miniStandings.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4 italic">Nenhum dado de classificação computado.</p>
+          ) : (
+            <div className="border border-border rounded-xl overflow-hidden text-sm">
+              <div className="grid grid-cols-[2.5rem_1fr_3.5rem_3.5rem] bg-muted/40 px-3 py-2 text-[10px] font-bold uppercase text-muted-foreground tracking-wider">
+                <span>#</span>
+                <span>Equipe</span>
+                <span className="text-center">J</span>
+                <span className="text-center">PTS</span>
+              </div>
+              <div className="divide-y divide-border">
+                {miniStandings.slice(0, 5).map((row, index) => (
+                  <div key={row.id} className="grid grid-cols-[2.5rem_1fr_3.5rem_3.5rem] items-center px-3 py-2.5 hover:bg-muted/5 transition-colors">
+                    <span className="font-black text-xs text-muted-foreground">
+                      {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+                    </span>
+                    <span className="font-semibold text-foreground truncate">{row.nome}</span>
+                    <span className="text-center text-muted-foreground text-xs">{row.jogos}</span>
+                    <span className="text-center font-bold text-foreground">{row.pts}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Partidas recentes */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-            <h3 className="text-sm font-semibold text-foreground">⚡ Partidas</h3>
-            <button
-              onClick={() => navigate("partidas")}
-              className="text-xs text-primary hover:underline font-medium"
-            >
-              ver todas →
-            </button>
-          </div>
-
-          {partidas.length === 0 ? (
-            <div className="p-6 text-center">
-              <p className="text-sm text-muted-foreground">Nenhuma partida cadastrada.</p>
-              <button
-                onClick={() => navigate("partidas")}
-                className="mt-3 text-xs font-semibold text-primary hover:underline"
+        {/* COLUNA DIREITA: SLIDER DE LISTAS (TOP 3 COMPLETO POR ABA) */}
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          
+          {/* Cabeçalho do Slider com as setas operacionais */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-muted/60">{slideAtual.icone}</div>
+              <h3 className="font-display text-base font-bold text-foreground">{slideAtual.titulo}</h3>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setCategoriaAtiva((prev) => (prev === 0 ? slides.length - 1 : prev - 1))}
+                className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
               >
-                Criar primeira partida →
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button 
+                onClick={() => setCategoriaAtiva((prev) => (prev === slides.length - 1 ? 0 : prev + 1))}
+                className="h-7 w-7 rounded-lg border border-border flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+              >
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {partidas.slice(0, 5).map(m => (
-                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className={`h-2 w-2 rounded-full shrink-0 ${
-                    m.status === "AO_VIVO" ? "bg-green-500 animate-pulse" :
-                    m.status === "FINALIZADA" ? "bg-muted-foreground" : "bg-amber-400"
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {m.nomeTimeCasa} <span className="text-muted-foreground font-normal">vs</span> {m.nomeTimeVisitante}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {m.local || (m.agendadoPara ? new Date(m.agendadoPara).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }) : "—")}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    {m.status === "AO_VIVO" && (
-                      <span className="font-display font-black text-sm text-foreground">
-                        {m.setAtualCasa} – {m.setAtualVisitante}
-                      </span>
-                    )}
-                    {m.status === "FINALIZADA" && (
-                      <span className="font-display font-black text-sm text-muted-foreground">
-                        {m.setsCasa}×{m.setsVisitante}
-                      </span>
-                    )}
-                    {(m.status === "AGENDADA" || m.status === "AQUECIMENTO") && (
-                      <span className="text-xs font-semibold text-amber-600">
-                        {m.agendadoPara ? new Date(m.agendadoPara).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "A definir"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Times participantes */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-            <h3 className="text-sm font-semibold text-foreground">🥇 Times participantes</h3>
-            <button
-              onClick={() => navigate("times")}
-              className="text-xs text-primary hover:underline font-medium"
-            >
-              ver todos →
-            </button>
           </div>
 
-          {times.length === 0 ? (
-            <div className="p-6 text-center">
-              <p className="text-sm text-muted-foreground">Nenhum time inscrito ainda.</p>
+          {/* Renderização da Lista de Atletas do Slide Atual */}
+          {slideAtual.dados.length === 0 || slideAtual.dados[0][slideAtual.chaveValor as keyof PlayerStats] === 0 ? (
+            <div className="text-center py-12 text-xs text-muted-foreground italic border border-dashed border-border rounded-xl bg-muted/10 flex-1 flex flex-col items-center justify-center">
+              <Award className="h-8 w-8 text-muted-foreground/20 mb-2" />
+              Nenhum evento registrado nesta categoria.
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {topTimes.map((t, i) => (
-                <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className={`text-sm font-black w-5 text-center shrink-0 ${
-                    i === 0 ? "text-yellow-500" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"
-                  }`}>
-                    {i + 1}
-                  </span>
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 grid place-items-center text-xs font-black text-primary shrink-0">
-                    {t.nome[0].toUpperCase()}
-                  </div>
-                  <span className="text-sm font-medium text-foreground flex-1 truncate">{t.nome}</span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {t.quantidadeJogadores ?? 0} jog.
-                  </span>
-                </div>
-              ))}
-              {times.length > 3 && (
-                <div className="px-4 py-2">
-                  {times.slice(3).map((t, i) => (
-                    <div key={t.id} className="flex items-center gap-3 py-1.5">
-                      <span className="text-xs text-muted-foreground w-5 text-center">{i + 4}</span>
-                      <div className="h-6 w-6 rounded bg-muted grid place-items-center text-[10px] font-bold text-muted-foreground">
-                        {t.nome[0].toUpperCase()}
+            <div className="flex-1 space-y-2 animate-in fade-in duration-200">
+              {slideAtual.dados.map((atleta, index) => {
+                const valor = atleta[slideAtual.chaveValor as keyof PlayerStats] as number;
+                if (valor === 0) return null; // Não renderiza linhas vazias de quem tem zero ações
+
+                return (
+                  <div key={`${categoriaAtiva}-${atleta.id}`} className="flex items-center justify-between p-2.5 rounded-xl border border-border/60 bg-background shadow-2xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-sm font-black w-6 text-center">
+                        {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
+                      </span>
+                      <div className="truncate">
+                        <p className="text-sm font-bold text-foreground truncate">{atleta.nome}</p>
+                        <p className="text-[10px] font-medium text-muted-foreground truncate">{atleta.time}</p>
                       </div>
-                      <span className="text-xs text-muted-foreground flex-1 truncate">{t.nome}</span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <span className="font-black text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-lg shrink-0">
+                      {valor} {slideAtual.sufixo}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Descrição */}
-      {torneio.descricao && (
-        <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Sobre o torneio</p>
-          <p className="text-sm text-muted-foreground leading-relaxed">{torneio.descricao}</p>
+          {/* Dots Indicadores de Paginação na parte inferior */}
+          <div className="flex justify-center gap-1.5 mt-4">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCategoriaAtiva(idx)}
+                className={cn(
+                  "h-1.5 rounded-full transition-all duration-300",
+                  categoriaAtiva === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
+                )}
+              />
+            ))}
+          </div>
+
         </div>
-      )}
+
+      </div>
     </div>
   );
 }

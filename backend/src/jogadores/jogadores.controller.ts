@@ -17,4 +17,14 @@ export class JogadoresController {
     }
     return [];
   }
+
+  @Put(':id')
+  atualizar(@Param('id') id: string, @Body() dados:any){ 
+    return this.jogadoresService.atualizar(id, dados);
+  }
+
+  @Delete(':id')
+  remover(@Param('id') id: string) {
+    return this.jogadoresService.remover(id);
+  }
 }
