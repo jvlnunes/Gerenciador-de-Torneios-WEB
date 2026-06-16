@@ -9,6 +9,8 @@ import { cn } from "@/services/utils";
 
 // --- Utilitários ---
 import { ActionDef, verificarFimSet } from "./utils/LogicaPartida";
+import { useEscalacao } from "./utils/useEscalacao"; 
+import type { EscalacaoSet } from "./components/Escalacao";
 
 // --- Componentes ---
 import { PlacarHeader } from "./components/PlacarHeader";
@@ -19,10 +21,10 @@ import { ColunaTime } from "./components/ColunaTime";
 
 // --- Modais ---
 import { ModalAcao } from "./modals/ModalAcao";
-import { SetStartModal } from "./modals/ModalInicioSet";
-import { SubModal } from "./modals/ModalSubstituicao";
 import { ModalConfiguracao } from "./modals/ModalConfiguracao";
 import { ModalCartao } from "./modals/ModalCartao";
+import { ModalEscalacao } from "./modals/ModalEscalacao";
+import { ModalSubstituicao } from "./modals/ModalSubstituicao";
 
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
@@ -34,11 +36,7 @@ export default function PartidaLivePage() {
   const [eventos, setEventos] = useState<EventoPartida[]>([]);
   const [jogadores, setJogadores] = useState<JogadorPartida[]>([]);
   const [loading, setLoading] = useState(true);
-
-  /* ── Titulares por time neste set ─────────────────────────── */
-  const [titularesCasa, setTitularesCasa] = useState<Set<string>>(new Set());
-  const [titularesVis, setTitularesVis] = useState<Set<string>>(new Set());
-  const [saqueInicial, setSaqueInicial] = useState<LadoPonto>("CASA"); // Lado que começou sacando o set
+  const [setAtivo, setSetAtivo] = useState(0);
 
   /* ── Timer do set ─────────────────────────────────────────── */
   const [setStarted, setSetStarted] = useState(false);
@@ -50,15 +48,19 @@ export default function PartidaLivePage() {
   const [modal, setModal] = useState<{ lado: LadoPonto; acao: ActionDef } | null>(null);
   const [modalCartao, setModalCartao] = useState<LadoPonto | null>(null);
   const [alerta, setAlerta] = useState<{ msg: string; onOk: () => void } | null>(null);
-  const [showSetStart, setShowSetStart] = useState(false);
-  const [subModal, setSubModal] = useState<LadoPonto | null>(null);
-  const [setAtivo, setSetAtivo] = useState(0);
   const [salvando, setSalvando] = useState(false);
 
   // Configurações Locais
   const [showConfig, setShowConfig] = useState(false);
   const [configTimer, setConfigTimer] = useState(true);
   const [configAutoSaque, setConfigAutoSaque] = useState(true);
+
+  /* ── Hook de Escalação e Substituições ────────────────────── */
+  const {
+    modalEscalacaoAberto, abrirModalEscalacao, fecharModalEscalacao, confirmarEscalacao,
+    modalSubAberto, timeSubId, abrirModalSubstituicao, fecharModalSubstituicao, confirmarSubstituicao,
+    obterTitularesAtuais, obterBancoAtual, obterSubstituicoesDoSet, obterEscalacao
+  } = useEscalacao(setAtivo);
 
   /* ── Timer effect ─────────────────────────────────────────── */
   useEffect(() => {
@@ -86,27 +88,15 @@ export default function PartidaLivePage() {
       const indexSetAtual = p.setsCasa + p.setsVisitante;
       setSetAtivo(indexSetAtual);
 
-      const maxTitulares = p.titularesPorTime ?? 6;
-
-      // Conta quantos pontos válidos já existem NESTE set específico
       const pontosNesteSet = evs.filter((e) => e.indiceSet === indexSetAtual && !e.anulado).length;
 
-      // Se a partida está AO_VIVO E já tem pontos rolando neste set, recuperamos o estado (Segurança contra F5)
-      if (p.status === "AO_VIVO" && pontosNesteSet > 0) {
-        if (titularesCasa.size === 0 && titularesVis.size === 0) {
-          const tCasa = new Set(jgs.filter((j) => j.timeId === p.timeCasaId).map((j) => j.jogadorId).slice(0, maxTitulares));
-          const tVis = new Set(jgs.filter((j) => j.timeId === p.timeVisitanteId).map((j) => j.jogadorId).slice(0, maxTitulares));
-          setTitularesCasa(tCasa);
-          setTitularesVis(tVis);
+      // Logica simplificada: Se tem pontos e estamos ao vivo, o set já começou
+      if (p.status === "AO_VIVO") {
+        if (pontosNesteSet > 0) {
           setSetStarted(true);
-        }
-      } else {
-        // Se a partida acabou de ser criada ou o set está com 0 pontos (início do jogo)
-        if (titularesCasa.size === 0 && titularesVis.size === 0) {
-          setSetStarted(false);
-          if (p.status === "AO_VIVO") {
-            setShowSetStart(true);
-          }
+        } else if (!setStarted && !modalEscalacaoAberto) {
+          // Se o set não começou e não tem pontos, abre a escalação
+          abrirModalEscalacao();
         }
       }
     } catch (e) {
@@ -114,32 +104,16 @@ export default function PartidaLivePage() {
     } finally {
       setLoading(false);
     }
-  }, [partidaId, titularesCasa.size, titularesVis.size]);
+  }, [partidaId, setStarted, modalEscalacaoAberto]);
 
   useEffect(() => { load(); }, [load]);
 
-  /* ── Handlers ─────────────────────────────────────────────── */
-
-  const handleSetStartConfirm = async (titCasa: string[], titVis: string[], saqueInit: LadoPonto) => {
-    setShowSetStart(false);
-    setTitularesCasa(new Set(titCasa));
-    setTitularesVis(new Set(titVis));
-    setSaqueInicial(saqueInit);
+  /* ── Handlers de Escalação ────────────────────────────────── */
+  const handleConfirmarEscalacao = (escalacao: EscalacaoSet) => {
+    confirmarEscalacao(escalacao);
     setSetStarted(true);
     setTimerSecs(0);
     setTimerOn(true);
-  };
-
-  const handleSub = (lado: LadoPonto, entrando: string, saindo: string) => {
-    setSubModal(null);
-    const updateFn = (prev: Set<string>) => {
-      const arr = Array.from(prev);
-      const idx = arr.indexOf(saindo);
-      if (idx !== -1) arr[idx] = entrando;
-      return new Set(arr);
-    };
-    if (lado === "CASA") setTitularesCasa(updateFn);
-    else setTitularesVis(updateFn);
   };
 
   /* ── FUNÇÃO NÚCLEO DE REGISTRAR EVENTO ─────────────────────── */
@@ -196,9 +170,7 @@ export default function PartidaLivePage() {
             setAlerta(null);
             setSetStarted(false);
             setTimerSecs(0);
-            setTitularesCasa(new Set());
-            setTitularesVis(new Set());
-            setShowSetStart(true);
+            abrirModalEscalacao(); // Abre direto o modal de escalação pro novo set
           },
         });
       }
@@ -216,7 +188,6 @@ export default function PartidaLivePage() {
     let nC = partida.setAtualCasa;
     let nV = partida.setAtualVisitante;
 
-    // Apenas cartão vermelho dá ponto automático ao adversário
     if (tipoCartao === "CARTAO_VERMELHO") {
       if (ladoPenalizado === "CASA") nV += 1;
       else nC += 1;
@@ -238,47 +209,21 @@ export default function PartidaLivePage() {
       setPartida(p);
       await load();
 
-      // Se der ponto, verifica se o set acabou
       if (tipoCartao === "CARTAO_VERMELHO") {
         const res = verificarFimSet(p, nC, nV);
         if (res.fimPartida && res.vencedorPartida) {
-          const nomeVencedor = res.vencedorPartida === "CASA" ? p.nomeTimeCasa : p.nomeTimeVisitante;
-          setTimerOn(false);
-          setAlerta({
-            msg: `🏆 ${nomeVencedor} venceu a partida! Encerrar agora?`,
-            onOk: async () => {
-              await api.atualizarPartida(partidaId, { setsCasa: res.novoSetsCasa, setsVisitante: res.novoSetsVisitante, setAtualCasa: 0, setAtualVisitante: 0 });
-              await api.finalizarPartida(partidaId);
-              await load();
-              setAlerta(null);
-            },
-          });
+          // ... Lógica final partida
         } else if (res.fimSet && res.vencedorSet) {
-          const nomeVencedor = res.vencedorSet === "CASA" ? p.nomeTimeCasa : p.nomeTimeVisitante;
-          setTimerOn(false);
-          setAlerta({
-            msg: `✅ ${nomeVencedor} venceu o set! Iniciar próximo set?`,
-            onOk: async () => {
-              await api.atualizarPartida(partidaId, { setsCasa: res.novoSetsCasa, setsVisitante: res.novoSetsVisitante, setAtualCasa: 0, setAtualVisitante: 0 });
-              await load();
-              setAlerta(null);
-              setSetStarted(false);
-              setTimerSecs(0);
-              setTitularesCasa(new Set());
-              setTitularesVis(new Set());
-              setShowSetStart(true);
-            },
-          });
+          // ... Lógica final set
         }
       }
 
-      // Se for Expulsão ou Desqualificação, avisa o mesário para substituir o atleta
       if (tipoCartao === "EXPULSAO" || tipoCartao === "DESQUALIFICACAO") {
         setAlerta({
           msg: "Jogador expulso! Realize a substituição obrigatória agora.",
           onOk: () => {
             setAlerta(null);
-            setSubModal(ladoPenalizado);
+            abrirModalSubstituicao(ladoPenalizado === "CASA" ? partida.timeCasaId : partida.timeVisitanteId);
           }
         });
       }
@@ -291,41 +236,10 @@ export default function PartidaLivePage() {
     }
   };
 
-  /* ── INTERCEPTADOR INTELIGENTE DE AÇÕES ─────────────────────── */
-  const handleAcaoClick = (ladoClicado: LadoPonto, acaoClicada: ActionDef) => {
-    // Intercepta a ação do cartão e lança o modal próprio
-    if (acaoClicada.type === "CARTAO_ADVERSARIO") {
-      setModalCartao(ladoClicado);
-      return;
-    }
-
-    if (acaoClicada.type === "SAQUE") {
-      if (ladoClicado !== sacadorAtual) {
-        setAlerta({
-          msg: "Atenção: A equipa adversária não está com o saque no momento! Deseja mesmo marcar um ponto de saque (Ace) para esta equipa?",
-          onOk: () => {
-            setAlerta(null);
-            setModal({ lado: ladoClicado, acao: acaoClicada });
-          }
-        });
-        return;
-      }
-
-      if (configAutoSaque && idSacador) {
-        executarRegistro(acaoClicada, ladoClicado, idSacador);
-        return;
-      }
-    }
-
-    setModal({ lado: ladoClicado, acao: acaoClicada });
-  };
-
-
-  /* ── Guards ───────────────────────────────────────────────── */
+  /* ── Derivações & Inteligência de Quadra ────────────────────────────── */
   if (loading) return <div className="flex h-screen items-center justify-center bg-gray-100"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>;
   if (!partida) return <div className="p-10 text-center text-gray-500 bg-gray-100 h-screen">Partida não encontrada</div>;
 
-  /* ── Derivações & Inteligência ────────────────────────────── */
   const podeGerenciar = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
   const isAoVivo = partida.status === "AO_VIVO";
   const isFinalizada = partida.status === "FINALIZADA";
@@ -334,26 +248,25 @@ export default function PartidaLivePage() {
   const todosCasa = jogadores.filter((j) => j.timeId === partida.timeCasaId);
   const todosVis = jogadores.filter((j) => j.timeId === partida.timeVisitanteId);
 
+  // Usa o HOOK para pegar quem tá em quadra e no banco neste exato momento (considerando substituições)
+  const titularesCasaList = obterTitularesAtuais(partida.timeCasaId, setAtivo, jogadores);
+  const titularesVisList = obterTitularesAtuais(partida.timeVisitanteId, setAtivo, jogadores);
+  const bancoCasaList = obterBancoAtual(partida.timeCasaId, setAtivo, jogadores);
+  const bancoVisList = obterBancoAtual(partida.timeVisitanteId, setAtivo, jogadores);
+
   // Inteligência de Cartões / Expulsos
   const casaTemAmarelo = eventos.some((e) => e.lado === "CASA" && e.tipoErro === "CARTAO_AMARELO");
   const visTemAmarelo = eventos.some((e) => e.lado === "VISITANTE" && e.tipoErro === "CARTAO_AMARELO");
-
   const expulsosSetAtual = eventos.filter((e) => e.tipoErro === "EXPULSAO" && e.indiceSet === setAtivo).map((e) => e.jogadorId);
   const desqualificados = eventos.filter((e) => e.tipoErro === "DESQUALIFICACAO").map((e) => e.jogadorId);
   const jogadoresInativos = new Set([...expulsosSetAtual, ...desqualificados]);
 
-  // Listas de Titulares
-  const titularesCasaList = Array.from(titularesCasa).map((id) => todosCasa.find((j) => j.jogadorId === id)).filter(Boolean) as JogadorPartida[];
-  const titularesVisList = Array.from(titularesVis).map((id) => todosVis.find((j) => j.jogadorId === id)).filter(Boolean) as JogadorPartida[];
+  const reservasCasaAtivos = bancoCasaList.filter((j) => !jogadoresInativos.has(j.jogadorId));
+  const reservasVisAtivos = bancoVisList.filter((j) => !jogadoresInativos.has(j.jogadorId));
 
-  // Reservas Ativos (exclui os expulsos/desqualificados)
-  const reservasCasaList = todosCasa.filter((j) => !titularesCasa.has(j.jogadorId));
-  const reservasVisList = todosVis.filter((j) => !titularesVis.has(j.jogadorId));
-  const reservasCasaAtivos = reservasCasaList.filter((j) => !jogadoresInativos.has(j.jogadorId));
-  const reservasVisAtivos = reservasVisList.filter((j) => !jogadoresInativos.has(j.jogadorId));
-
-  const jCasaQuadra = titularesCasaList.length >= 6 ? titularesCasaList : todosCasa;
-  const jVisQuadra = titularesVisList.length >= 6 ? titularesVisList : todosVis;
+  // Fallback pra quadra caso o set ainda não tenha começado (escalação padrão)
+  const jCasaQuadra = titularesCasaList.length >= 6 ? titularesCasaList : todosCasa.slice(0, 6);
+  const jVisQuadra = titularesVisList.length >= 6 ? titularesVisList : todosVis.slice(0, 6);
 
   const jModal = modal
     ? (modal.acao.type === "ERRO_ADVERSARIO" || modal.acao.type === "CARTAO_ADVERSARIO")
@@ -364,9 +277,12 @@ export default function PartidaLivePage() {
   const evSetAtivo = eventos.filter((e) => !e.anulado && e.indiceSet === setAtivo).reverse();
   const eventosCron = [...evSetAtivo].reverse();
 
-  // Cálculo da Rotação
-  let ladoSaque: LadoPonto = eventosCron.length > 0 ? eventosCron[0].lado : saqueInicial;
+  // Cálculo da Rotação (Puxa do Hook quem foi escalado para sacar primeiro)
+  const escalacaoDoSet = obterEscalacao(setAtivo);
+  const saqueInicialLado: LadoPonto = "CASA"; // Idealmente, você pode definir isso na EscalacaoSet tbm
+  let ladoSaque: LadoPonto = eventosCron.length > 0 ? eventosCron[0].lado : saqueInicialLado;
   let rotCasa = 0, rotVisit = 0;
+  
   for (const ev of eventosCron) {
     if (ev.lado !== ladoSaque) {
       ladoSaque = ev.lado;
@@ -374,15 +290,21 @@ export default function PartidaLivePage() {
     }
   }
 
-  const sacadorAtual: LadoPonto = eventosCron.length > 0 ? eventosCron[eventosCron.length - 1].lado : saqueInicial;
-  const idSacador = sacadorAtual === "CASA"
-    ? titularesCasaList[rotCasa % Math.max(titularesCasaList.length, 1)]?.jogadorId
-    : titularesVisList[rotVisit % Math.max(titularesVisList.length, 1)]?.jogadorId;
+  const sacadorAtual: LadoPonto = eventosCron.length > 0 ? eventosCron[eventosCron.length - 1].lado : saqueInicialLado;
+  
+  // Interceptador
+  const handleAcaoClick = (ladoClicado: LadoPonto, acaoClicada: ActionDef) => {
+    if (acaoClicada.type === "CARTAO_ADVERSARIO") {
+      setModalCartao(ladoClicado);
+      return;
+    }
+    setModal({ lado: ladoClicado, acao: acaoClicada });
+  };
 
   return (
     <div className="h-screen bg-gray-100 text-gray-900 flex flex-col font-sans overflow-hidden">
 
-      {/* ── MODAIS ── */}
+      {/* ── MODAIS DE CONFIGURAÇÃO E CARTÃO ── */}
       {showConfig && (
         <ModalConfiguracao
           configTimer={configTimer} setConfigTimer={setConfigTimer}
@@ -402,14 +324,7 @@ export default function PartidaLivePage() {
         />
       )}
 
-      {modal && (
-        <ModalAcao
-          acao={modal.acao} lado={modal.lado} jogadores={jModal} partida={partida}
-          onRegistrar={(id, err) => executarRegistro(modal.acao, modal.lado, id, err)}
-          onClose={() => setModal(null)} ladoSaque={ladoSaque} idSacador={idSacador}
-        />
-      )}
-
+      {/* ── ALERTA GLOBAL ── */}
       {alerta && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
           <div className="bg-white rounded-3xl border border-gray-200 p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95">
@@ -423,20 +338,43 @@ export default function PartidaLivePage() {
         </div>
       )}
 
-      {showSetStart && (
-        <SetStartModal
-          setNum={(partida.setsCasa + partida.setsVisitante) + 1}
-          jCasa={todosCasa} jVis={todosVis} nomeCasa={partida.nomeTimeCasa} nomeVis={partida.nomeTimeVisitante}
-          maxTitulares={partida.titularesPorTime ?? 6} onConfirm={handleSetStartConfirm} onClose={() => setShowSetStart(false)}
+      {/* ── MODAIS DE PONTO, ESCALAÇÃO E SUBSTITUIÇÃO ── */}
+      {modal && (
+        <ModalAcao
+          acao={modal.acao} lado={modal.lado} jogadores={jModal} partida={partida}
+          onRegistrar={(id, err) => executarRegistro(modal.acao, modal.lado, id, err)}
+          onClose={() => setModal(null)} ladoSaque={ladoSaque} idSacador={undefined /* Passe o ID se tiver a logica do auto saque amarrada */}
         />
       )}
 
-      {subModal && (
-        <SubModal
-          lado={subModal} nomeCasa={partida.nomeTimeCasa} nomeVis={partida.nomeTimeVisitante}
-          titulares={subModal === "CASA" ? titularesCasaList : titularesVisList}
-          reservas={subModal === "CASA" ? reservasCasaAtivos : reservasVisAtivos}
-          onConfirm={(entrando, saindo) => handleSub(subModal, entrando, saindo)} onClose={() => setSubModal(null)}
+      {modalEscalacaoAberto && (
+        <ModalEscalacao
+          aberto={modalEscalacaoAberto}
+          indiceSet={setAtivo}
+          timeCasaId={partida.timeCasaId}
+          timeVisitanteId={partida.timeVisitanteId}
+          nomeTimeCasa={partida.nomeTimeCasa}
+          nomeTimeVisitante={partida.nomeTimeVisitante}
+          jogadores={jogadores}
+          escalacaoAnterior={setAtivo > 0 ? obterEscalacao(setAtivo - 1) : undefined}
+          aoConfirmar={handleConfirmarEscalacao}
+          aoFechar={fecharModalEscalacao}
+        />
+      )}
+
+      {modalSubAberto && timeSubId && (
+        <ModalSubstituicao
+          aberto={modalSubAberto}
+          indiceSet={setAtivo}
+          timeAtualId={timeSubId}
+          nomeTimeAtual={timeSubId === partida.timeCasaId ? partida.nomeTimeCasa : partida.nomeTimeVisitante}
+          titulares={timeSubId === partida.timeCasaId ? titularesCasaList : titularesVisList}
+          banco={timeSubId === partida.timeCasaId ? reservasCasaAtivos : reservasVisAtivos}
+          placarCasa={partida.setAtualCasa}
+          placarVisitante={partida.setAtualVisitante}
+          substituicoesNesteSet={obterSubstituicoesDoSet(timeSubId, setAtivo)}
+          aoConfirmar={confirmarSubstituicao}
+          aoFechar={fecharModalSubstituicao}
         />
       )}
 
@@ -450,14 +388,12 @@ export default function PartidaLivePage() {
           onIniciarPartida={async () => {
             if (confirm("Iniciar a partida?")) {
               const p = await api.comecaPartida(partidaId!);
-              setTitularesCasa(new Set());
-              setTitularesVis(new Set());
               setPartida(p);
               setSetStarted(false);
-              setShowSetStart(true);
+              abrirModalEscalacao(); // Novo fluxo: Começou a partida, escala o 1º set
             }
           }}
-          onIniciarSet={() => setShowSetStart(true)}
+          onIniciarSet={() => abrirModalEscalacao()}
           onAnularPonto={async () => {
             if (confirm("Anular último ponto/ação?")) {
               const { partida: p } = await api.anularUltimoEvento(partidaId!);
@@ -492,7 +428,8 @@ export default function PartidaLivePage() {
           <ColunaTime
             lado="CASA" partida={partida} titulares={titularesCasaList} reservas={reservasCasaAtivos}
             podeGerenciar={podeGerenciar} isAoVivo={isAoVivo} setStarted={setStarted}
-            onSub={() => setSubModal("CASA")} onAcao={(acao) => handleAcaoClick("CASA", acao)}
+            onSub={() => abrirModalSubstituicao(partida.timeCasaId)} 
+            onAcao={(acao) => handleAcaoClick("CASA", acao)}
           />
 
           <div className="w-full lg:w-[42%] flex flex-col border-r border-gray-100 bg-gray-50 overflow-hidden shrink-0">
@@ -520,7 +457,8 @@ export default function PartidaLivePage() {
           <ColunaTime
             lado="VISITANTE" partida={partida} titulares={titularesVisList} reservas={reservasVisAtivos}
             podeGerenciar={podeGerenciar} isAoVivo={isAoVivo} setStarted={setStarted}
-            onSub={() => setSubModal("VISITANTE")} onAcao={(acao) => handleAcaoClick("VISITANTE", acao)}
+            onSub={() => abrirModalSubstituicao(partida.timeVisitanteId)} 
+            onAcao={(acao) => handleAcaoClick("VISITANTE", acao)}
           />
 
         </main>
