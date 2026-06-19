@@ -36,6 +36,7 @@ export interface Torneio {
     logoUrl?: string;
     tokenConvite?: string;
 }
+
 export interface Time {
     id: string;
     torneioId: string;
@@ -43,6 +44,14 @@ export interface Time {
     logoUrl?: string;
     tokenConvite?: string;
     quantidadeJogadores?: number;
+    corPrimaria?: string;
+    corSecundaria?: string;
+    email?: string;
+    telefone?: string;
+    instagram?: string;
+    whatsapp?: string;
+    facebook?: string;
+    site?: string;
 }
 
 export interface Jogador {
@@ -54,6 +63,7 @@ export interface Jogador {
     posicao?: string;
     fotoUrl?: string;
     entrouPorLink?: boolean;
+    titular?: boolean;
     criadoEm?: string;
 }
 
@@ -207,23 +217,30 @@ export const api = {
 
     /* ── Jogadores ────────────────────────────────────────────────── */
     listarJogadores: async (timeId: string): Promise<Jogador[]> => {
-        return request<Jogador[]>(`/jogadores?teamId=${timeId}`);
+        return request<Jogador[]>(`/times/${timeId}/jogadores`);
     },
     criarJogador: async (data: Omit<Jogador, "id">): Promise<Jogador> => {
-        return request<Jogador>("/jogadores", { method: "POST", body: JSON.stringify(data) });
+        return request<Jogador>(`/times/${data.timeId}/jogadores`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
     },
-    atualizarJogador: async (timeId: string, jogadorId: string, jogador: Partial<Jogador>) => {
-        const res = await request(`/jogadores/${jogadorId}`, {
+    atualizarJogador: async (timeId: string, jogadorId: string, data: Partial<Jogador>): Promise<Jogador> => {
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}`, {
             method: "PUT",
-            body: JSON.stringify(jogador),
+            body: JSON.stringify(data)
         });
-        return res;
     },
-    deletarJogador: async (timeId: string, jogadorId: string) => {
-        const res = await request(`/jogadores/${jogadorId}`, {
-            method: "DELETE",
+    deletarJogador: async (timeId: string, jogadorId: string): Promise<void> => {
+        return request<void>(`/times/${timeId}/jogadores/${jogadorId}`, {
+            method: "DELETE"
         });
-        return res;
+    },
+    definirTitular: async (timeId: string, jogadorId: string, titular: boolean): Promise<Jogador> => {
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}/titular`, {
+            method: "PUT",
+            body: JSON.stringify({ titular }),
+        });
     },
 
 

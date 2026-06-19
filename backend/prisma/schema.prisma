@@ -139,6 +139,16 @@ model Time {
   tokenConvite        String? @unique
   quantidadeJogadores Int     @default(0)
 
+  corPrimaria   String? 
+  corSecundaria String? 
+
+  email          String?
+  telefone       String?
+  instagram      String?
+  whatsapp       String?
+  facebook       String?
+  site           String?
+
   torneioId String
   torneio   Torneio @relation(fields: [torneioId], references: [id], onDelete: Cascade)
 
@@ -155,6 +165,7 @@ model Jogador {
   posicao       String?
   fotoUrl       String?
   entrouPorLink Boolean  @default(false)
+  titular       Boolean  @default(false)
   criadoEm      DateTime @default(now())
 
   timeId String
