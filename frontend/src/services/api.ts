@@ -36,6 +36,7 @@ export interface Torneio {
     logoUrl?: string;
     tokenConvite?: string;
 }
+
 export interface Time {
     id: string;
     torneioId: string;
@@ -43,6 +44,14 @@ export interface Time {
     logoUrl?: string;
     tokenConvite?: string;
     quantidadeJogadores?: number;
+    corPrimaria?: string;
+    corSecundaria?: string;
+    email?: string;
+    telefone?: string;
+    instagram?: string;
+    whatsapp?: string;
+    facebook?: string;
+    site?: string;
 }
 
 export interface Jogador {
@@ -54,6 +63,7 @@ export interface Jogador {
     posicao?: string;
     fotoUrl?: string;
     entrouPorLink?: boolean;
+    titular?: boolean;
     criadoEm?: string;
 }
 
@@ -146,45 +156,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
 /* ── Mock helpers ─────────────────────────────────────────── */
 const useMock = () => !import.meta.env.VITE_API_URL;
-const mockGet = <T>(k: string): T[] => { try { return JSON.parse(ls.get(k) ?? "[]"); } catch { return []; } };
-const mockSet = <T>(k: string, v: T[]) => ls.set(k, JSON.stringify(v));
-const mockGetOne = <T extends { id: string }>(k: string, id: string): T | undefined =>
-    mockGet<T>(k).find(x => x.id === id);
 
-/* ── Mock: recalcular placar a partir de eventos ─────────────── */
-function recalcularPartida(partida: Partida, eventos: EventoPartida[]): Partida {
-    const ativos = eventos.filter(e => e.partidaId === partida.id && !e.anulado);
-    let setsCasa = 0, setsVisitante = 0;
-    const sets: { casa: number; visitante: number }[] = [];
-
-    const porSet: Map<number, EventoPartida[]> = new Map();
-    for (const e of ativos) {
-        if (!porSet.has(e.indiceSet)) porSet.set(e.indiceSet, []);
-        porSet.get(e.indiceSet)!.push(e);
-    }
-
-    const totalSetsJogados = porSet.size;
-    for (let i = 0; i < totalSetsJogados - 1; i++) {
-        const evs = porSet.get(i) ?? [];
-        const ultimo = evs[evs.length - 1];
-        if (ultimo) {
-            sets.push({ casa: ultimo.placarCasa, visitante: ultimo.placarVisitante });
-            if (ultimo.placarCasa > ultimo.placarVisitante) setsCasa++; else setsVisitante++;
-        }
-    }
-
-    const evsSetAtual = porSet.get(totalSetsJogados - 1) ?? [];
-    const ultimoAtual = evsSetAtual[evsSetAtual.length - 1];
-
-    return {
-        ...partida,
-        setsCasa,
-        setsVisitante,
-        sets,
-        setAtualCasa: ultimoAtual?.placarCasa ?? 0,
-        setAtualVisitante: ultimoAtual?.placarVisitante ?? 0,
-    };
-}
 
 // ─── API EXPORTADA ─────────────────────────────────────────────────
 export const api = {
@@ -245,16 +217,30 @@ export const api = {
 
     /* ── Jogadores ────────────────────────────────────────────────── */
     listarJogadores: async (timeId: string): Promise<Jogador[]> => {
-        return request<Jogador[]>(`/jogadores?teamId=${timeId}`);
+        return request<Jogador[]>(`/times/${timeId}/jogadores`);
     },
     criarJogador: async (data: Omit<Jogador, "id">): Promise<Jogador> => {
-        return request<Jogador>("/jogadores", { method: "POST", body: JSON.stringify(data) });
+        return request<Jogador>(`/times/${data.timeId}/jogadores`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
     },
     atualizarJogador: async (timeId: string, jogadorId: string, data: Partial<Jogador>): Promise<Jogador> => {
-        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}`, { method: "PUT", body: JSON.stringify(data) });
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}`, {
+            method: "PUT",
+            body: JSON.stringify(data)
+        });
     },
     deletarJogador: async (timeId: string, jogadorId: string): Promise<void> => {
-        return request<void>(`/times/${timeId}/jogadores/${jogadorId}`, { method: "DELETE" });
+        return request<void>(`/times/${timeId}/jogadores/${jogadorId}`, {
+            method: "DELETE"
+        });
+    },
+    definirTitular: async (timeId: string, jogadorId: string, titular: boolean): Promise<Jogador> => {
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}/titular`, {
+            method: "PUT",
+            body: JSON.stringify({ titular }),
+        });
     },
 
 
@@ -266,9 +252,9 @@ export const api = {
         return request<Partida>(`/partidas/${id}`);
     },
     criarPartida: async (data: Omit<Partida, "id">): Promise<Partida> => {
-        return request<Partida>("/partidas", { 
-            method: "POST", 
-            body: JSON.stringify(data) 
+        return request<Partida>("/partidas", {
+            method: "POST",
+            body: JSON.stringify(data)
         });
     },
     comecaPartida: async (partidaId: string): Promise<Partida> => {
@@ -278,14 +264,14 @@ export const api = {
         });
     },
     atualizarPartida: async (id: string, data: Partial<Partida>): Promise<Partida> => {
-        return request<Partida>(`/partidas/${id}`, { 
-            method: "PUT", 
-            body: JSON.stringify(data) 
+        return request<Partida>(`/partidas/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data)
         });
     },
     removerPartida: async (id: string): Promise<void> => {
-        return request<void>(`/partidas/${id}`, { 
-            method: "DELETE" 
+        return request<void>(`/partidas/${id}`, {
+            method: "DELETE"
         });
     },
     finalizarPartida: async (partidaId: string): Promise<Partida> => {
@@ -305,14 +291,14 @@ export const api = {
         return request<EventoPartida[]>(`/partidas/${partidaId}/eventos`);
     },
     registrarEvento: async (partidaId: string, data: Omit<EventoPartida, "id" | "partidaId" | "horario">): Promise<{ evento: EventoPartida; partida: Partida }> => {
-        return request(`/partidas/${partidaId}/eventos`, { 
-            method: "POST", 
-            body: JSON.stringify(data) 
+        return request(`/partidas/${partidaId}/eventos`, {
+            method: "POST",
+            body: JSON.stringify(data)
         });
     },
     anularUltimoEvento: async (partidaId: string): Promise<{ partida: Partida }> => {
-        return request(`/partidas/${partidaId}/eventos/anular-ultimo`, { 
-            method: "POST" 
+        return request(`/partidas/${partidaId}/eventos/anular-ultimo`, {
+            method: "POST"
         });
     }
 };
