@@ -1,80 +1,232 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Trophy, Plus, MapPin, Calendar } from "lucide-react";
+import { SiteHeader } from "@/components/site-header";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { api, type Torneio } from "@/services/api";
-import { SiteHeader } from "@/components/site-header"; 
-import { Trophy, Plus, Calendar, MapPin } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/services/utils";
 
-export default function TorneiosListPage() {
-  const [torneios, setTorneios] = useState<Torneio[]>([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+const statusColor: Record<string, string> = {
+  RASCUNHO:     "bg-muted text-muted-foreground",
+  ABERTO:       "bg-success/20 text-success border-success/30",
+  EM_ANDAMENTO: "bg-primary/20 text-primary border-primary/30",
+  FINALIZADO:   "bg-secondary text-secondary-foreground",
+};
 
-  useEffect(() => {
-    api.listarTorneios()
-      .then(setTorneios)
-      .catch(err => console.error("Erro ao buscar torneios:", err))
-      .finally(() => setLoading(false));
-  }, []);
+const statusLabel: Record<string, string> = {
+  RASCUNHO:     "Rascunho",
+  ABERTO:       "Inscrições abertas",
+  EM_ANDAMENTO: "Em andamento",
+  FINALIZADO:   "Finalizado",
+};
 
+function TournamentCard({
+  t,
+  canManage,
+  onClick,
+  onDelete,
+}: {
+  t: Torneio;
+  canManage: boolean;
+  onClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+}) {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <SiteHeader /> {/* Header genérico do sistema */}
-      
-      <main className="flex-1 p-6 max-w-6xl mx-auto w-full">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="font-display text-3xl font-black">Meus Torneios</h1>
-            <p className="text-muted-foreground text-sm mt-1">Gerencie suas competições e ligas.</p>
+    <article
+      onClick={canManage ? onClick : undefined}
+      className={cn(
+        "group flex flex-col rounded-2xl border-2 border-border bg-card overflow-hidden transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg",
+        canManage && "cursor-pointer"
+      )}
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      {/* Banner */}
+      <div className="relative h-32 shrink-0 overflow-hidden bg-muted">
+        {t.bannerUrl ? (
+          <img
+            src={t.bannerUrl}
+            alt={`Banner ${t.nome}`}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+        {t.status && (
+          <div className="absolute top-3 right-3">
+            <Badge className={cn("text-xs border", statusColor[t.status] ?? "")}>
+              {statusLabel[t.status] ?? t.status}
+            </Badge>
           </div>
-          <button 
-            onClick={() => navigate("/torneios/novo")}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold hover:opacity-90 transition"
-          >
-            <Plus className="w-4 h-4" /> Novo Torneio
-          </button>
+        )}
+
+        <div className="absolute bottom-3 left-3">
+          {t.logoUrl ? (
+            <img
+              src={t.logoUrl}
+              alt={`Logo ${t.nome}`}
+              className="h-12 w-12 rounded-xl object-cover border-2 border-white/40 shadow-md"
+            />
+          ) : (
+            <div
+              className="h-12 w-12 rounded-xl border-2 border-white/30 shadow-md grid place-items-center"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <Trophy className="h-5 w-5 text-white" />
+            </div>
+          )}
         </div>
 
+        {canManage && (
+          <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="text-white text-sm font-bold bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
+              Gerenciar torneio
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-col flex-1 p-5">
+        <h3 className="font-display text-xl font-bold text-foreground leading-tight">{t.nome}</h3>
+        {t.descricao && (
+          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{t.descricao}</p>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
+          {t.local && (
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> {t.local}
+            </span>
+          )}
+          {t.dataInicio && (
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {new Date(t.dataInicio).toLocaleDateString("pt-BR")}
+            </span>
+          )}
+        </div>
+
+        {canManage && (
+          <div className="mt-auto pt-4 border-t border-border flex justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onDelete}
+            >
+              Excluir
+            </Button>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export default function TorneiosListPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [list, setList] = useState<Torneio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      setList(await api.listarTorneios());
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const remove = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm("Excluir este torneio?")) return;
+    await api.removerTorneio(id);
+    load();
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-4xl font-bold tracking-tight text-foreground">
+              Torneios
+            </h1>
+            <p className="mt-1 text-muted-foreground">
+              {canManage
+                ? "Clique em um torneio para gerenciá-lo."
+                : "Explore os torneios de vôlei."}
+            </p>
+          </div>
+          {canManage && (
+            <Button asChild>
+              <Link to="/torneios/novo">
+                <Plus className="mr-1 h-4 w-4" /> Novo torneio
+              </Link>
+            </Button>
+          )}
+        </div>
+
+        {error && (
+          <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         {loading ? (
-          <div className="text-center text-muted-foreground mt-12">Carregando torneios...</div>
-        ) : torneios.length === 0 ? (
-          <div className="text-center p-12 border border-dashed border-border rounded-xl bg-surface">
-            <Trophy className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-lg font-bold">Nenhum torneio encontrado</h3>
-            <p className="text-muted-foreground text-sm mb-4">Você ainda não possui nenhum torneio cadastrado.</p>
-            <button onClick={() => navigate("/torneios/novo")} className="text-primary font-bold text-sm hover:underline">
-              Criar meu primeiro torneio →
-            </button>
+          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-64 animate-pulse rounded-2xl bg-muted" />
+            ))}
+          </div>
+        ) : list.length === 0 ? (
+          <div className="mt-16 rounded-2xl border-2 border-dashed border-border py-20 text-center">
+            <Trophy className="mx-auto h-12 w-12 text-muted-foreground/40" />
+            <h2 className="mt-4 font-display text-2xl font-bold text-foreground">
+              Nenhum torneio ainda
+            </h2>
+            <p className="mt-2 text-muted-foreground">Crie o primeiro torneio para começar.</p>
+            {canManage ? (
+              <Button className="mt-6" asChild>
+                <Link to="/torneios/novo">
+                  <Plus className="mr-1 h-4 w-4" /> Criar torneio
+                </Link>
+              </Button>
+            ) : (
+              <Button className="mt-6" asChild>
+                <Link to="/login">Entre como organizador</Link>
+              </Button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {torneios.map(t => (
-              <Link key={t.id} to={`/torneios/${t.id}`} className="block group">
-                <div className="border border-border rounded-xl p-5 bg-[var(--surface)] hover:border-primary transition duration-200 h-full flex flex-col">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[var(--primary-bg)] border border-[var(--border2)] flex items-center justify-center text-primary font-bold">
-                      {t.nome[0].toUpperCase()}
-                    </div>
-                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full bg-[var(--surface2)] text-muted-foreground">
-                      {t.status?.replace("_", " ")}
-                    </span>
-                  </div>
-                  <h3 className="font-display text-xl font-bold mb-1 group-hover:text-primary transition">{t.nome}</h3>
-                  
-                  <div className="mt-auto pt-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <MapPin className="w-3.5 h-3.5" /> {t.local || "Local a definir"}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="w-3.5 h-3.5" /> 
-                      {t.dataInicio ? new Date(t.dataInicio).toLocaleDateString() : "Data a definir"}
-                    </div>
-                  </div>
-                </div>
-              </Link>
+          <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {list.map((t) => (
+              <TournamentCard
+                key={t.id}
+                t={t}
+                canManage={canManage}
+                onClick={() => navigate(`/torneios/${t.id}`)}
+                onDelete={(e) => remove(e, t.id)}
+              />
             ))}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
