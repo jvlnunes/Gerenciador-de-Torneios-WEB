@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RegrasTorneioForm } from "@/components/torneio/RegrasTorneioForm";
 import { cn } from "@/services/utils";
 import {
   ChevronDown, Check, Loader2, AlertCircle,
@@ -19,7 +20,7 @@ interface TorneioCtx {
   liveCount: number;
 }
 
-/* ── Config block colapsável ─────────────────────────────── */
+/* ─── ConfigBlock ────────────────────────────────────────── */
 function ConfigBlock({
   icon: Icon,
   title,
@@ -42,18 +43,25 @@ function ConfigBlock({
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center gap-3 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
       >
-        <div className="h-8 w-8 rounded-lg bg-primary/10 grid place-items-center flex-shrink-0">
+        <div className="h-8 w-8 rounded-lg bg-primary/10 grid place-items-center shrink-0">
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">{title}</p>
-          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+          {description && (
+            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+          )}
         </div>
-        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform flex-shrink-0", open && "rotate-180")} />
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-muted-foreground transition-transform shrink-0",
+            open && "rotate-180"
+          )}
+        />
       </button>
 
       {open && (
-        <div className="border-t border-border px-5 py-4">
+        <div className="border-t border-border px-5 py-5">
           {children}
         </div>
       )}
@@ -61,7 +69,7 @@ function ConfigBlock({
   );
 }
 
-/* ── Campo de leitura ────────────────────────────────────── */
+/* ─── ReadRow ────────────────────────────────────────────── */
 function ReadRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
@@ -73,7 +81,7 @@ function ReadRow({ label, value }: { label: string; value?: string }) {
   );
 }
 
-/* ── Bloco: Informações básicas ──────────────────────────── */
+/* ─── Bloco: Informações básicas ─────────────────────────── */
 function BasicInfoBlock({
   torneio,
   onSaved,
@@ -81,16 +89,16 @@ function BasicInfoBlock({
   torneio: Torneio;
   onSaved: (t: Torneio) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [nome, setNome]           = useState(torneio.nome);
-  const [descricao, setDescricao] = useState(torneio.descricao ?? "");
-  const [local, setLocal]         = useState(torneio.local ?? "");
+  const [editing, setEditing]       = useState(false);
+  const [nome, setNome]             = useState(torneio.nome);
+  const [descricao, setDescricao]   = useState(torneio.descricao ?? "");
+  const [local, setLocal]           = useState(torneio.local ?? "");
   const [dataInicio, setDataInicio] = useState(torneio.dataInicio?.slice(0, 10) ?? "");
-  const [dataFim, setDataFim]     = useState(torneio.dataFim?.slice(0, 10) ?? "");
-  const [status, setStatus]       = useState(torneio.status ?? "RASCUNHO");
-  const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState<string | null>(null);
-  const [success, setSuccess]     = useState(false);
+  const [dataFim, setDataFim]       = useState(torneio.dataFim?.slice(0, 10) ?? "");
+  const [status, setStatus]         = useState(torneio.status ?? "RASCUNHO");
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [success, setSuccess]       = useState(false);
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -113,19 +121,28 @@ function BasicInfoBlock({
   };
 
   return (
-    <ConfigBlock icon={Info} title="Informações básicas" description="Nome, local, datas e status" defaultOpen>
+    <ConfigBlock
+      icon={Info}
+      title="Informações básicas"
+      description="Nome, local, datas e status"
+      defaultOpen
+    >
       {!editing ? (
         <div>
-          <ReadRow label="Nome" value={torneio.nome} />
+          <ReadRow label="Nome"      value={torneio.nome} />
           <ReadRow label="Descrição" value={torneio.descricao} />
-          <ReadRow label="Local" value={torneio.local} />
+          <ReadRow label="Local"     value={torneio.local} />
           <ReadRow
             label="Início"
-            value={torneio.dataInicio ? new Date(torneio.dataInicio).toLocaleDateString("pt-BR") : undefined}
+            value={torneio.dataInicio
+              ? new Date(torneio.dataInicio).toLocaleDateString("pt-BR")
+              : undefined}
           />
           <ReadRow
             label="Término"
-            value={torneio.dataFim ? new Date(torneio.dataFim).toLocaleDateString("pt-BR") : undefined}
+            value={torneio.dataFim
+              ? new Date(torneio.dataFim).toLocaleDateString("pt-BR")
+              : undefined}
           />
           <ReadRow label="Status" value={torneio.status} />
           <div className="mt-4 flex items-center gap-2">
@@ -134,7 +151,7 @@ function BasicInfoBlock({
             </Button>
             {success && (
               <span className="text-xs text-green-600 flex items-center gap-1">
-                <Check className="h-3.5 w-3.5" /> Salvo com sucesso
+                <Check className="h-3.5 w-3.5" /> Salvo
               </span>
             )}
           </div>
@@ -143,24 +160,42 @@ function BasicInfoBlock({
         <form onSubmit={handleSave} className="space-y-4">
           {error && (
             <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" /> {error}
+              <AlertCircle className="h-4 w-4 shrink-0" /> {error}
             </div>
           )}
 
           <div className="grid gap-2">
             <Label htmlFor="nome" className="text-sm font-semibold">Nome *</Label>
-            <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required className="h-9" />
+            <Input
+              id="nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+              className="h-9"
+            />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="desc" className="text-sm font-semibold">Descrição</Label>
-            <Textarea id="desc" value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} className="resize-none" />
+            <Textarea
+              id="desc"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="local" className="text-sm font-semibold">Local</Label>
-              <Input id="local" value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ginásio Municipal" className="h-9" />
+              <Input
+                id="local"
+                value={local}
+                onChange={(e) => setLocal(e.target.value)}
+                placeholder="Ginásio Municipal"
+                className="h-9"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="status" className="text-sm font-semibold">Status</Label>
@@ -178,20 +213,40 @@ function BasicInfoBlock({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="inicio" className="text-sm font-semibold">Data de início</Label>
-              <Input id="inicio" type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-9" />
+              <Input
+                id="inicio"
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+                className="h-9"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="fim" className="text-sm font-semibold">Data de término</Label>
-              <Input id="fim" type="date" value={dataFim} min={dataInicio} onChange={(e) => setDataFim(e.target.value)} className="h-9" />
+              <Input
+                id="fim"
+                type="date"
+                value={dataFim}
+                min={dataInicio}
+                onChange={(e) => setDataFim(e.target.value)}
+                className="h-9"
+              />
             </div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">
             <Button type="submit" size="sm" disabled={saving} className="gap-1.5">
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {saving
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Check className="h-3.5 w-3.5" />}
               Salvar
             </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditing(false)}
+            >
               Cancelar
             </Button>
           </div>
@@ -201,58 +256,55 @@ function BasicInfoBlock({
   );
 }
 
-/* ── Bloco: Regras ───────────────────────────────────────── */
-function RulesBlock() {
-  return (
-    <ConfigBlock icon={Target} title="Regras da partida" description="Sets, pontuação e formato de jogo">
-      <ReadRow label="Titulares por equipe" value="6 jogadores" />
-      <ReadRow label="Sets para vencer" value="3 (melhor de 5)" />
-      <ReadRow label="Pontos por set regular" value="25 pts" />
-      <ReadRow label="Set decisivo (5º)" value="15 pts" />
-      <ReadRow label="Vencer por 2 pontos" value="Sim" />
-      <div className="mt-4">
-        <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-          <Info className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-          As regras serão configuráveis em breve. As acima são as regras padrão do vôlei.
-        </div>
-      </div>
-    </ConfigBlock>
-  );
-}
-
-/* ── Bloco: Fases ────────────────────────────────────────── */
+/* ─── Bloco: Fases ───────────────────────────────────────── */
 function PhasesBlock() {
   return (
-    <ConfigBlock icon={Layers} title="Formato e fases" description="Estrutura de disputa do campeonato">
+    <ConfigBlock
+      icon={Layers}
+      title="Formato e fases"
+      description="Estrutura de disputa do campeonato"
+    >
       <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-        Configuração de fases disponível ao criar um novo torneio via wizard. Edição de fases existentes chegará em breve.
+        <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+        Edição de fases disponível na aba <strong className="text-foreground">Fases</strong> do torneio.
       </div>
     </ConfigBlock>
   );
 }
 
-/* ── Bloco: Organizadores ────────────────────────────────── */
+/* ─── Bloco: Organizadores ───────────────────────────────── */
 function OrganizersBlock() {
   return (
-    <ConfigBlock icon={Users} title="Organizadores" description="Responsáveis pelo torneio">
+    <ConfigBlock
+      icon={Users}
+      title="Organizadores"
+      description="Responsáveis pelo torneio"
+    >
       <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+        <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
         Gerenciamento de organizadores chegará em breve.
       </div>
     </ConfigBlock>
   );
 }
 
-/* ── Bloco: Mídia ────────────────────────────────────────── */
+/* ─── Bloco: Mídia ───────────────────────────────────────── */
 function MediaBlock({ torneio }: { torneio: Torneio }) {
   return (
-    <ConfigBlock icon={Image} title="Mídia e aparência" description="Banner, logo e redes sociais">
+    <ConfigBlock
+      icon={Image}
+      title="Mídia e aparência"
+      description="Banner, logo e redes sociais"
+    >
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           <p className="text-xs font-semibold text-muted-foreground mb-2">Banner</p>
           {torneio.bannerUrl ? (
-            <img src={torneio.bannerUrl} alt="Banner" className="w-full h-16 object-cover rounded-md" />
+            <img
+              src={torneio.bannerUrl}
+              alt="Banner"
+              className="w-full h-16 object-cover rounded-md"
+            />
           ) : (
             <div className="w-full h-16 rounded-md bg-muted flex items-center justify-center">
               <span className="text-xs text-muted-foreground">Não configurado</span>
@@ -262,7 +314,11 @@ function MediaBlock({ torneio }: { torneio: Torneio }) {
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           <p className="text-xs font-semibold text-muted-foreground mb-2">Logo</p>
           {torneio.logoUrl ? (
-            <img src={torneio.logoUrl} alt="Logo" className="h-16 w-16 object-cover rounded-lg" />
+            <img
+              src={torneio.logoUrl}
+              alt="Logo"
+              className="h-16 w-16 object-cover rounded-lg"
+            />
           ) : (
             <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
               <span className="text-[10px] text-muted-foreground">Sem logo</span>
@@ -271,14 +327,14 @@ function MediaBlock({ torneio }: { torneio: Torneio }) {
         </div>
       </div>
       <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+        <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
         Upload de mídia chegará em breve.
       </div>
     </ConfigBlock>
   );
 }
 
-/* ── Bloco: Zona de perigo ───────────────────────────────── */
+/* ─── Bloco: Zona de perigo ──────────────────────────────── */
 function DangerBlock({ torneioId }: { torneioId: string }) {
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
@@ -296,32 +352,42 @@ function DangerBlock({ torneioId }: { torneioId: string }) {
   };
 
   return (
-    <ConfigBlock icon={Shield} title="Zona de perigo" description="Ações irreversíveis">
+    <ConfigBlock
+      icon={Shield}
+      title="Zona de perigo"
+      description="Ações irreversíveis"
+    >
       <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/5">
         <div>
           <p className="text-sm font-semibold text-foreground">Excluir torneio</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Remove permanentemente o torneio e todos os dados.</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Remove permanentemente o torneio e todos os dados.
+          </p>
         </div>
         {!confirming ? (
           <Button
             size="sm"
             variant="ghost"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
             onClick={() => setConfirming(true)}
           >
             Excluir
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs text-destructive font-semibold">Tem certeza?</span>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>Não</Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+              Não
+            </Button>
             <Button
               size="sm"
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Sim, excluir"}
+              {deleting
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : "Sim, excluir"}
             </Button>
           </div>
         )}
@@ -330,7 +396,7 @@ function DangerBlock({ torneioId }: { torneioId: string }) {
   );
 }
 
-/* ── Página principal ────────────────────────────────────── */
+/* ─── Página principal ───────────────────────────────────── */
 export default function TorneioConfiguracoes() {
   const { torneio, setTorneio, torneioId } = useOutletContext<TorneioCtx>();
   const { user } = useAuth();
@@ -338,7 +404,7 @@ export default function TorneioConfiguracoes() {
 
   if (!canManage) {
     return (
-      <div className="flex items-center justify-center h-full py-20">
+      <div className="flex items-center justify-center h-full py-24">
         <div className="text-center">
           <Settings className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <h2 className="font-display text-lg font-bold text-foreground">Acesso restrito</h2>
@@ -355,16 +421,33 @@ export default function TorneioConfiguracoes() {
       <div className="mb-6">
         <h1 className="font-display text-2xl font-black text-foreground">Configurações</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Gerencie todas as configurações do torneio em blocos independentes.
+          Gerencie todas as configurações do torneio.
         </p>
       </div>
 
       <div className="space-y-3">
+        {/* Informações básicas */}
         <BasicInfoBlock torneio={torneio} onSaved={setTorneio} />
-        <RulesBlock />
+
+        {/* Regras de partida — bloco dedicado com o form completo */}
+        <ConfigBlock
+          icon={Target}
+          title="Regras de partida"
+          description="Sets, pontuação, titulares e vantagem — herdadas por todas as partidas"
+        >
+          <RegrasTorneioForm torneioId={torneioId} canManage={canManage} />
+        </ConfigBlock>
+
+        {/* Fases */}
         <PhasesBlock />
+
+        {/* Organizadores */}
         <OrganizersBlock />
+
+        {/* Mídia */}
         <MediaBlock torneio={torneio} />
+
+        {/* Zona de perigo */}
         <DangerBlock torneioId={torneioId} />
       </div>
     </div>

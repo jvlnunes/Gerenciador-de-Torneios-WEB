@@ -28,7 +28,7 @@ import { ModalSubstituicao } from "./modals/ModalSubstituicao";
 
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { user } = useAuth();
 
   /* ── Estado principal ─────────────────────────────────────── */
@@ -63,8 +63,8 @@ export default function PartidaLivePage() {
     modalEscalacaoAberto, abrirModalEscalacao, fecharModalEscalacao, confirmarEscalacao,
     modalSubAberto, timeSubId, abrirModalSubstituicao, fecharModalSubstituicao, confirmarSubstituicao,
     obterTitularesAtuais, obterBancoAtual, obterSubstituicoesDoSet, obterEscalacao,
-    setJaTemEscalacao, obterJogadorPosicao1,
-  } = useEscalacao(setAtivo);
+    setJaTemEscalacao, obterJogadorPosicao1, obterQuadraAtual
+  } = useEscalacao(partidaId, setAtivo);
 
   /* ── Timer effect ─────────────────────────────────────────── */
   useEffect(() => {
@@ -98,10 +98,8 @@ export default function PartidaLivePage() {
 
       if (p.status === "AO_VIVO") {
         if (pontosNesteSet > 0) {
-          // Set já tem pontos → já iniciou, não abre modal
           setSetStarted(true);
         } else if (!modalJaAbertoPorSet.current.has(indexSetAtual)) {
-          // Set sem pontos e modal ainda não foi aberto nesta sessão → abre
           setSetStarted(false);
           modalJaAbertoPorSet.current.add(indexSetAtual);
           abrirModalEscalacao();
@@ -227,7 +225,7 @@ export default function PartidaLivePage() {
       const jogadorNome = jogadores.find((j) => j.jogadorId === jogadorId)?.nomeJogador;
       const { partida: p } = await api.registrarEvento(partidaId, {
         indiceSet: partida.setsCasa + partida.setsVisitante,
-        lado: daPonto ? ladoQueGanhaPonto : ladoPenalizado, // lado que pontua (adversário) ou time penalizado
+        lado: daPonto ? ladoQueGanhaPonto : ladoPenalizado, 
         tipo: "CARTAO_ADVERSARIO",
         tipoErro: tipoCartao,
         jogadorId,
@@ -276,7 +274,6 @@ export default function PartidaLivePage() {
         }
       }
 
-      // Expulsão ou desqualificação → substituição obrigatória
       if (tipoCartao === "EXPULSAO" || tipoCartao === "DESQUALIFICACAO") {
         setAlerta({
           msg: "Jogador expulso! Realize a substituição obrigatória agora.",
@@ -338,11 +335,7 @@ export default function PartidaLivePage() {
   );
 
   const reservasCasaAtivos = bancoCasaList.filter(j => !jogadoresInativos.has(j.jogadorId));
-  const reservasVisAtivos = bancoVisList.filter(j => !jogadoresInativos.has(j.jogadorId));
-
-  // Fallback para quadra caso escalação ainda não tenha sido feita
-  const jCasaQuadra = titularesCasaList.length >= 6 ? titularesCasaList : todosCasa.slice(0, 6);
-  const jVisQuadra = titularesVisList.length >= 6 ? titularesVisList : todosVis.slice(0, 6);
+  const reservasVisAtivos  = bancoVisList.filter( j => !jogadoresInativos.has(j.jogadorId));
 
   // Jogadores para o modal de ação
   const jModal = modal
@@ -357,7 +350,6 @@ export default function PartidaLivePage() {
   const eventosCron = [...evSetAtivo].reverse();
 
   // ── Cálculo do sacador e rotação ──────────────────────────
-  // Determina o lado que tem o saque AGORA com base nos eventos
   let ladoSaque: LadoPonto = "CASA";
   if (eventosCron.length > 0) {
     ladoSaque = eventosCron[eventosCron.length - 1].lado;
@@ -372,16 +364,17 @@ export default function PartidaLivePage() {
     }
     ladoAnterior = ev.lado;
   }
+  
+  const jCasaQuadra = obterQuadraAtual(partida.timeCasaId     , setAtivo, jogadores, rotCasa );
+  const jVisQuadra  = obterQuadraAtual(partida.timeVisitanteId, setAtivo, jogadores, rotVisit);
 
   const sacadorAtual: LadoPonto = ladoSaque;
 
   // ── Sacador individual (jogador na Posição 1) ─────────────
-  // Usado para atribuição automática de erro de saque
-  const sacadorCasaJogador = obterJogadorPosicao1(partida.timeCasaId, setAtivo, jogadores);
-  const sacadorVisJogador = obterJogadorPosicao1(partida.timeVisitanteId, setAtivo, jogadores);
-
+  const sacadorCasaJogador = obterJogadorPosicao1(partida.timeCasaId     , setAtivo, jogadores, rotCasa -1);
+  const sacadorVisJogador  = obterJogadorPosicao1(partida.timeVisitanteId, setAtivo, jogadores, rotVisit-1);
+  
   const getSacadorAtualJogador = (lado: LadoPonto) => {
-    // O sacador é quem está na Posição 1 do time que tem o saque
     if (lado === "CASA") return sacadorCasaJogador;
     return sacadorVisJogador;
   };
@@ -456,6 +449,7 @@ export default function PartidaLivePage() {
           ladoSaque={sacadorAtual}
           // Passa o ID do sacador atual (jogador na posição 1 do time que está sacando)
           idSacador={
+            
             configAutoSaque
               ? getSacadorAtualJogador(sacadorAtual)?.jogadorId
               : undefined
@@ -494,6 +488,8 @@ export default function PartidaLivePage() {
           substituicoesNesteSet={obterSubstituicoesDoSet(timeSubId, setAtivo)}
           aoConfirmar={confirmarSubstituicao}
           aoFechar={fecharModalSubstituicao}
+          rotCasa={rotCasa}      
+          rotVisit={rotVisit}    
         />
       )}
 
@@ -550,10 +546,10 @@ export default function PartidaLivePage() {
               <Target className="w-3.5 h-3.5 text-emerald-500" />
               Pts/set: <span className="text-gray-900 font-black ml-1">{partida.pontosParaVencerSet ?? 25}</span>
             </span>
-            <span className="flex items-center gap-1.5">
+            {/* <span className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-emerald-500" />
               Tie-break: <span className="text-gray-900 font-black ml-1">{partida.pontosParaVencerUltimoSet ?? 15}</span>
-            </span>
+            </span> */}
             <span className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-emerald-500" />
               Titulares: <span className="text-gray-900 font-black ml-1">{partida.titularesPorTime ?? 6}</span>

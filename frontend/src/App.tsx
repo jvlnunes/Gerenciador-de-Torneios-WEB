@@ -13,22 +13,24 @@ import TorneioLayout     from "./pages/Torneio/TorneioLayout";
 import TorneioOverview      from "./pages/Torneio/TorneioOverview";
 import TorneioPartidas      from "./pages/Torneio/TorneioPartidas";
 import TorneioTimes         from "./pages/Torneio/TorneioTimes";
-import TorneioTimeDetalhe   from "./pages/Torneio/TorneioTimeDetalhe";
+import TorneioTimeDetalhe   from "./pages/Time/TorneioTimeDetalhe";
 import TorneioClassificacao from "./pages/Torneio/TorneioClassificacao";
 import TorneioConfiguracoes from "./pages/Torneio/TorneioConfiguracoes";
 import TorneioEstatisticas  from "./pages/Torneio/TorneioEstatisticas";
 import TorneioFases         from "./pages/Torneio/TorneioFases";
+import AdminUsuarios        from "./pages/Admin/AdminUsuarios";
 
-// Página de convite de time
 import JoinTeamPage from "./pages/Join/JoinTime";
 
-// Landing page
 import IndexPage from "./pages/Index";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Rota Admin para gerencia de usuários */}
+        <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+
         {/* Rota raiz: landing page */}
         <Route path="/" element={<IndexPage />} />
 
@@ -36,7 +38,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* Convite de time */}
-        {/* <Route path="/join/:token" element={<JoinTeamPage />} /> */}
+        <Route path="/join/:token" element={<JoinTeamPage />} />
 
         {/* Páginas de gerenciamento geral */}
         <Route path="/torneios"      element={<TorneiosListPage />} />

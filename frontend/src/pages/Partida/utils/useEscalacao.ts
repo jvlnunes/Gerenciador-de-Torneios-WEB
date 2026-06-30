@@ -1,25 +1,40 @@
 import { useState } from "react";
-import type {
-  EscalacaoSet,
-  RegistroSubstituicao,
-  JogadorPartida
-} from "../components/Escalacao";
+import type { EscalacaoSet, RegistroSubstituicao } from "../components/Escalacao";
+import type { JogadorPartida } from "@/services/api";
 
-export function useEscalacao(indiceSetAtual: number) {
+function encontrarJogador(jogadores: JogadorPartida[], id?: string) {
+  if (!id) return undefined;
+  return jogadores.find((j) => j.jogadorId === id || j.id === id);
+}
+
+function encontrarFallbackDoTime(jogadores: JogadorPartida[], timeId: string) {
+  const doTime = jogadores.filter((j) => j.timeId === timeId);
+  return doTime.find((j) => j.titular) ?? doTime[0];
+}
+
+export function useEscalacao(partidaId: string | undefined, indiceSetAtual: number) {
   // Controle de Modais
   const [modalEscalacaoAberto, setModalEscalacaoAberto] = useState(false);
   const [modalSubAberto, setModalSubAberto] = useState(false);
   const [timeSubId, setTimeSubId] = useState<string | null>(null);
 
   // Estados de Dados
-  const [escalacoes, setEscalacoes] = useState<Record<number, EscalacaoSet>>({});
+  const [escalacoes, setEscalacoes] = useState<Record<number, EscalacaoSet>>(() => {
+    if (!partidaId) return {};
+    const cache = localStorage.getItem(`escalacoes_${partidaId}`);
+    return cache ? JSON.parse(cache) : {};
+  });
+
   const [substituicoes, setSubstituicoes] = useState<RegistroSubstituicao[]>([]);
 
-  // Rastreia quais sets já tiveram escalação confirmada (evita reabrir o modal ao recarregar)
-  const [setsIniciadosComEscalacao, setSetsIniciadosComEscalacao] = useState<Set<number>>(new Set());
+  const [setsIniciadosComEscalacao, setSetsIniciadosComEscalacao] = useState<Set<number>>(() => {
+    if (!partidaId) return new Set();
+    const cache = localStorage.getItem(`escalacoes_${partidaId}`);
+    return cache ? new Set(Object.keys(JSON.parse(cache)).map(Number)) : new Set();
+  });
 
   // Ações de Modal
-  const abrirModalEscalacao = () => setModalEscalacaoAberto(true);
+  const abrirModalEscalacao  = () => setModalEscalacaoAberto(true);
   const fecharModalEscalacao = () => setModalEscalacaoAberto(false);
 
   const abrirModalSubstituicao = (timeId: string) => {
@@ -33,7 +48,14 @@ export function useEscalacao(indiceSetAtual: number) {
 
   // Ações de Confirmação
   const confirmarEscalacao = (escalacao: EscalacaoSet) => {
-    setEscalacoes((prev) => ({ ...prev, [escalacao.indiceSet]: escalacao }));
+    setEscalacoes((prev) => {
+      const novoEstado = { ...prev, [escalacao.indiceSet]: escalacao };
+      if (partidaId) {
+        localStorage.setItem(`escalacoes_${partidaId}`, JSON.stringify(novoEstado));
+      }
+      return novoEstado;
+    });
+    
     setSetsIniciadosComEscalacao((prev) => new Set([...prev, escalacao.indiceSet]));
     fecharModalEscalacao();
   };
@@ -58,31 +80,70 @@ export function useEscalacao(indiceSetAtual: number) {
     return substituicoes.filter(s => s.timeId === timeId && s.indiceSet === indiceSet);
   };
 
-  // Lógica central: Calcula quem está em quadra aplicando as substituições
-  const obterTitularesAtuais = (timeId: string, indiceSet: number, jogadores: JogadorPartida[]) => {
+  // const obterTitularesAtuais = (timeId: string, indiceSet: number, jogadores: JogadorPartida[]): JogadorPartida[] => {
+  //   const fallback = jogadores.filter((j) => j.timeId === timeId);
+  //   const escalacaoSet = escalacoes[indiceSet];
+
+  //   if (!escalacaoSet) {
+  //     const deFatoTitulares = fallback.filter(j => j.titular);
+  //     return deFatoTitulares.length === 6 ? deFatoTitulares : fallback.slice(0, 6);
+  //   }
+
+  //   const escalacaoTime = escalacaoSet.casa.timeId === timeId ? escalacaoSet.casa : escalacaoSet.visitante;
+  //   const mapaVolleyParaBanco = [1, 5, 4, 3, 0, 2];
+
+  //   return mapaVolleyParaBanco.map((idxBanco) => {
+  //     const titular = escalacaoTime?.titulares?.find(t => t.indicePosicao === idxBanco);
+  //     let jogadorId = titular ? titular.jogadorId : null;
+
+  //     if (!jogadorId) {
+  //       return fallback.find(f => !escalacaoTime.titulares.some(t => t.jogadorId === f.jogadorId)) || fallback[0];
+  //     }
+
+  //     const subsDoSet = obterSubstituicoesDoSet(timeId, indiceSet);
+  //     subsDoSet.forEach(sub => {
+  //       if (sub.idJogadorSaindo === jogadorId) {
+  //         jogadorId = sub.idJogadorEntrando;
+  //       }
+  //     });
+
+  //     return encontrarJogador(jogadores, jogadorId) || fallback[0];
+  //   });
+  // };
+
+  const obterTitularesAtuais = (timeId: string, indiceSet: number, jogadores: JogadorPartida[]): JogadorPartida[] => {
+    const fallback = jogadores.filter((j) => j.timeId === timeId);
     const escalacaoSet = escalacoes[indiceSet];
-    if (!escalacaoSet) return [];
+
+    if (!escalacaoSet) {
+      return fallback.slice(0, 6); 
+    }
 
     const escalacaoTime = escalacaoSet.casa.timeId === timeId ? escalacaoSet.casa : escalacaoSet.visitante;
+    const mapaVolleyParaBanco = [1, 5, 4, 3, 0, 2];
 
-    const titularesAtuaisIds = escalacaoTime.titulares.map(t => t.jogadorId);
+    return mapaVolleyParaBanco.map((idxBanco) => {
+      const titular = escalacaoTime?.titulares?.find(t => t.indicePosicao === idxBanco);
+      let jogadorId = titular ? titular.jogadorId : null;
 
-    const subsDoSet = obterSubstituicoesDoSet(timeId, indiceSet);
-    subsDoSet.forEach(sub => {
-      const idxSaindo = titularesAtuaisIds.indexOf(sub.idJogadorSaindo);
-      if (idxSaindo !== -1) {
-        titularesAtuaisIds[idxSaindo] = sub.idJogadorEntrando;
-      }
+      if (!jogadorId) return fallback[0];
+
+      const subsDoSet = obterSubstituicoesDoSet(timeId, indiceSet);
+      subsDoSet.forEach(sub => {
+        if (sub.idJogadorSaindo === jogadorId) {
+          jogadorId = sub.idJogadorEntrando;
+        }
+      });
+
+      return encontrarJogador(jogadores, jogadorId) || fallback[0];
     });
-
-    return titularesAtuaisIds
-      .map(id => jogadores.find(j => j.jogadorId === id))
-      .filter(Boolean) as JogadorPartida[];
   };
 
   const obterBancoAtual = (timeId: string, indiceSet: number, jogadores: JogadorPartida[]) => {
     const escalacaoSet = escalacoes[indiceSet];
-    if (!escalacaoSet) return [];
+    const doTime = jogadores.filter((j) => j.timeId === timeId);
+
+    if (!escalacaoSet) return doTime.slice(6);
 
     const escalacaoTime = escalacaoSet.casa.timeId === timeId ? escalacaoSet.casa : escalacaoSet.visitante;
 
@@ -98,31 +159,49 @@ export function useEscalacao(indiceSetAtual: number) {
     });
 
     return bancoAtualIds
-      .map(id => jogadores.find(j => j.jogadorId === id))
+      .map((id) => encontrarJogador(jogadores, id))
       .filter(Boolean) as JogadorPartida[];
   };
 
-  // Retorna o jogador que está na posição 1 (sacador) para um time/set
-  const obterJogadorPosicao1 = (timeId: string, indiceSet: number, jogadores: JogadorPartida[]) => {
+  const obterQuadraAtual = (timeId: string, indiceSet: number, jogadores: JogadorPartida[], rotacao: number = 0) => {
+    const fallback = jogadores.filter((j) => j.timeId === timeId);
     const escalacaoSet = escalacoes[indiceSet];
-    if (!escalacaoSet) return undefined;
+
+    if (!escalacaoSet) {
+      const titularesConfig = fallback.filter(j => j.titular);
+      return titularesConfig.length === 6 ? titularesConfig : fallback.slice(0, 6);
+    }
 
     const escalacaoTime = escalacaoSet.casa.timeId === timeId ? escalacaoSet.casa : escalacaoSet.visitante;
 
-    // Posição 1 no nosso sistema de índices = indicePosicao === 1
-    const titularNaPosicao1 = escalacaoTime.titulares.find(t => t.indicePosicao === 1);
-    if (!titularNaPosicao1) return undefined;
+    const trackingIds: (string | null)[] = new Array(6).fill(null);
+    for (let i = 0; i < 6; i++) {
+      const titular = escalacaoTime.titulares.find(t => t.indicePosicao === i);
+      trackingIds[i] = titular ? titular.jogadorId : null;
+    }
 
-    // Aplica substituições
-    let jogadorIdNaPosicao1 = titularNaPosicao1.jogadorId;
     const subsDoSet = obterSubstituicoesDoSet(timeId, indiceSet);
     subsDoSet.forEach(sub => {
-      if (sub.idJogadorSaindo === jogadorIdNaPosicao1) {
-        jogadorIdNaPosicao1 = sub.idJogadorEntrando;
+      const idx = trackingIds.indexOf(sub.idJogadorSaindo);
+      if (idx !== -1) {
+        trackingIds[idx] = sub.idJogadorEntrando;
       }
     });
 
-    return jogadores.find(j => j.jogadorId === jogadorIdNaPosicao1);
+    const idsNaQuadraFisica = new Array(6);
+    for (let posFisica = 0; posFisica < 6; posFisica++) {
+      const idxTaticoOriginal = (posFisica + rotacao) % 6;
+      idsNaQuadraFisica[posFisica] = trackingIds[idxTaticoOriginal];
+    }
+
+    return idsNaQuadraFisica
+      .map(id => encontrarJogador(jogadores, id))
+      .filter(Boolean) as JogadorPartida[];
+  };
+
+  const obterJogadorPosicao1 = (timeId: string, indiceSet: number, jogadores: JogadorPartida[], rotacao: number = 0) => {
+    const quadra = obterQuadraAtual(timeId, indiceSet, jogadores, rotacao);
+    return quadra[1] || encontrarFallbackDoTime(jogadores, timeId);
   };
 
   return {
@@ -141,5 +220,6 @@ export function useEscalacao(indiceSetAtual: number) {
     obterEscalacao,
     setJaTemEscalacao,
     obterJogadorPosicao1,
+    obterQuadraAtual,
   };
 }

@@ -1,6 +1,6 @@
-const API_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
+const API_URL   = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
 const TOKEN_KEY = "vb_token";
-const USER_KEY = "vb_user";
+const USER_KEY  = "vb_user";
 
 export type PerfilUsuario = "ADMIN" | "GERENTE" | "USUARIO";
 
@@ -8,6 +8,12 @@ export type StatusTorneio = "RASCUNHO" | "ABERTO" | "EM_ANDAMENTO" | "FINALIZADO
 export type StatusPartida = "AGENDADA" | "AQUECIMENTO" | "AO_VIVO" | "FINALIZADA";
 export type VisibilidadeTorneio = "PUBLICO" | "SOMENTE_PARTICIPANTES" | "PRIVADO";
 
+export type LadoPonto  = "CASA"    | "VISITANTE";
+export type TipoPonto  = "SAQUE"   | "ATAQUE"     | "BLOQUEIO"    | "ERRO_ADVERSARIO" | "CARTAO_ADVERSARIO";
+export type TipoCartao = "AMARELO" | "VERMELHO";
+export type TipoErro   =
+    | "ERRO_SAQUE" | "ERRO_ATAQUE" | "TOQUE_REDE" | "DOIS_TOQUES" | "QUATRO_TOQUES"
+    | "INVASAO"    | "BOLA_FORA"   | "CONDUCAO"   | "ERRO_ROTACAO";
 export type LadoPonto = "CASA" | "VISITANTE";
 export type TipoPonto =
   | "SAQUE"
@@ -79,6 +85,15 @@ export interface Jogador {
 }
 
 export interface JogadorPartida {
+    id: string;
+    partidaId: string;
+    jogadorId: string;
+    timeId: string;
+    nomeJogador: string;
+    numeroCamisa?: number;
+    posicao?: string;
+    titular: boolean;
+    indicePosicao: number;
   id: string;
   partidaId: string;
   jogadorId: string;
@@ -124,6 +139,16 @@ export interface Partida {
   pontosParaVencerUltimoSet: number;
   setsParaVencerPartida: number;
   titularesPorTime: number;
+}
+
+export interface RegrasTorneio {
+  id?: string | null;
+  torneioId: string;
+  setsParaVencer: number;
+  pontosPorSet: number;
+  pontosTieBreak: number;
+  vantagemDoisPontos: boolean;
+  limiteJogadoresPorTime: number;
 }
 
 /* ── SSR-safe storage ─────────────────────────────────────── */
@@ -175,6 +200,25 @@ export const auth = {
   },
 };
 
+/* ── Mock helpers ─────────────────────────────────────────── */
+const useMock = () => !import.meta.env.VITE_API_URL;
+
+export async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const token = localStorage.getItem("vb_token");
+    const response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+            ...options?.headers,
+        },
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(JSON.stringify(error));
+    }
+    return response.json();
 /* ── HTTP helper ──────────────────────────────────────────── */
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = auth.getToken();
@@ -206,6 +250,28 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
 /* ── API EXPORTADA ────────────────────────────────────────── */
 export const api = {
+    request: request,
+
+    /* ── Autenticação ─────────────────────────────────────────────── */
+    login: async (email: string, senha: string) => {
+        if (useMock()) {
+            const user: AuthUser = {
+                id: "demo", nome: email.split("@")[0] || "Demo", email,
+                perfil: email.includes("admin") ? "ADMIN" : email.includes("gerente") ? "GERENTE" : "USUARIO",
+            };
+            auth.setSession("mock-token", user);
+            return { token: "mock-token", user };
+        }
+        const data = await request<{ token: string; user: AuthUser }>("/auth/login", {
+            method: "POST", body: JSON.stringify({ email, password: senha }),
+        });
+        auth.setSession(data.token, data.user);
+        return data;
+    },
+    register: async (nome: string, email: string, senha: string) => {
+        if (useMock()) return api.login(email, senha);
+        return request("/auth/register", { method: "POST", body: JSON.stringify({ nome, email, password: senha }) });
+    },
   /* ── Autenticação ───────────────────────────────────────── */
 
   login: async (email: string, senha: string) => {
@@ -219,6 +285,77 @@ export const api = {
     return data;
   },
 
+    /* ── Partidas ─────────────────────────────────────────────────── */
+    listarPartidas: async (torneioId: string): Promise<Partida[]> => {
+        return request<Partida[]>(`/partidas?torneioId=${torneioId}`);
+    },
+    buscarPartida: async (id: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${id}`);
+    },
+    criarPartida: async (data: Omit<Partida, "id">): Promise<Partida> => {
+        return request<Partida>("/partidas", {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+    },
+    comecaPartida: async (partidaId: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: "AO_VIVO" })
+        });
+    },
+    atualizarPartida: async (id: string, data: Partial<Partida>): Promise<Partida> => {
+        return request<Partida>(`/partidas/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data)
+        });
+    },
+    removerPartida: async (id: string): Promise<void> => {
+        return request<void>(`/partidas/${id}`, {
+            method: "DELETE"
+        });
+    },
+    finalizarPartida: async (partidaId: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: "FINALIZADA" })
+        });
+    },
+
+    /* ── Elenco da Partida ───────────────────── */
+    listarJogadoresPartida: async (partidaId: string): Promise<JogadorPartida[]> => {
+        return request<JogadorPartida[]>(`/partidas/${partidaId}/jogadores`);
+    },
+
+    /* ── Eventos / Placar Ao Vivo ─────────────────────────────────── */
+    listarEventosPartida: async (partidaId: string): Promise<EventoPartida[]> => {
+        return request<EventoPartida[]>(`/partidas/${partidaId}/eventos`);
+    },
+    registrarEvento: async (partidaId: string, data: Omit<EventoPartida, "id" | "partidaId" | "horario">): Promise<{ evento: EventoPartida; partida: Partida }> => {
+        return request(`/partidas/${partidaId}/eventos`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+    },
+    anularUltimoEvento: async (partidaId: string): Promise<{ partida: Partida }> => {
+        return request(`/partidas/${partidaId}/eventos/anular-ultimo`, {
+            method: "POST"
+        });
+    },
+
+    /* ── Regras de Partida do Torneio ───────────────────── */
+    buscarRegras: async (torneioId: string): Promise<RegrasTorneio> => {
+        return request<RegrasTorneio>(`/torneios/${torneioId}/regras`);
+    },
+    atualizarRegras: async (
+        torneioId: string,
+        data: Partial<Omit<RegrasTorneio, 'id' | 'torneioId'>>,
+    ): Promise<RegrasTorneio> => {
+        return request<RegrasTorneio>(`/torneios/${torneioId}/regras`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        });
+    }
   register: async (nome: string, email: string, senha: string) => {
     return request<AuthUser>("/auth/register", {
       method: "POST",

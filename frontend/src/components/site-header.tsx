@@ -44,6 +44,9 @@ export function SiteHeader() {
           >
             Torneios
           </NavLink>
+          {user?.perfil === "ADMIN" && (
+            <NavLink to="/admin/usuarios">Usuários</NavLink>
+          )}
         </nav>
 
         {/* Ações */}
