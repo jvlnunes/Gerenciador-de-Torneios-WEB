@@ -147,22 +147,6 @@ export const auth = {
     },
 };
 
-/* ── HTTP helper ──────────────────────────────────────────── */
-// async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
-//     const token = auth.getToken();
-//     const res = await fetch(`${API_URL}${path}`, {
-//         ...opts,
-//         headers: {
-//             "Content-Type": "application/json",
-//             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-//             ...(opts.headers ?? {}),
-//         },
-//     });
-//     if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
-//     if (res.status === 204) return undefined as T;
-//     return res.json();
-// }
-
 /* ── Mock helpers ─────────────────────────────────────────── */
 const useMock = () => !import.meta.env.VITE_API_URL;
 

@@ -18,15 +18,19 @@ import TorneioClassificacao from "./pages/Torneio/TorneioClassificacao";
 import TorneioConfiguracoes from "./pages/Torneio/TorneioConfiguracoes";
 import TorneioEstatisticas  from "./pages/Torneio/TorneioEstatisticas";
 import TorneioFases         from "./pages/Torneio/TorneioFases";
+import AdminUsuarios        from "./pages/Admin/AdminUsuarios";
 
 import JoinTeamPage from "./pages/Join/JoinTime";
-// Landing page
+
 import IndexPage from "./pages/Index";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Rota Admin para gerencia de usuários */}
+        <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+
         {/* Rota raiz: landing page */}
         <Route path="/" element={<IndexPage />} />
 
