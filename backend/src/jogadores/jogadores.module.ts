@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
 import { JogadoresService } from './jogadores.service';
-import { JogadoresController, JogadoresPorTimeController } from './jogadores.controller';
+import { AuthModule } from '../auth/auth.module';
+import {
+  JogadoresController,
+  JogadoresPorTimeController,
+} from './jogadores.controller';
 
 @Module({
+  imports: [AuthModule],
   providers: [JogadoresService],
   controllers: [JogadoresController, JogadoresPorTimeController],
 })

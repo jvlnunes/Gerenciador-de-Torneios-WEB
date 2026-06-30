@@ -19,6 +19,10 @@ import { RegrasTorneioModule } from './regras-torneio/regras-torneio.module';
     JogadoresModule,
     RegrasTorneioModule,
   ],
+import { UsuariosModule } from './usuarios/usuarios.module';
+
+@Module({
+  imports: [AuthModule, PrismaModule, TorneiosModule, PartidasModule, TimesModule, JogadoresModule, UsuariosModule],
   controllers: [AppController],
   providers: [AppService],
 })

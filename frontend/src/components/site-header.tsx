@@ -12,8 +12,14 @@ export function SiteHeader() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight">
-          <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: "var(--gradient-primary)" }}>
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-display text-xl font-bold tracking-tight"
+        >
+          <span
+            className="grid h-9 w-9 place-items-center rounded-lg"
+            style={{ background: "var(--gradient-primary)" }}
+          >
             <Trophy className="h-5 w-5 text-primary-foreground" />
           </span>
           <span>VolleyHub</span>
@@ -56,7 +62,10 @@ export function SiteHeader() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => { logout(); navigate("/"); }}
+                onClick={() => {
+                  logout();
+                  navigate("/");
+                }}
               >
                 <LogOut className="h-4 w-4" />
               </Button>
