@@ -63,7 +63,7 @@ export default function PartidaLivePage() {
     modalEscalacaoAberto, abrirModalEscalacao, fecharModalEscalacao, confirmarEscalacao,
     modalSubAberto, timeSubId, abrirModalSubstituicao, fecharModalSubstituicao, confirmarSubstituicao,
     obterTitularesAtuais, obterBancoAtual, obterSubstituicoesDoSet, obterEscalacao,
-    setJaTemEscalacao, obterJogadorPosicao1, obterQuadraAtual
+    setJaTemEscalacao, obterJogadorPosicao1, obterQuadraAtual, recarregar
   } = useEscalacao(partidaId, setAtivo);
 
   /* ── Timer effect ─────────────────────────────────────────── */
@@ -105,18 +105,23 @@ export default function PartidaLivePage() {
           abrirModalEscalacao();
         }
       }
+
+      // Garante que escalação/substituições do set atual estejam sempre
+      // sincronizadas com o servidor — não dependemos apenas do estado
+      // otimista local atualizado nos handlers de confirmação.
+      await recarregar();
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [partidaId]);
+  }, [partidaId, recarregar]);
 
   useEffect(() => { load(); }, [load]);
 
   /* ── Handlers de Escalação ────────────────────────────────── */
-  const handleConfirmarEscalacao = (escalacao: EscalacaoSet) => {
-    confirmarEscalacao(escalacao);
+  const handleConfirmarEscalacao = async (escalacao: EscalacaoSet) => {
+    await confirmarEscalacao(escalacao);
     setSetStarted(true);
     setTimerSecs(0);
     setTimerOn(true);
@@ -146,6 +151,9 @@ export default function PartidaLivePage() {
         jogadorNome,
         placarCasa: nC,
         placarVisitante: nV,
+        quadraCasaAntes: jCasaQuadra.map((j) => j.jogadorId),
+        quadraVisitanteAntes: jVisQuadra.map((j) => j.jogadorId),
+        sacadorAntes: sacadorAtual,
       });
 
       setPartida(p);
@@ -208,7 +216,6 @@ export default function PartidaLivePage() {
     if (!partida || !partidaId || salvando) return;
     setSalvando(true);
 
-    // Cartão vermelho = ponto para o adversário
     let nC = partida.setAtualCasa;
     let nV = partida.setAtualVisitante;
     const daPonto = tipoCartao === "CARTAO_VERMELHO" || tipoCartao === "EXPULSAO";
@@ -218,7 +225,6 @@ export default function PartidaLivePage() {
       else nC += 1;
     }
 
-    // O ponto vai para o adversário do penalizado
     const ladoQueGanhaPonto: LadoPonto = ladoPenalizado === "CASA" ? "VISITANTE" : "CASA";
 
     try {
@@ -232,6 +238,9 @@ export default function PartidaLivePage() {
         jogadorNome,
         placarCasa: nC,
         placarVisitante: nV,
+        quadraCasaAntes: jCasaQuadra.map((j) => j.jogadorId),
+        quadraVisitanteAntes: jVisQuadra.map((j) => j.jogadorId),
+        sacadorAntes: sacadorAtual,
       });
 
       setPartida(p);
@@ -318,7 +327,6 @@ export default function PartidaLivePage() {
   const bancoCasaList = obterBancoAtual(partida.timeCasaId, setAtivo, jogadores);
   const bancoVisList = obterBancoAtual(partida.timeVisitanteId, setAtivo, jogadores);
 
-  // Jogadores inativos por cartão/expulsão
   const expulsosSetAtual = eventos
     .filter((e) => e.tipoErro === "EXPULSAO" && e.indiceSet === setAtivo)
     .map((e) => e.jogadorId);
@@ -447,9 +455,7 @@ export default function PartidaLivePage() {
           onRegistrar={(id, err) => executarRegistro(modal.acao, modal.lado, id, err)}
           onClose={() => setModal(null)}
           ladoSaque={sacadorAtual}
-          // Passa o ID do sacador atual (jogador na posição 1 do time que está sacando)
-          idSacador={
-            
+          idSacador={            
             configAutoSaque
               ? getSacadorAtualJogador(sacadorAtual)?.jogadorId
               : undefined

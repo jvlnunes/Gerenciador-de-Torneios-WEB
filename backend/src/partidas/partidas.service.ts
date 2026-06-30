@@ -32,28 +32,33 @@ export class PartidasService {
       where: { torneioId },
     });
     return {
-      setsParaVencer:         regras?.setsParaVencer         ?? REGRAS_PADRAO.setsParaVencer,
-      pontosPorSet:           regras?.pontosPorSet           ?? REGRAS_PADRAO.pontosPorSet,
-      pontosTieBreak:         regras?.pontosTieBreak         ?? REGRAS_PADRAO.pontosTieBreak,
-      vantagemDoisPontos:     regras?.vantagemDoisPontos     ?? REGRAS_PADRAO.vantagemDoisPontos,
-      limiteJogadoresPorTime: regras?.limiteJogadoresPorTime ?? REGRAS_PADRAO.limiteJogadoresPorTime,
+      setsParaVencer: regras?.setsParaVencer ?? REGRAS_PADRAO.setsParaVencer,
+      pontosPorSet: regras?.pontosPorSet ?? REGRAS_PADRAO.pontosPorSet,
+      pontosTieBreak: regras?.pontosTieBreak ?? REGRAS_PADRAO.pontosTieBreak,
+      vantagemDoisPontos:
+        regras?.vantagemDoisPontos ?? REGRAS_PADRAO.vantagemDoisPontos,
+      limiteJogadoresPorTime:
+        regras?.limiteJogadoresPorTime ??
+        REGRAS_PADRAO.limiteJogadoresPorTime,
     };
   }
 
   private formatarPartida(
     partida: any,
-    regras: ReturnType<typeof this.buscarRegras> extends Promise<infer T> ? T : never,
+    regras: ReturnType<typeof this.buscarRegras> extends Promise<infer T>
+      ? T
+      : never,
   ) {
     return {
       ...partida,
-      nomeTimeCasa:      partida.timeCasa.nome,
+      nomeTimeCasa: partida.timeCasa.nome,
       nomeTimeVisitante: partida.timeVisitante.nome,
-      sets:              [],
-      pontosParaVencerSet:       regras.pontosPorSet,
+      sets: [],
+      pontosParaVencerSet: regras.pontosPorSet,
       pontosParaVencerUltimoSet: regras.pontosTieBreak,
-      setsParaVencerPartida:     regras.setsParaVencer,
-      titularesPorTime:          regras.limiteJogadoresPorTime ?? 6,
-      vantagemDoisPontos:        regras.vantagemDoisPontos,
+      setsParaVencerPartida: regras.setsParaVencer,
+      titularesPorTime: regras.limiteJogadoresPorTime ?? 6,
+      vantagemDoisPontos: regras.vantagemDoisPontos,
     };
   }
 
@@ -131,7 +136,10 @@ export class PartidasService {
         ? this.normalizarDateTime(dados.agendadoPara)
         : undefined,
     };
-    return this.prisma.partida.update({ where: { id }, data: dadosFormatados });
+    return this.prisma.partida.update({
+      where: { id },
+      data: dadosFormatados,
+    });
   }
 
   async remover(id: string, user: AuthenticatedUser) {
@@ -167,14 +175,14 @@ export class PartidasService {
     });
 
     return jogadores.map((j) => ({
-      id:           j.id,
+      id: j.id,
       partidaId,
-      jogadorId:    j.id,
-      timeId:       j.timeId,
-      nomeJogador:  j.nome,
+      jogadorId: j.id,
+      timeId: j.timeId,
+      nomeJogador: j.nome,
       numeroCamisa: j.numeroCamisa,
-      posicao:      j.posicao,
-      titular:      j.titular,
+      posicao: j.posicao,
+      titular: j.titular,
     }));
   }
 
@@ -202,13 +210,22 @@ export class PartidasService {
     await this.verificarPermissaoTorneio(partida.torneioId, user);
 
     const evento = await this.prisma.eventoPartida.create({
-      data: { ...dados, partidaId },
+      data: {
+        ...dados,
+        partidaId,
+        quadraCasaAntes: dados.quadraCasaAntes ?? undefined,
+        quadraVisitanteAntes: dados.quadraVisitanteAntes ?? undefined,
+        quadraCasaDepois: dados.quadraCasaDepois ?? undefined,
+        quadraVisitanteDepois: dados.quadraVisitanteDepois ?? undefined,
+        sacadorAntes: dados.sacadorAntes ?? undefined,
+        sacadorDepois: dados.sacadorDepois ?? undefined,
+      },
     });
 
     const partidaAtualizada = await this.prisma.partida.update({
       where: { id: partidaId },
       data: {
-        setAtualCasa:      dados.placarCasa,
+        setAtualCasa: dados.placarCasa,
         setAtualVisitante: dados.placarVisitante,
       },
       include: { timeCasa: true, timeVisitante: true },
@@ -251,9 +268,9 @@ export class PartidasService {
     if (!partida) throw new NotFoundException('Partida não encontrada');
 
     let novoCasa = partida.setAtualCasa;
-    let novoVis  = partida.setAtualVisitante;
-    if (ultimoEvento.lado === 'CASA'      && novoCasa > 0) novoCasa--;
-    if (ultimoEvento.lado === 'VISITANTE' && novoVis  > 0) novoVis--;
+    let novoVis = partida.setAtualVisitante;
+    if (ultimoEvento.lado === 'CASA' && novoCasa > 0) novoCasa--;
+    if (ultimoEvento.lado === 'VISITANTE' && novoVis > 0) novoVis--;
 
     const partidaAtualizada = await this.prisma.partida.update({
       where: { id: partidaId },
@@ -264,5 +281,102 @@ export class PartidasService {
     const regras = await this.buscarRegras(partidaAtualizada.torneioId);
 
     return { partida: this.formatarPartida(partidaAtualizada, regras) };
+  }
+
+  /* ── Escalação por set ──────────────────────────────────── */
+
+  async salvarEscalacao(
+    partidaId: string,
+    dados: { indiceSet: number; casa: any; visitante: any },
+    user: AuthenticatedUser,
+  ) {
+    const partida = await this.prisma.partida.findUnique({
+      where: { id: partidaId },
+    });
+    if (!partida) throw new NotFoundException('Partida não encontrada');
+    await this.verificarPermissaoTorneio(partida.torneioId, user);
+
+    await Promise.all([
+      this.prisma.escalacaoSet.upsert({
+        where: {
+          partidaId_indiceSet_timeId: {
+            partidaId,
+            indiceSet: dados.indiceSet,
+            timeId: partida.timeCasaId,
+          },
+        },
+        create: {
+          partidaId,
+          indiceSet: dados.indiceSet,
+          timeId: partida.timeCasaId,
+          titulares: dados.casa.titulares,
+          banco: dados.casa.banco,
+          indicePosicaoSaque: dados.casa.indicePosicaoSaque ?? 1,
+        },
+        update: {
+          titulares: dados.casa.titulares,
+          banco: dados.casa.banco,
+          indicePosicaoSaque: dados.casa.indicePosicaoSaque ?? 1,
+        },
+      }),
+      this.prisma.escalacaoSet.upsert({
+        where: {
+          partidaId_indiceSet_timeId: {
+            partidaId,
+            indiceSet: dados.indiceSet,
+            timeId: partida.timeVisitanteId,
+          },
+        },
+        create: {
+          partidaId,
+          indiceSet: dados.indiceSet,
+          timeId: partida.timeVisitanteId,
+          titulares: dados.visitante.titulares,
+          banco: dados.visitante.banco,
+          indicePosicaoSaque: dados.visitante.indicePosicaoSaque ?? 1,
+        },
+        update: {
+          titulares: dados.visitante.titulares,
+          banco: dados.visitante.banco,
+          indicePosicaoSaque: dados.visitante.indicePosicaoSaque ?? 1,
+        },
+      }),
+    ]);
+
+    return this.listarEscalacao(partidaId, dados.indiceSet);
+  }
+
+  async listarEscalacao(partidaId: string, indiceSet: number) {
+    return this.prisma.escalacaoSet.findMany({
+      where: { partidaId, indiceSet },
+    });
+  }
+
+  /* ── Substituições ──────────────────────────────────────── */
+
+  async registrarSubstituicao(
+    partidaId: string,
+    dados: any,
+    user: AuthenticatedUser,
+  ) {
+    const partida = await this.prisma.partida.findUnique({
+      where: { id: partidaId },
+    });
+    if (!partida) throw new NotFoundException('Partida não encontrada');
+    await this.verificarPermissaoTorneio(partida.torneioId, user);
+
+    return this.prisma.substituicaoPartida.create({
+      data: { ...dados, partidaId },
+    });
+  }
+
+  async listarSubstituicoes(partidaId: string, indiceSet?: number) {
+    return this.prisma.substituicaoPartida.findMany({
+      where: {
+        partidaId,
+        ...(indiceSet !== undefined ? { indiceSet } : {}),
+      },
+      orderBy: { criadoEm: 'asc' },
+    });
   }
 }

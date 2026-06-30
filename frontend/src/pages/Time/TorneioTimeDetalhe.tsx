@@ -33,8 +33,6 @@ interface TitularNaQuadra {
   indicePosicao: IndicePosicao;
 }
 
-// Mesma ordem do componente Quadra.tsx da partida
-// grid-cols-[2fr_1fr]: pos5,pos4 / pos6,pos3 / pos1,pos2
 const ORDEM_SLOTS: IndicePosicao[] = [0, 3, 2, 4, 1, 5];
 const LABEL_SLOT: Record<number, string> = { 0: "5", 1: "1●", 2: "6", 3: "4", 4: "3", 5: "2" };
 
@@ -42,6 +40,7 @@ function QuadraFormacao({
   titulares,
   jogadores,
   cor,
+  onDragStart,
   onSwapSlots,
   onDropFromBench,
   onSendToBench,
@@ -49,6 +48,7 @@ function QuadraFormacao({
   titulares: TitularNaQuadra[];
   jogadores: Jogador[];
   cor: string;
+  onDragStart: (from: IndicePosicao, jogadorId: string) => void;
   onSwapSlots: (a: IndicePosicao, b: IndicePosicao) => void;
   onDropFromBench: (jogadorId: string, toSlot: IndicePosicao) => void;
   onSendToBench: (indicePosicao: IndicePosicao) => void;
@@ -127,6 +127,7 @@ function QuadraFormacao({
                   draggable
                   onDragStart={() => {
                     drag.current = { from: indice, jogadorId: jogador.id };
+                    onDragStart(indice, jogador.id);
                   }}
                   className="flex flex-col items-center cursor-grab active:cursor-grabbing group"
                 >
@@ -446,8 +447,8 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
   const titulares = players.filter((p) => titularIds.has(p.id));
   const banco = players.filter((p) => !titularIds.has(p.id));
 
-  // Drag state para banco → quadra
-  const benchDragRef = useRef<string | null>(null);
+// Drag state compartilhado entre quadra e banco
+  const dragRef = useRef<{ from: IndicePosicao | "bench"; jogadorId: string } | null>(null);
   const [isDraggingOverQuadra, setIsDraggingOverQuadra] = useState(false);
 
   /* Operações na quadra */
@@ -504,6 +505,8 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
       setPlayers((prev) =>
         prev.map((p) => ({ ...p, titular: titularIds.has(p.id) }))
       );
+    } catch (e) {
+      alert("Erro ao salvar formação: " + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -569,9 +572,10 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
               titulares={titularesQuadra}
               jogadores={players}
               cor={cor}
+              onDragStart={(from, jogadorId) => { dragRef.current = { from, jogadorId }; }}
               onSwapSlots={swapSlots}
               onDropFromBench={(jogadorId, toSlot) => {
-                benchDragRef.current = null;
+                dragRef.current = null;
                 dropFromBench(jogadorId, toSlot);
               }}
               onSendToBench={sendToBench}
@@ -579,9 +583,18 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
           </div>
 
           {/* Banco — drop zone secundária */}
-          <div className="space-y-1.5">
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (!dragRef.current || dragRef.current.from === "bench") return;
+              sendToBench(dragRef.current.from);
+              dragRef.current = null;
+            }}
+            className="space-y-1.5"
+          >
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Banco de reservas ({banco.length})
+              Banco de reservas ({banco.length}) — arraste um titular aqui para reservar
             </p>
             {banco.length === 0 ? (
               <div className="rounded-xl border-2 border-dashed border-border py-5 text-center">
@@ -593,7 +606,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
                   <div
                     key={j.id}
                     draggable={canManage}
-                    onDragStart={() => { benchDragRef.current = j.id; }}
+                    onDragStart={() => { dragRef.current = { from: "bench", jogadorId: j.id }; }}
                     className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all select-none"
                   >
                     <GripVertical className="h-3 w-3 text-muted-foreground/50" />
@@ -656,7 +669,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
                       onUpdate={(data) => handleUpdate(p.id, data)}
                       onDelete={() => handleDelete(p.id)}
                       onToggleTitular={() => toggleTitular(p)}
-                      onDragStart={() => { benchDragRef.current = p.id; }}
+                      onDragStart={() => { dragRef.current = { from: "bench", jogadorId: p.id }; }}
                     />
                   ))}
                 </>

@@ -1,10 +1,11 @@
+generator client {
+  provider      = "prisma-client-js"
+  // binaryTargets = ["native", "windows", "debian-openssl-3.0.x"]
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model Usuario {
@@ -66,6 +67,14 @@ model Time {
   tokenConvite        String?          @unique
   quantidadeJogadores Int              @default(0)
   torneioId           String
+  corPrimaria         String?
+  corSecundaria       String?
+  email               String?
+  facebook            String?
+  instagram           String?
+  site                String?
+  telefone            String?
+  whatsapp            String?
   jogadores           Jogador[]
   jogadoresNaPartida  JogadorPartida[]
   partidasComoCasa    Partida[]        @relation("PartidaCasa")
@@ -80,6 +89,7 @@ model Jogador {
   posicao          String?
   fotoUrl          String?
   entrouPorLink    Boolean          @default(false)
+  titular          Boolean          @default(false)
   criadoEm         DateTime         @default(now())
   timeId           String
   usuarioId        String?
@@ -90,22 +100,57 @@ model Jogador {
 }
 
 model Partida {
-  id                 String           @id @default(uuid())
-  status             StatusPartida    @default(AGENDADA)
+  id                 String                 @id @default(uuid())
+  status             StatusPartida          @default(AGENDADA)
   agendadoPara       DateTime?
   local              String?
-  setsCasa           Int              @default(0)
-  setsVisitante      Int              @default(0)
-  setAtualCasa       Int              @default(0)
-  setAtualVisitante  Int              @default(0)
+  setsCasa           Int                    @default(0)
+  setsVisitante      Int                    @default(0)
+  setAtualCasa       Int                    @default(0)
+  setAtualVisitante  Int                    @default(0)
   torneioId          String
   timeCasaId         String
   timeVisitanteId    String
   eventosPartida     EventoPartida[]
   jogadoresNaPartida JogadorPartida[]
-  timeCasa           Time             @relation("PartidaCasa", fields: [timeCasaId], references: [id], onDelete: Cascade)
-  timeVisitante      Time             @relation("PartidaVisitante", fields: [timeVisitanteId], references: [id], onDelete: Cascade)
-  torneio            Torneio          @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+  escalacoes         EscalacaoSet[]
+  substituicoes      SubstituicaoPartida[]
+  timeCasa           Time                   @relation("PartidaCasa", fields: [timeCasaId], references: [id], onDelete: Cascade)
+  timeVisitante      Time                   @relation("PartidaVisitante", fields: [timeVisitanteId], references: [id], onDelete: Cascade)
+  torneio            Torneio                @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+}
+
+model EscalacaoSet {
+  id                 String   @id @default(uuid())
+  partidaId          String
+  indiceSet          Int
+  timeId             String
+  titulares          Json
+  banco              Json
+  indicePosicaoSaque Int      @default(1)
+  criadoEm           DateTime @default(now())
+  atualizadoEm       DateTime @updatedAt
+  partida            Partida  @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+
+  @@unique([partidaId, indiceSet, timeId])
+}
+
+model SubstituicaoPartida {
+  id                    String   @id @default(uuid())
+  partidaId             String
+  indiceSet             Int
+  timeId                String
+  idJogadorSaindo       String
+  nomeJogadorSaindo     String
+  numeroJogadorSaindo   Int?
+  idJogadorEntrando     String
+  nomeJogadorEntrando   String
+  numeroJogadorEntrando Int?
+  indicePosicao         Int
+  placarCasa            Int
+  placarVisitante       Int
+  criadoEm              DateTime @default(now())
+  partida               Partida  @relation(fields: [partidaId], references: [id], onDelete: Cascade)
 }
 
 model JogadorPartida {
@@ -124,21 +169,27 @@ model JogadorPartida {
 }
 
 model EventoPartida {
-  id              String      @id @default(uuid())
-  indiceSet       Int
-  lado            LadoPonto
-  tipo            TipoPonto
-  tipoErro        TipoErro?
-  tipoCartao      TipoCartao?
-  placarCasa      Int
-  placarVisitante Int
-  horario         DateTime    @default(now())
-  anulado         Boolean     @default(false)
-  partidaId       String
-  jogadorId       String?
-  jogadorNome     String?
-  jogador         Jogador?    @relation(fields: [jogadorId], references: [id])
-  partida         Partida     @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  id                    String      @id @default(uuid())
+  indiceSet             Int
+  lado                  LadoPonto
+  tipo                  TipoPonto
+  tipoErro              TipoErro?
+  tipoCartao            TipoCartao?
+  placarCasa            Int
+  placarVisitante       Int
+  horario               DateTime    @default(now())
+  anulado               Boolean     @default(false)
+  partidaId             String
+  jogadorId             String?
+  jogadorNome           String?
+  quadraCasaAntes       Json?
+  quadraVisitanteAntes  Json?
+  quadraCasaDepois      Json?
+  quadraVisitanteDepois Json?
+  sacadorAntes          LadoPonto?
+  sacadorDepois         LadoPonto?
+  jogador               Jogador?    @relation(fields: [jogadorId], references: [id])
+  partida               Partida     @relation(fields: [partidaId], references: [id], onDelete: Cascade)
 }
 
 enum PerfilUsuario {

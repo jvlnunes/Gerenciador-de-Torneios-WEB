@@ -1,9 +1,7 @@
-import { defineConfig } from "prisma/config";
+import { defineConfig } from "./prisma.config.ts.bak";
 import * as dotenv from "dotenv";
 import * as path from "path";
 
-// Carrega explicitamente o .env a partir da raiz do projeto backend,
-// independente de onde o comando `prisma` for executado.
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 export default defineConfig({

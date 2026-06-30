@@ -9,7 +9,7 @@ export type StatusPartida = "AGENDADA" | "AQUECIMENTO" | "AO_VIVO" | "FINALIZADA
 export type VisibilidadeTorneio = "PUBLICO" | "SOMENTE_PARTICIPANTES" | "PRIVADO";
 
 export type LadoPonto = "CASA" | "VISITANTE";
-export type TipoPonto =
+export type TipoPonto = 
     | "SAQUE"
     | "ATAQUE"
     | "BLOQUEIO"
@@ -18,7 +18,7 @@ export type TipoPonto =
 export type TipoCartao = "AMARELO" | "VERMELHO";
 export type TipoErro =
     | "ERRO_SAQUE"
-    | "ERRO_ATAQUE"
+    // | "ERRO_ATAQUE"
     | "TOQUE_REDE"
     | "DOIS_TOQUES"
     | "QUATRO_TOQUES"
@@ -104,6 +104,39 @@ export interface EventoPartida {
     placarVisitante: number;
     horario: string;
     anulado?: boolean;
+    quadraCasaAntes?: string[];
+    quadraVisitanteAntes?: string[];
+    quadraCasaDepois?: string[];
+    quadraVisitanteDepois?: string[];
+    sacadorAntes?: LadoPonto;
+    sacadorDepois?: LadoPonto;
+}
+
+export interface EscalacaoTimeApi {
+    id: string;
+    partidaId: string;
+    indiceSet: number;
+    timeId: string;
+    titulares: { jogadorId: string; indicePosicao: number }[];
+    banco: string[];
+    indicePosicaoSaque: number;
+}
+
+export interface SubstituicaoApi {
+    id: string;
+    partidaId: string;
+    indiceSet: number;
+    timeId: string;
+    idJogadorSaindo: string;
+    nomeJogadorSaindo: string;
+    numeroJogadorSaindo?: number;
+    idJogadorEntrando: string;
+    nomeJogadorEntrando: string;
+    numeroJogadorEntrando?: number;
+    indicePosicao: number;
+    placarCasa: number;
+    placarVisitante: number;
+    criadoEm: string;
 }
 
 export interface Partida {
@@ -457,4 +490,60 @@ export const api = {
             body: JSON.stringify(data),
         });
     },
+
+
+    /** Escalação por Set */
+    salvarEscalacao: async (
+        partidaId: string,
+        data: {
+            indiceSet: number;
+            casa: { titulares: { jogadorId: string; indicePosicao: number }[]; banco: string[]; indicePosicaoSaque?: number };
+            visitante: { titulares: { jogadorId: string; indicePosicao: number }[]; banco: string[]; indicePosicaoSaque?: number };
+        },
+    ): Promise<EscalacaoTimeApi[]> => {
+        return request<EscalacaoTimeApi[]>(`/partidas/${partidaId}/escalacao`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    listarEscalacao: async (
+        partidaId: string,
+        indiceSet: number,
+    ): Promise<EscalacaoTimeApi[]> => {
+        return request<EscalacaoTimeApi[]>(`/partidas/${partidaId}/escalacao?indiceSet=${indiceSet}`);
+    },
+
+    /* ── Substituições ─────────────────────────────────────── */
+
+    registrarSubstituicao: async (
+        partidaId: string,
+        data: {
+            indiceSet: number;
+            timeId: string;
+            idJogadorSaindo: string;
+            nomeJogadorSaindo: string;
+            numeroJogadorSaindo?: number;
+            idJogadorEntrando: string;
+            nomeJogadorEntrando: string;
+            numeroJogadorEntrando?: number;
+            indicePosicao: number;
+            placarCasa: number;
+            placarVisitante: number;
+        },
+    ): Promise<SubstituicaoApi> => {
+        return request<SubstituicaoApi>(`/partidas/${partidaId}/substituicoes`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    listarSubstituicoes: async (
+        partidaId: string,
+        indiceSet?: number,
+    ): Promise<SubstituicaoApi[]> => {
+        const qs = indiceSet !== undefined ? `?indiceSet=${indiceSet}` : "";
+        return request<SubstituicaoApi[]>(`/partidas/${partidaId}/substituicoes${qs}`);
+    },
+
 };

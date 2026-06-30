@@ -96,4 +96,45 @@ export class PartidasController {
   ) {
     return this.partidasService.anularUltimoEvento(id, req.user);
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'GERENTE')
+  @Post(':id/escalacao')
+  salvarEscalacao(
+    @Param('id') id: string,
+    @Body() dados: any,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.partidasService.salvarEscalacao(id, dados, req.user);
+  }
+
+  @Get(':id/escalacao')
+  listarEscalacao(
+    @Param('id') id: string,
+    @Query('indiceSet') indiceSet: string,
+  ) {
+    return this.partidasService.listarEscalacao(id, Number(indiceSet));
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'GERENTE')
+  @Post(':id/substituicoes')
+  registrarSubstituicao(
+    @Param('id') id: string,
+    @Body() dados: any,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.partidasService.registrarSubstituicao(id, dados, req.user);
+  }
+
+  @Get(':id/substituicoes')
+  listarSubstituicoes(
+    @Param('id') id: string,
+    @Query('indiceSet') indiceSet?: string,
+  ) {
+    return this.partidasService.listarSubstituicoes(
+      id,
+      indiceSet !== undefined ? Number(indiceSet) : undefined,
+    );
+  }
 }

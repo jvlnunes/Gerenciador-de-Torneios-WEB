@@ -19,7 +19,6 @@ export function ModalInicioSet({
   aberto, setNum, jCasa, jVis, nomeCasa, nomeVis, maxTitulares, onConfirm, onClose,
 }: SetStartModalProps) {
   
-  // Inicializa o estado buscando os jogadores marcados como "titular: true" nas configurações
   const [selCasa, setSelCasa] = useState<Set<string>>(new Set());
   const [selVis, setSelVis] = useState<Set<string>>(new Set());
   const [saqueInicial, setSaqueInicial] = useState<LadoPonto | null>(null);
@@ -51,7 +50,7 @@ export function ModalInicioSet({
     if (next.has(id)) {
       next.delete(id);
     } else {
-      if (next.size >= maxTitulares) return; // Limite de titulares atingido
+      if (next.size >= maxTitulares) return; 
       next.add(id);
     }
     setSel(next);
