@@ -1,6 +1,6 @@
-const API_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
+const API_URL   = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
 const TOKEN_KEY = "vb_token";
-const USER_KEY = "vb_user";
+const USER_KEY  = "vb_user";
 
 export type PerfilUsuario = "ADMIN" | "GERENTE" | "USUARIO";
 
@@ -8,12 +8,12 @@ export type StatusTorneio = "RASCUNHO" | "ABERTO" | "EM_ANDAMENTO" | "FINALIZADO
 export type StatusPartida = "AGENDADA" | "AQUECIMENTO" | "AO_VIVO" | "FINALIZADA";
 export type VisibilidadeTorneio = "PUBLICO" | "SOMENTE_PARTICIPANTES" | "PRIVADO";
 
-export type LadoPonto = "CASA" | "VISITANTE";
-export type TipoPonto = "SAQUE" | "ATAQUE" | "BLOQUEIO" | "ERRO_ADVERSARIO" | "CARTAO_ADVERSARIO";
+export type LadoPonto  = "CASA"    | "VISITANTE";
+export type TipoPonto  = "SAQUE"   | "ATAQUE"     | "BLOQUEIO"    | "ERRO_ADVERSARIO" | "CARTAO_ADVERSARIO";
 export type TipoCartao = "AMARELO" | "VERMELHO";
-export type TipoErro =
+export type TipoErro   =
     | "ERRO_SAQUE" | "ERRO_ATAQUE" | "TOQUE_REDE" | "DOIS_TOQUES" | "QUATRO_TOQUES"
-    | "INVASAO" | "BOLA_FORA" | "CONDUCAO" | "ERRO_ROTACAO";
+    | "INVASAO"    | "BOLA_FORA"   | "CONDUCAO"   | "ERRO_ROTACAO";
 
 export interface AuthUser {
     id: string;
@@ -76,6 +76,7 @@ export interface JogadorPartida {
     numeroCamisa?: number;
     posicao?: string;
     titular: boolean;
+    indicePosicao: number;
 }
 
 export interface EventoPartida {
@@ -115,7 +116,15 @@ export interface Partida {
     titularesPorTime: number;
 }
 
-// Funções para calculos 
+export interface RegrasTorneio {
+  id?: string | null;
+  torneioId: string;
+  setsParaVencer: number;
+  pontosPorSet: number;
+  pontosTieBreak: number;
+  vantagemDoisPontos: boolean;
+  limiteJogadoresPorTime: number;
+}
 
 /* ── SSR-safe storage ─────────────────────────────────────── */
 const isBrowser = typeof window !== "undefined";
@@ -139,27 +148,46 @@ export const auth = {
 };
 
 /* ── HTTP helper ──────────────────────────────────────────── */
-async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
-    const token = auth.getToken();
-    const res = await fetch(`${API_URL}${path}`, {
-        ...opts,
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(opts.headers ?? {}),
-        },
-    });
-    if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
-    if (res.status === 204) return undefined as T;
-    return res.json();
-}
+// async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
+//     const token = auth.getToken();
+//     const res = await fetch(`${API_URL}${path}`, {
+//         ...opts,
+//         headers: {
+//             "Content-Type": "application/json",
+//             ...(token ? { Authorization: `Bearer ${token}` } : {}),
+//             ...(opts.headers ?? {}),
+//         },
+//     });
+//     if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+//     if (res.status === 204) return undefined as T;
+//     return res.json();
+// }
 
 /* ── Mock helpers ─────────────────────────────────────────── */
 const useMock = () => !import.meta.env.VITE_API_URL;
 
+export async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const token = localStorage.getItem("vb_token");
+    const response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+            ...options?.headers,
+        },
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(JSON.stringify(error));
+    }
+    return response.json();
+}
 
 // ─── API EXPORTADA ─────────────────────────────────────────────────
 export const api = {
+    request: request,
+
     /* ── Autenticação ─────────────────────────────────────────────── */
     login: async (email: string, senha: string) => {
         if (useMock()) {
@@ -243,7 +271,6 @@ export const api = {
         });
     },
 
-
     /* ── Partidas ─────────────────────────────────────────────────── */
     listarPartidas: async (torneioId: string): Promise<Partida[]> => {
         return request<Partida[]>(`/partidas?torneioId=${torneioId}`);
@@ -281,7 +308,7 @@ export const api = {
         });
     },
 
-    /* ── Elenco da Partida───────────────────── */
+    /* ── Elenco da Partida ───────────────────── */
     listarJogadoresPartida: async (partidaId: string): Promise<JogadorPartida[]> => {
         return request<JogadorPartida[]>(`/partidas/${partidaId}/jogadores`);
     },
@@ -299,6 +326,20 @@ export const api = {
     anularUltimoEvento: async (partidaId: string): Promise<{ partida: Partida }> => {
         return request(`/partidas/${partidaId}/eventos/anular-ultimo`, {
             method: "POST"
+        });
+    },
+
+    /* ── Regras de Partida do Torneio ───────────────────── */
+    buscarRegras: async (torneioId: string): Promise<RegrasTorneio> => {
+        return request<RegrasTorneio>(`/torneios/${torneioId}/regras`);
+    },
+    atualizarRegras: async (
+        torneioId: string,
+        data: Partial<Omit<RegrasTorneio, 'id' | 'torneioId'>>,
+    ): Promise<RegrasTorneio> => {
+        return request<RegrasTorneio>(`/torneios/${torneioId}/regras`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
         });
     }
 };

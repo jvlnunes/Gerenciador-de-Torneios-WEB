@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,57 +13,69 @@ const ORDEM_CASA: IndicePosicao[] = [0, 3, 2, 4, 1, 5];
 const ORDEM_VISITANTE: IndicePosicao[] = [5, 1, 4, 2, 3, 0];
 
 // ─── Quadra Somente Leitura (Meia Quadra) ─────────────────────────────────────
-function MeiaQuadraLeitura({ titulares, lado, idSelecionado, onSelecionar }: any) {
+function MeiaQuadraLeitura({ titulares, lado, idSelecionado, onSelecionar, rot = 0 }: any) {
   const isCasa = lado === "CASA";
-  const ORDEM = isCasa ? ORDEM_CASA : ORDEM_VISITANTE;
 
-  const mapaSlots: Record<number, JogadorPartida> = {};
-  titulares.forEach((j: JogadorPartida, idx: number) => { mapaSlots[idx] = j; });
+  const getJogador = (vSlot: number) => {
+    const idx = (vSlot - 1 + rot) % 6;
+    return titulares[idx] ?? null;
+  };
+
+  const SlotLeitura = ({ vSlot }: { vSlot: number }) => {
+    const j = getJogador(vSlot);
+    const isSelected = j && idSelecionado === j.jogadorId;
+
+    return (
+      <div
+        onClick={() => j && onSelecionar(j.jogadorId)}
+        className={cn(
+          "relative flex flex-col items-center justify-center min-h-[65px] transition-all duration-300 hover:scale-105 cursor-pointer rounded-lg border-2",
+          isSelected ? "border-white bg-white/20 shadow-md" : "border-transparent"
+        )}
+      >
+        <span className="absolute top-1 left-1.5 text-[9px] font-black text-white/50">{vSlot}</span>
+        {j && (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shadow-md border-2 border-white bg-white text-gray-800">
+            {j.numeroCamisa ?? "?"}
+          </div>
+        )}
+        {j && (
+          <span className="text-[10px] text-white font-bold mt-1.5 truncate max-w-[90%] px-1 text-center bg-black/30 rounded py-0.5">
+            {j.nomeJogador.split(" ")[0]}
+          </span>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="rounded-xl border-4 border-white overflow-hidden shadow-inner relative" style={{ background: "#c8794a", aspectRatio: "1.4 / 1" }}>
-      
-      {/* Linha dos 3 metros */}
-      <div className={cn("absolute top-0 bottom-0 w-[2px] bg-white/40", isCasa ? "left-1/2 -translate-x-1/2" : "right-1/2 translate-x-1/2")} />
-      
-      {/* Indicador visual de onde está a rede (borda lateral gorda) */}
-      <div className={cn("absolute top-0 bottom-0 w-2 bg-white/80 z-20 shadow-[0_0_10px_rgba(0,0,0,0.5)]", isCasa ? "right-0" : "left-0")} />
-
-      <div className="h-full grid grid-cols-2 grid-rows-3 relative z-10 p-1">
-        {ORDEM.map((indice) => {
-          const j = mapaSlots[indice];
-          const isSel = j?.jogadorId === idSelecionado;
-          return (
-            <div
-              key={indice}
-              className={cn("relative flex flex-col items-center justify-center min-h-[50px] rounded transition-all cursor-pointer m-1", j && "hover:bg-white/20", isSel && "bg-white/40 ring-2 ring-white")}
-              onClick={() => j && onSelecionar(j.jogadorId)}
-            >
-              <span className="absolute top-1 left-1.5 text-[8px] text-white/50 font-black">{LABEL_POSICAO[indice]}</span>
-              {j && (
-                <>
-                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-md border-2 border-white/80", isCasa ? "bg-[#1a7a4a]" : "bg-[#b85e15]", isSel && "ring-4 ring-yellow-300 border-transparent")}>
-                    {j.numeroCamisa ?? "?"}
-                  </div>
-                  <span className="text-[9px] text-white font-bold bg-black/30 px-1 rounded mt-1 truncate max-w-[50px]">{j.nomeJogador.split(" ")[0]}</span>
-                </>
-              )}
-            </div>
-          );
-        })}
+    <div className="w-full bg-[#E89D78] rounded-xl border-4 border-white relative flex flex-col p-1 overflow-hidden aspect-[1.2/1] shadow-sm">
+      <div className={cn("flex-1 grid grid-rows-3 relative", isCasa ? "grid-cols-[2fr_1fr]" : "grid-cols-[1fr_2fr]")}>
+        {isCasa ? (
+          <>
+            <SlotLeitura vSlot={5} /> <SlotLeitura vSlot={4} />
+            <SlotLeitura vSlot={6} /> <SlotLeitura vSlot={3} />
+            <SlotLeitura vSlot={1} /> <SlotLeitura vSlot={2} />
+          </>
+        ) : (
+          <>
+            <SlotLeitura vSlot={2} /> <SlotLeitura vSlot={1} />
+            <SlotLeitura vSlot={3} /> <SlotLeitura vSlot={6} />
+            <SlotLeitura vSlot={4} /> <SlotLeitura vSlot={5} />
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── Modal Principal ──────────────────────────────────────────────────────────
-
 export function ModalSubstituicao({ aberto, indiceSet, timeAtualId, lado, nomeTimeAtual, titulares, banco, placarCasa, placarVisitante, substituicoesNesteSet, aoConfirmar, aoFechar }: ModalSubstituicaoProps) {
   const [idSaindo, setIdSaindo] = useState<string | null>(null);
   const [idEntrando, setIdEntrando] = useState<string | null>(null);
 
   const subsUsadas = substituicoesNesteSet.length;
-  const subsRestantes = MAX_SUBS_POR_SET - subsUsadas;
+  const subsRestantes = MAX_SUBS_POR_SET ;//- subsUsadas;
   const podeSubstituir = subsRestantes > 0;
   const isCasa = lado === "CASA";
 
@@ -114,7 +124,7 @@ export function ModalSubstituicao({ aberto, indiceSet, timeAtualId, lado, nomeTi
             </p>
             {!podeSubstituir && (
               <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" /> Limite de {MAX_SUBS_POR_SET} atingido.
+                <AlertCircle className="h-4 w-4 shrink-0" /> Limite de {MAX_SUBS_POR_SET}subistituições atingido.
               </div>
             )}
             <MeiaQuadraLeitura titulares={titulares} lado={lado} idSelecionado={idSaindo} onSelecionar={(id: string) => setIdSaindo(id === idSaindo ? null : id)} />
