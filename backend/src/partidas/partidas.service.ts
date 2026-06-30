@@ -40,7 +40,10 @@ export class PartidasService {
     };
   }
 
-  private formatarPartida(partida: any, regras: ReturnType<typeof this.buscarRegras> extends Promise<infer T> ? T : never) {
+  private formatarPartida(
+    partida: any,
+    regras: ReturnType<typeof this.buscarRegras> extends Promise<infer T> ? T : never,
+  ) {
     return {
       ...partida,
       nomeTimeCasa:      partida.timeCasa.nome,
@@ -52,25 +55,6 @@ export class PartidasService {
       titularesPorTime:          regras.limiteJogadoresPorTime ?? 6,
       vantagemDoisPontos:        regras.vantagemDoisPontos,
     };
-  }
-
-  async criar(dados: any) {
-
-    const str = typeof valor === 'string' ? valor : valor.toString();
-
-    if (/[Z+-]\d{2}:\d{2}|Z$/.test(str)) {
-      return str;
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
-      return str + 'Z';
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
-      return str + ':00Z';
-    }
-
-    return str;
   }
 
   private async verificarPermissaoTorneio(
@@ -117,48 +101,17 @@ export class PartidasService {
     ]);
 
     return partidas.map((p) => this.formatarPartida(p, regras));
-
-    return this.prisma.partida.create({
-      data: dadosFormatados,
-    });
-  }
-
-  async listarPorTorneio(torneioId: string) {
-    const partidas = await this.prisma.partida.findMany({
-      where: { torneioId },
-      include: {
-        timeCasa: true,
-        timeVisitante: true,
-      },
-    });
-
-    return partidas.map((partida) => ({
-      ...partida,
-      nomeTimeCasa: partida.timeCasa.nome,
-      nomeTimeVisitante: partida.timeVisitante.nome,
-      sets: [],
-    }));
   }
 
   async buscarPorId(id: string) {
     const partida = await this.prisma.partida.findUnique({
       where: { id },
       include: { timeCasa: true, timeVisitante: true },
-      include: {
-        timeCasa: true,
-        timeVisitante: true,
-      },
     });
     if (!partida) throw new NotFoundException('Partida não encontrada');
 
     const regras = await this.buscarRegras(partida.torneioId);
     return this.formatarPartida(partida, regras);
-    return {
-      ...partida,
-      nomeTimeCasa: partida.timeCasa.nome,
-      nomeTimeVisitante: partida.timeVisitante.nome,
-      sets: [],
-    };
   }
 
   async atualizar(id: string, dados: any, user: AuthenticatedUser) {
@@ -179,15 +132,6 @@ export class PartidasService {
         : undefined,
     };
     return this.prisma.partida.update({ where: { id }, data: dadosFormatados });
-  }
-
-  async remover(id: string) {
-    return this.prisma.partida.delete({ where: { id } });
-
-    return this.prisma.partida.update({
-      where: { id },
-      data: dadosFormatados,
-    });
   }
 
   async remover(id: string, user: AuthenticatedUser) {
@@ -231,15 +175,6 @@ export class PartidasService {
       numeroCamisa: j.numeroCamisa,
       posicao:      j.posicao,
       titular:      j.titular,
-    return jogadores.map((jogador) => ({
-      id: jogador.id,
-      partidaId,
-      jogadorId: jogador.id,
-      timeId: jogador.timeId,
-      nomeJogador: jogador.nome,
-      numeroCamisa: jogador.numeroCamisa,
-      posicao: jogador.posicao,
-      titular: true,
     }));
   }
 
@@ -287,18 +222,6 @@ export class PartidasService {
     };
   }
 
-  async anularUltimoEvento(partidaId: string) {
-    return {
-      evento,
-      partida: {
-        ...partidaAtualizada,
-        nomeTimeCasa: partidaAtualizada.timeCasa.nome,
-        nomeTimeVisitante: partidaAtualizada.timeVisitante.nome,
-        sets: [],
-      },
-    };
-  }
-
   async anularUltimoEvento(partidaId: string, user: AuthenticatedUser) {
     const partidaExistente = await this.prisma.partida.findUnique({
       where: { id: partidaId },
@@ -341,39 +264,5 @@ export class PartidasService {
     const regras = await this.buscarRegras(partidaAtualizada.torneioId);
 
     return { partida: this.formatarPartida(partidaAtualizada, regras) };
-    });
-
-    const partida = await this.prisma.partida.findUnique({
-      where: { id: partidaId },
-      include: { timeCasa: true, timeVisitante: true },
-    });
-
-    if (!partida) throw new NotFoundException('Partida não encontrada');
-
-    let novoPlacarCasa = partida.setAtualCasa;
-    let novoPlacarVisitante = partida.setAtualVisitante;
-
-    if (ultimoEvento.lado === 'CASA' && novoPlacarCasa > 0) novoPlacarCasa--;
-    if (ultimoEvento.lado === 'VISITANTE' && novoPlacarVisitante > 0) {
-      novoPlacarVisitante--;
-    }
-
-    const partidaAtualizada = await this.prisma.partida.update({
-      where: { id: partidaId },
-      data: {
-        setAtualCasa: novoPlacarCasa,
-        setAtualVisitante: novoPlacarVisitante,
-      },
-      include: { timeCasa: true, timeVisitante: true },
-    });
-
-    return {
-      partida: {
-        ...partidaAtualizada,
-        nomeTimeCasa: partidaAtualizada.timeCasa.nome,
-        nomeTimeVisitante: partidaAtualizada.timeVisitante.nome,
-        sets: [],
-      },
-    };
   }
 }

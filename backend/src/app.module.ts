@@ -8,6 +8,7 @@ import { PartidasModule } from './partidas/partidas.module';
 import { TimesModule } from './times/times.module';
 import { JogadoresModule } from './jogadores/jogadores.module';
 import { RegrasTorneioModule } from './regras-torneio/regras-torneio.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -18,11 +19,8 @@ import { RegrasTorneioModule } from './regras-torneio/regras-torneio.module';
     TimesModule,
     JogadoresModule,
     RegrasTorneioModule,
+    UsuariosModule,
   ],
-import { UsuariosModule } from './usuarios/usuarios.module';
-
-@Module({
-  imports: [AuthModule, PrismaModule, TorneiosModule, PartidasModule, TimesModule, JogadoresModule, UsuariosModule],
   controllers: [AppController],
   providers: [AppService],
 })
