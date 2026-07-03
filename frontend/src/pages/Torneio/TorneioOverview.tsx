@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api, type Torneio, type Partida, type Time } from "@/services/api";
+import { api } from "@/services/api";
+import type { Torneio, Partida, Time } from "@/services/api/interfaces";
 import { Loader2, Shield, Swords, Users, ChevronLeft, ChevronRight, Trophy, Zap, Award } from "lucide-react";
 import { cn } from "@/services/utils";
 

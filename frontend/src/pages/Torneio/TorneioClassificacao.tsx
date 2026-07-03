@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
-import { useOutletContext, useNavigate } from "react-router-dom";
-import { api, type Torneio, type Time, type Partida } from "@/services/api";
+import type { Torneio, Time, Partida } from "@/services/api/interfaces";
 import { Loader2, Award, Minus, Trophy, BarChart3 } from "lucide-react";
+import { useOutletContext, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 import { cn } from "@/services/utils";
 
 interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
+  // canManage: boolean;
 }
 
 interface StandingRow {
@@ -312,7 +314,6 @@ export default function TorneioClassificacao() {
         </div>
       )}
 
-      {/* Grid Inferior: Resultados Recentes + Destaques Individuais (Side-by-Side) */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* LADO ESQUERDO: RESULTADOS RECENTES */}

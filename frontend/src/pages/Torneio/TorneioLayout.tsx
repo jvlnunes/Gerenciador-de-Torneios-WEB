@@ -1,7 +1,9 @@
+import type { Torneio } from "@/services/api/interfaces";
 import { Outlet, NavLink, useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { api, type Torneio } from "@/services/api";
+import { api, podeGerenciarTorneio } from "@/services/api";
 import { SiteHeader } from "@/components/site-header";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Home, Swords, Users, BarChart3, Settings,
   ChevronLeft, ChevronRight, Loader2, Trophy,
@@ -20,12 +22,14 @@ function TorneioSidebar({
   torneioId,
   liveCount,
   collapsed,
+  canManage,
   onToggle,
 }: {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
   collapsed: boolean;
+  canManage: boolean;
   onToggle: () => void;
 }) {
   const base = `/torneios/${torneioId}`;
@@ -198,6 +202,7 @@ function TorneioSidebar({
 export default function TorneioLayout() {
   const { torneioId } = useParams<{ torneioId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [torneio,   setTorneio]   = useState<Torneio | null>(null);
   const [liveCount, setLiveCount] = useState(0);
@@ -235,6 +240,9 @@ export default function TorneioLayout() {
 
   if (!torneio) return null;
 
+  const canManage = podeGerenciarTorneio(torneio, user);
+  const isOwner = ( user?.perfil === "GERENTE" || user?.perfil === "ADMIN" ) && canManage;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
       <SiteHeader />
@@ -245,6 +253,7 @@ export default function TorneioLayout() {
           liveCount={liveCount}
           collapsed={collapsed}
           onToggle={() => setCollapsed((c) => !c)}
+          canManage={canManage} 
         />
         <main style={{ flex: 1, overflowY: "auto", background: "var(--color-background)" }}>
           <Outlet context={{ torneio, setTorneio, torneioId, liveCount }} />

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api, type Torneio } from "@/services/api";
-import { useAuth } from "@/hooks/use-auth";
+import { api } from "@/services/api";
+import type { Torneio } from "@/services/api/interfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ interface TorneioCtx {
   setTorneio: (t: Torneio) => void;
   torneioId: string;
   liveCount: number;
+  canManage: boolean;
 }
 
 /* ─── ConfigBlock ────────────────────────────────────────── */
@@ -89,16 +90,16 @@ function BasicInfoBlock({
   torneio: Torneio;
   onSaved: (t: Torneio) => void;
 }) {
-  const [editing, setEditing]       = useState(false);
-  const [nome, setNome]             = useState(torneio.nome);
-  const [descricao, setDescricao]   = useState(torneio.descricao ?? "");
-  const [local, setLocal]           = useState(torneio.local ?? "");
+  const [editing, setEditing] = useState(false);
+  const [nome, setNome] = useState(torneio.nome);
+  const [descricao, setDescricao] = useState(torneio.descricao ?? "");
+  const [local, setLocal] = useState(torneio.local ?? "");
   const [dataInicio, setDataInicio] = useState(torneio.dataInicio?.slice(0, 10) ?? "");
-  const [dataFim, setDataFim]       = useState(torneio.dataFim?.slice(0, 10) ?? "");
-  const [status, setStatus]         = useState(torneio.status ?? "RASCUNHO");
-  const [saving, setSaving]         = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [success, setSuccess]       = useState(false);
+  const [dataFim, setDataFim] = useState(torneio.dataFim?.slice(0, 10) ?? "");
+  const [status, setStatus] = useState(torneio.status ?? "RASCUNHO");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -129,9 +130,9 @@ function BasicInfoBlock({
     >
       {!editing ? (
         <div>
-          <ReadRow label="Nome"      value={torneio.nome} />
+          <ReadRow label="Nome" value={torneio.nome} />
           <ReadRow label="Descrição" value={torneio.descricao} />
-          <ReadRow label="Local"     value={torneio.local} />
+          <ReadRow label="Local" value={torneio.local} />
           <ReadRow
             label="Início"
             value={torneio.dataInicio
@@ -197,7 +198,7 @@ function BasicInfoBlock({
                 className="h-9"
               />
             </div>
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="status" className="text-sm font-semibold">Status</Label>
               <select
                 id="status"
@@ -210,7 +211,7 @@ function BasicInfoBlock({
                 <option value="EM_ANDAMENTO">🏐 Em andamento</option>
                 <option value="FINALIZADO">🏆 Finalizado</option>
               </select>
-            </div>
+            </div> */}
             <div className="grid gap-2">
               <Label htmlFor="inicio" className="text-sm font-semibold">Data de início</Label>
               <Input
@@ -289,46 +290,128 @@ function OrganizersBlock() {
 }
 
 /* ─── Bloco: Mídia ───────────────────────────────────────── */
-function MediaBlock({ torneio }: { torneio: Torneio }) {
+function MediaBlock({
+  torneio,
+  onSaved,
+}: {
+  torneio: Torneio;
+  onSaved: (t: Torneio) => void;
+}) {
+  const [bannerUrl, setBannerUrl] = useState(torneio.bannerUrl ?? "");
+  const [logoUrl, setLogoUrl]     = useState(torneio.logoUrl ?? "");
+  const [saving, setSaving]       = useState(false);
+  const [success, setSuccess]     = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+
+  const dirty = bannerUrl !== (torneio.bannerUrl ?? "") || logoUrl !== (torneio.logoUrl ?? "");
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await api.atualizarTorneio(torneio.id, {
+        bannerUrl: bannerUrl || undefined,
+        logoUrl: logoUrl || undefined,
+      });
+      onSaved(updated);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2500);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setBannerUrl(torneio.bannerUrl ?? "");
+    setLogoUrl(torneio.logoUrl ?? "");
+    setError(null);
+  };
+
   return (
     <ConfigBlock
       icon={Image}
       title="Mídia e aparência"
-      description="Banner, logo e redes sociais"
+      description="Banner e logo do torneio"
     >
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Banner</p>
-          {torneio.bannerUrl ? (
-            <img
-              src={torneio.bannerUrl}
-              alt="Banner"
-              className="w-full h-16 object-cover rounded-md"
-            />
-          ) : (
-            <div className="w-full h-16 rounded-md bg-muted flex items-center justify-center">
-              <span className="text-xs text-muted-foreground">Não configurado</span>
+      {error && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+        </div>
+      )}
+
+      <div className="space-y-5">
+        {/* Banner */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Banner do torneio</Label>
+          <p className="text-xs text-muted-foreground">
+            Imagem exibida no topo. Recomendado: 1200×400px.
+          </p>
+          <div className="rounded-lg border border-border bg-muted/30 overflow-hidden">
+            {bannerUrl ? (
+              <img src={bannerUrl} alt="Banner" className="w-full h-24 object-cover" />
+            ) : (
+              <div className="w-full h-24 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">Sem banner configurado</span>
+              </div>
+            )}
+          </div>
+          <Input
+            value={bannerUrl}
+            onChange={(e) => { setBannerUrl(e.target.value); setSuccess(false); }}
+            placeholder="https://..."
+            className="h-9"
+          />
+        </div>
+
+        {/* Logo */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Logo do torneio</Label>
+          <p className="text-xs text-muted-foreground">
+            Exibida nos cards e cabeçalho. Recomendado: 256×256px, quadrado.
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="h-16 w-16 rounded-lg border border-border bg-muted/30 overflow-hidden shrink-0 grid place-items-center">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-[10px] text-muted-foreground text-center px-1">Sem logo</span>
+              )}
             </div>
+            <Input
+              value={logoUrl}
+              onChange={(e) => { setLogoUrl(e.target.value); setSuccess(false); }}
+              placeholder="https://..."
+              className="h-9 flex-1"
+            />
+          </div>
+        </div>
+
+        {/* Ações */}
+        <div className="flex items-center gap-3 pt-1">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving || !dirty}
+            className="gap-1.5"
+          >
+            {saving
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Check className="h-3.5 w-3.5" />}
+            Salvar
+          </Button>
+          {dirty && !saving && (
+            <Button size="sm" variant="ghost" onClick={handleReset} className="text-muted-foreground">
+              Descartar
+            </Button>
+          )}
+          {success && (
+            <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+              <Check className="h-3.5 w-3.5" /> Salvo
+            </span>
           )}
         </div>
-        <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Logo</p>
-          {torneio.logoUrl ? (
-            <img
-              src={torneio.logoUrl}
-              alt="Logo"
-              className="h-16 w-16 object-cover rounded-lg"
-            />
-          ) : (
-            <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
-              <span className="text-[10px] text-muted-foreground">Sem logo</span>
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-        Upload de mídia chegará em breve.
       </div>
     </ConfigBlock>
   );
@@ -338,7 +421,7 @@ function MediaBlock({ torneio }: { torneio: Torneio }) {
 function DangerBlock({ torneioId }: { torneioId: string }) {
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
-  const [deleting, setDeleting]     = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -399,8 +482,7 @@ function DangerBlock({ torneioId }: { torneioId: string }) {
 /* ─── Página principal ───────────────────────────────────── */
 export default function TorneioConfiguracoes() {
   const { torneio, setTorneio, torneioId } = useOutletContext<TorneioCtx>();
-  const { user } = useAuth();
-  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
+  const canManage = torneio.podeGerenciar ?? false;
 
   if (!canManage) {
     return (
@@ -409,7 +491,10 @@ export default function TorneioConfiguracoes() {
           <Settings className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <h2 className="font-display text-lg font-bold text-foreground">Acesso restrito</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Apenas administradores podem acessar as configurações.
+            Apenas os gerentes do torneio podem acessar as configurações.
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Contacte os Responsáveis.
           </p>
         </div>
       </div>

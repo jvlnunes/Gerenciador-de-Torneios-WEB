@@ -1,8 +1,9 @@
+import type { Time, Jogador, Torneio } from "@/services/api/interfaces";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { api, type Time, type Jogador } from "@/services/api";
-import { useAuth } from "@/hooks/use-auth";
+import { api, podeGerenciarTorneio } from "@/services/api";
 import { SiteHeader } from "@/components/site-header";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -850,16 +851,22 @@ export default function TorneioTimeDetalhe() {
   const { torneioId, timeId } = useParams<{ torneioId: string; timeId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
-
+  
   const [time, setTime] = useState<Time | null>(null);
+  const [torneio, setTorneio] = useState<Torneio | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("elenco");
+
+  const canManage = torneio ? podeGerenciarTorneio(torneio, user) : false;
 
   useEffect(() => {
     if (!timeId) return;
     api.buscarTime(timeId)
-      .then(setTime)
+      .then(async (t) => {
+        setTime(t);
+        const torneioData = await api.buscarTorneio(t.torneioId);
+        setTorneio(torneioData);
+      })
       .catch(() => navigate(`/torneios/${torneioId}`))
       .finally(() => setLoading(false));
   }, [timeId, torneioId, navigate]);

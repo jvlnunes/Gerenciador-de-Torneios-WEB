@@ -1,4 +1,5 @@
-import { Partida, JogadorPartida, LadoPonto } from "@/services/api";
+import { LadoPonto } from "@/services/api/types";
+import { Partida, JogadorPartida } from "@/services/api/interfaces";
 import { Play } from "lucide-react";
 import { cn } from "@/services/utils";
 import { ACOES_PONTO, ACOES_EXTRAS, ActionDef } from "../utils/LogicaPartida";

@@ -1,6 +1,5 @@
-import type { JogadorPartida } from "@/services/api";
+import type { JogadorPartida } from "@/services/api/interfaces";
 
-/** Índice visual da posição na quadra (0–5, onde 0 = posição 1 do vôlei) */
 export type IndicePosicao = 0 | 1 | 2 | 3 | 4 | 5;
 
 export const LABEL_POSICAO: Record<number, string> = {
@@ -53,7 +52,6 @@ export interface RegistroSubstituicao {
   timestamp: string;
 }
 
-/** Props para o modal de escalação de início de set */
 export interface ModalEscalacaoProps {
   aberto: boolean;
   indiceSet: number;
@@ -67,7 +65,6 @@ export interface ModalEscalacaoProps {
   aoFechar: () => void;
 }
 
-/** Props para o modal de substituição durante o set */
 export interface ModalSubstituicaoProps {
   aberto: boolean;
   indiceSet: number;

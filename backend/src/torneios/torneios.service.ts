@@ -66,12 +66,14 @@ export class TorneiosService {
   async listarTodos() {
     return this.prisma.torneio.findMany({
       orderBy: { criadoEm: 'desc' },
+      include: { organizadores: { select: { usuarioId: true } } },
     });
   }
 
   async buscarPorId(id: string) {
     const torneio = await this.prisma.torneio.findUnique({
       where: { id },
+      include: { organizadores: { select: { usuarioId: true } } },
     });
 
     if (!torneio) {

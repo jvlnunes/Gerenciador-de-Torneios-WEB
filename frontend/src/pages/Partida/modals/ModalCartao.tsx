@@ -1,14 +1,15 @@
-import { useState } from "react";
-import { JogadorPartida, LadoPonto, TipoErro } from "@/services/api";
-import { cn } from "@/services/utils";
+import type { LadoPonto, TipoCartao } from "@/services/api/types";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { JogadorPartida } from "@/services/api/interfaces";
+import { useState } from "react";
+import { cn } from "@/services/utils";
 
 export interface ModalCartaoProps {
   lado: LadoPonto;
   nomeTime: string;
   jogadores: JogadorPartida[];
   timeJaTemAmarelo: boolean;
-  onRegistrar: (jogadorId: string, tipoCartao: TipoErro) => void;
+  onRegistrar: (jogadorId: string, tipoCartao: TipoCartao) => void;
   onClose: () => void;
 }
 
@@ -16,34 +17,22 @@ export function ModalCartao({
   lado, nomeTime, jogadores, timeJaTemAmarelo, onRegistrar, onClose
 }: ModalCartaoProps) {
   const [jogadorId, setJogadorId] = useState<string>("");
-  const [cartao, setCartao] = useState<TipoErro | null>(null);
+  const [cartao, setCartao] = useState<TipoCartao | null>(null);
 
-  const cartoesDef = [
-    { 
-      id: "CARTAO_AMARELO" as TipoErro, 
-      nome: "Amarelo (Advertência)", 
-      desc: "Sem perda de ponto. Limite de 1 por equipe.", 
+  const cartoesDef: { id: TipoCartao; nome: string; desc: string; cor: string; disabled?: boolean }[] = [
+    {
+      id: "AMARELO",
+      nome: "Amarelo (Advertência)",
+      desc: "Sem perda de ponto. Limite de 1 por equipe.",
       cor: "bg-yellow-400",
-      disabled: timeJaTemAmarelo 
+      disabled: timeJaTemAmarelo,
     },
-    { 
-      id: "CARTAO_VERMELHO" as TipoErro, 
-      nome: "Vermelho (Penalidade)", 
-      desc: "Ponto e saque para o adversário.", 
-      cor: "bg-red-500" 
+    {
+      id: "VERMELHO",
+      nome: "Vermelho (Penalidade)",
+      desc: "Ponto e saque para o adversário.",
+      cor: "bg-red-500",
     },
-    { 
-      id: "EXPULSAO" as TipoErro, 
-      nome: "Amarelo + Vermelho Juntos", 
-      desc: "Expulsão do Set atual. Substituição obrigatória.", 
-      cor: "bg-gradient-to-r from-yellow-400 to-red-500" 
-    },
-    { 
-      id: "DESQUALIFICACAO" as TipoErro, 
-      nome: "Amarelo + Vermelho Separados", 
-      desc: "Desqualificação da Partida. Substituição obrigatória.", 
-      cor: "bg-gray-800" 
-    }
   ];
 
   return (
@@ -61,7 +50,6 @@ export function ModalCartao({
         </div>
 
         <div className="overflow-y-auto p-6 space-y-6">
-          {/* Escolha do Jogador */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">1. Selecione o Infrator</p>
             <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
@@ -81,7 +69,6 @@ export function ModalCartao({
             </div>
           </div>
 
-          {/* Escolha do Cartão */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">2. Selecione a Sanção</p>
             <div className="grid gap-2">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "@/services/api";
 import type { EscalacaoSet, RegistroSubstituicao, EscalacaoTime } from "../components/Escalacao";
-import type { JogadorPartida } from "@/services/api";
+import type { JogadorPartida } from "@/services/api/interfaces";
 
 function encontrarJogador(jogadores: JogadorPartida[], id?: string) {
   if (!id) return undefined;
@@ -328,6 +328,10 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     return quadra[1] || encontrarFallbackDoTime(jogadores, timeId);
   };
 
+  const obterTodasSubstituicoesDoSet = (indiceSet: number) => {
+    return substituicoes.filter((s) => s.indiceSet === indiceSet);
+  };
+
   return {
     modalEscalacaoAberto,
     abrirModalEscalacao,
@@ -341,6 +345,7 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     obterTitularesAtuais,
     obterBancoAtual,
     obterSubstituicoesDoSet,
+    obterTodasSubstituicoesDoSet,
     obterEscalacao,
     setJaTemEscalacao,
     obterJogadorPosicao1,

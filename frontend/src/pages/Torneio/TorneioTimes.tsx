@@ -1,16 +1,16 @@
+import type { Torneio, Time } from "@/services/api/interfaces";
 import { useEffect, useState, useCallback } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api, type Torneio, type Time } from "@/services/api";
-import { useAuth } from "@/hooks/use-auth";
+import { api } from "@/services/api";
 import { Plus, Loader2, X, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/services/utils";
 
 interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
+  canManage: boolean;
 }
 
 /* ─── Modal criar time ───────────────────────────────────── */
@@ -204,10 +204,8 @@ function TimeCard({
 
 /* ─── Página principal ───────────────────────────────────── */
 export default function TorneioTimes() {
-  const { torneio, torneioId } = useOutletContext<TorneioCtx>();
-  const { user } = useAuth();
+  const { torneio, torneioId, canManage } = useOutletContext<TorneioCtx>();
   const navigate = useNavigate();
-  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
 
   const [teams, setTeams] = useState<Time[]>([]);
   const [loading, setLoading] = useState(true);

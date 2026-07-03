@@ -2,23 +2,23 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Páginas públicas / globais
 import LoginPage         from "./pages/Login";
-import TorneiosListPage  from "./pages/Torneios/ListarTorneios";
-import CriarTorneioPage  from "./pages/Torneios/CriarTorneio";
 import PartidaLivePage   from "./pages/Partida/index";
+import TorneiosListPage  from "./pages/MenuPrincipal/ListarTorneios";
+import CriarTorneioPage  from "./pages/MenuPrincipal/CriarTorneio";
 
 // Layout interno do torneio (com sidebar)
 import TorneioLayout     from "./pages/Torneio/TorneioLayout";
 
 // Páginas internas do torneio (renderizadas dentro do layout)
-import TorneioOverview      from "./pages/Torneio/TorneioOverview";
-import TorneioPartidas      from "./pages/Torneio/TorneioPartidas";
 import TorneioTimes         from "./pages/Torneio/TorneioTimes";
-import TorneioTimeDetalhe   from "./pages/Time/TorneioTimeDetalhe";
-import TorneioClassificacao from "./pages/Torneio/TorneioClassificacao";
-import TorneioConfiguracoes from "./pages/Torneio/TorneioConfiguracoes";
-import TorneioEstatisticas  from "./pages/Torneio/TorneioEstatisticas";
 import TorneioFases         from "./pages/Torneio/TorneioFases";
 import AdminUsuarios        from "./pages/Admin/AdminUsuarios";
+import TorneioOverview      from "./pages/Torneio/TorneioOverview";
+import TorneioPartidas      from "./pages/Torneio/TorneioPartidas";
+import TorneioTimeDetalhe   from "./pages/Time/TimeDetalhe";
+import TorneioEstatisticas  from "./pages/Torneio/TorneioEstatisticas";
+import TorneioConfiguracoes from "./pages/Torneio/TorneioConfiguracoes";
+import TorneioClassificacao from "./pages/Torneio/TorneioClassificacao";
 
 import JoinTeamPage from "./pages/Join/JoinTime";
 
@@ -44,10 +44,10 @@ export default function App() {
         <Route path="/torneios"      element={<TorneiosListPage />} />
         <Route path="/torneios/novo" element={<CriarTorneioPage />} />
 
-        {/* Partida ao vivo (sem layout do torneio) */}
+        {/* Partida ao vivo */}
         <Route path="/partidas/:id"  element={<PartidaLivePage />} />
 
-        {/* Layout interno do torneio (sidebar fica no TorneioLayout) */}
+        {/* Layout interno do torneio */}
         <Route path="/torneios/:torneioId" element={<TorneioLayout />}>
           <Route index                       element={<TorneioOverview />} />
           <Route path="fases"                element={<TorneioFases />} />
@@ -58,7 +58,7 @@ export default function App() {
           <Route path="configuracoes"        element={<TorneioConfiguracoes />} />
         </Route>
 
-        {/* Página do time — FORA do layout do torneio (tem seu próprio header + tabs) */}
+        {/* Página do time */}
         <Route path="/torneios/:torneioId/times/:timeId" element={<TorneioTimeDetalhe />} />
 
         {/* 404 */}

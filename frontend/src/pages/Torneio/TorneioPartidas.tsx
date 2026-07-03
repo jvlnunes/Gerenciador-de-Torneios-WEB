@@ -1,7 +1,7 @@
+import type { Torneio, Partida, Time } from "@/services/api/interfaces";
 import { useEffect, useState, useCallback } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api, type Torneio, type Partida, type Time } from "@/services/api";
-import { useAuth } from "@/hooks/use-auth";
+import { api } from "@/services/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/services/utils";
@@ -14,6 +14,7 @@ interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
+  canManage: boolean;
 }
 
 const matchStatusColor: Record<string, string> = {
@@ -261,10 +262,8 @@ function MatchCard({
 
 /* ── Main Page ───────────────────────────────────────────── */
 export default function TorneioPartidas() {
-  const { torneio, torneioId } = useOutletContext<TorneioCtx>();
+  const { torneio, torneioId, canManage } = useOutletContext<TorneioCtx>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
 
   const [matches, setMatches] = useState<Partida[]>([]);
   const [teams, setTeams] = useState<Time[]>([]);

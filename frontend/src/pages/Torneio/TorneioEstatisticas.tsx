@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import { api, type Torneio } from "@/services/api";
+import { api } from "@/services/api";
+import type { Torneio } from "@/services/api/interfaces";
 import { Loader2, BarChart3, Search, ShieldAlert, BarChart } from "lucide-react";
 import { cn } from "@/services/utils";
 
@@ -8,6 +9,7 @@ interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
+  // canManage: boolean;
 }
 
 interface PlayerStat {
@@ -90,7 +92,7 @@ export default function TorneioEstatisticas() {
           else if (ev.tipo === "BLOQUEIO") s.bloqueios++;
           else if (ev.tipo === "ERRO_ADVERSARIO") {
             if (ev.tipoErro === "ERRO_SAQUE") s.erroSaque++;
-            else if (ev.tipoErro === "ERRO_ATAQUE") s.erroAtaque++;
+            // else if (ev.tipoErro === "ERRO_ATAQUE") s.erroAtaque++;
             else s.outrosErros++;
           }
 
@@ -113,7 +115,6 @@ export default function TorneioEstatisticas() {
       .slice(0, 3);
   };
 
-  // 🆕 COMPUTANDO A SOMATÓRIA DAS ESTATÍSTICAS DO TIME SELECIONADO
   const teamTotals = useMemo(() => {
     if (filterTime === "todos") return null;
 
@@ -244,7 +245,6 @@ export default function TorneioEstatisticas() {
                 </select>
               </div>
 
-              {/* 🆕 BANNER DA SOMATÓRIA DO TIME (Renderiza apenas se houver time selecionado) */}
               {teamTotals && (
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2 text-primary font-bold text-sm">

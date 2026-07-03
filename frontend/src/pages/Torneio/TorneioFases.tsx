@@ -1,8 +1,9 @@
+import type { Torneio, Time, Partida } from "@/services/api/interfaces";
 import { useEffect, useState, useCallback } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api, type Torneio, type Time, type Partida } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/services/api";
 import { cn } from "@/services/utils";
 import {
   Plus, Loader2, Swords, Trophy, Play, Clock, MapPin, Trash2, X,
@@ -14,6 +15,7 @@ interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
+  canManage: boolean;
 }
 
 // ── Tipos de fase ────────────────────────────────────────────────
@@ -632,11 +634,8 @@ function FaseMataMata({
 
 // ── Página principal ─────────────────────────────────────────────
 export default function TorneioFases() {
-  const { torneio, torneioId } = useOutletContext<TorneioCtx>();
+  const { torneio, torneioId, canManage } = useOutletContext<TorneioCtx>();
   const navigate = useNavigate();
-
-  const user = (() => { try { return JSON.parse(localStorage.getItem("vb_user") ?? "null"); } catch { return null; } })();
-  const canManage = user?.perfil === "ADMIN" || user?.perfil === "GERENTE";
 
   const [loading, setLoading] = useState(true);
   const [times, setTimes] = useState<Time[]>([]);
