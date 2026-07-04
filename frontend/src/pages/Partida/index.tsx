@@ -342,51 +342,63 @@ export default function PartidaLivePage() {
     <div className="h-screen bg-gray-100 text-gray-900 flex flex-col font-sans overflow-hidden">
 
       <PartidaModals
-        partida={partida}
-        jogadores={jogadores}
-
-        showConfig={showConfig}
-        onCloseConfig={() => setShowConfig(false)}
-        configTimer={configTimer}
-        setConfigTimer={setConfigTimer}
-        configAutoSaque={configAutoSaque}
-        setConfigAutoSaque={setConfigAutoSaque}
-
-        modalAcao={modal}
-        jogadoresModalAcao={jModal}
-        sacadorAtual={sacadorAtual}
-        idSacadorAutomatico={configAutoSaque ? getSacadorAtualJogador(sacadorAtual)?.jogadorId : undefined}
-        onRegistrarAcao={(id, err) => modal && registrarAcao(modal.acao, modal.lado, id, err)}
-        onCloseModalAcao={() => setModal(null)}
-
-        modalCartaoLado={modalCartao}
-        jogadoresModalCartao={
-          modalCartao === "CASA"
-            ? todosCasa.filter((j) => !jogadoresInativos.has(j.jogadorId))
-            : todosVis.filter((j) => !jogadoresInativos.has(j.jogadorId))
-        }
-        timeJaTemAmarelo={modalCartao === "CASA" ? casaTemAmarelo : visTemAmarelo}
-        onRegistrarCartao={(id, tipoCartao) => modalCartao && aplicarCartao(id, tipoCartao, modalCartao)}
-        onCloseModalCartao={() => setModalCartao(null)}
-
-        alerta={alerta}
-        onCloseAlerta={() => setAlerta(null)}
-
-        modalEscalacaoAberto={modalEscalacaoAberto}
-        setAtivo={setAtivo}
-        escalacaoAnterior={setAtivo > 0 ? obterEscalacao(setAtivo - 1) : undefined}
-        onConfirmarEscalacao={handleConfirmarEscalacao}
-        onFecharModalEscalacao={fecharModalEscalacao}
-
-        modalSubAberto={modalSubAberto}
-        timeSubId={timeSubId}
-        titularesCasaList={titularesCasaList}
-        titularesVisList={titularesVisList}
-        reservasCasaAtivos={reservasCasaAtivos}
-        reservasVisAtivos={reservasVisAtivos}
-        substituicoesDoSetDoTime={timeSubId ? obterSubstituicoesDoSet(timeSubId, setAtivo) : []}
-        onConfirmarSubstituicao={confirmarSubstituicao}
-        onFecharModalSubstituicao={fecharModalSubstituicao}
+        config={{
+          aberto: showConfig,
+          configTimer,
+          setConfigTimer,
+          configAutoSaque,
+          setConfigAutoSaque,
+          onClose: () => setShowConfig(false),
+        }}
+        cartao={{
+          lado: modalCartao,
+          partida,
+          jogadoresDoLado: (lado) =>
+            lado === "CASA"
+              ? todosCasa.filter((j) => !jogadoresInativos.has(j.jogadorId))
+              : todosVis.filter((j) => !jogadoresInativos.has(j.jogadorId)),
+          timeJaTemAmarelo: (lado) => (lado === "CASA" ? casaTemAmarelo : visTemAmarelo),
+          onRegistrar: (id, tipoCartao, lado) => aplicarCartao(id, tipoCartao, lado),
+          onClose: () => setModalCartao(null),
+        }}
+        alerta={{
+          alerta: alerta ? { msg: alerta.msg, onOk: alerta.onOk } : null,
+          onCancelar: () => setAlerta(null),
+        }}
+        acao={{
+          modal,
+          partida,
+          jogadores: jModal,
+          sacadorAtual,
+          idSacador: configAutoSaque ? getSacadorAtualJogador(sacadorAtual)?.jogadorId : undefined,
+          onRegistrar: (acaoParam, lado, jogadorId, tipoErro) =>
+            registrarAcao(acaoParam, lado, jogadorId, tipoErro),
+          onClose: () => setModal(null),
+        }}
+        escalacao={{
+          aberto: modalEscalacaoAberto,
+          indiceSet: setAtivo,
+          partida,
+          jogadores,
+          escalacaoAnterior: setAtivo > 0 ? obterEscalacao(setAtivo - 1) : undefined,
+          aoConfirmar: handleConfirmarEscalacao,
+          aoFechar: fecharModalEscalacao,
+        }}
+        substituicao={{
+          aberto: modalSubAberto,
+          timeSubId,
+          indiceSet: setAtivo,
+          partida,
+          titularesCasaList,
+          titularesVisList,
+          reservasCasaAtivos,
+          reservasVisAtivos,
+          obterSubstituicoesDoSet,
+          aoConfirmar: confirmarSubstituicao,
+          aoFechar: fecharModalSubstituicao,
+          rotCasa,
+          rotVisit,
+        }}
       />
 
       {/* ── CONTAINER PRINCIPAL ── */}

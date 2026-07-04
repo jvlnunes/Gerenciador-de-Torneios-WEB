@@ -1,12 +1,11 @@
+import type { AuthUser } from "@/services/api/interfaces";
 import { useEffect, useState } from "react";
-import { auth, type AuthUser } from "@/services/api";
+import { auth } from "@/services/api";
 
 export function useAuth() {
-  // Inicializa como null no servidor; no cliente hidrata com localStorage
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    // Só roda no browser após hidratação
     setUser(auth.getUser());
 
     const handler = () => setUser(auth.getUser());
