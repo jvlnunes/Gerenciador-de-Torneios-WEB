@@ -192,8 +192,8 @@ export default function TorneioOverview() {
       
       {/* 1. SEÇÃO HERO: Mantendo logo, capa e identidade original do Torneio */}
       <div className="relative h-48 md:h-64 rounded-2xl overflow-hidden shadow-md border border-border group">
-        {torneio.capaUrl ? (
-          <img src={torneio.capaUrl} alt="Capa do Torneio" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+        {torneio.bannerUrl ? (
+          <img src={torneio.bannerUrl} alt="Capa do Torneio" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-primary/80 to-primary/40" />
         )}

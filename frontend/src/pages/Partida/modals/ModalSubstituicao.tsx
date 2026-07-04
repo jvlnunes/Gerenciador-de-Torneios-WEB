@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/services/utils";
-import type { JogadorPartida } from "@/services/api";
+import { JogadorPartida } from "@/services/api/interfaces";
 import { AlertCircle, ArrowLeftRight, CheckCircle2, Users, X } from "lucide-react";
 
 import type { ModalSubstituicaoProps, IndicePosicao } from "../components/Escalacao";
@@ -70,7 +70,7 @@ function MeiaQuadraLeitura({ titulares, lado, idSelecionado, onSelecionar, rot =
 }
 
 // ─── Modal Principal ──────────────────────────────────────────────────────────
-export function ModalSubstituicao({ aberto, indiceSet, timeAtualId, lado, nomeTimeAtual, titulares, banco, placarCasa, placarVisitante, substituicoesNesteSet, aoConfirmar, aoFechar }: ModalSubstituicaoProps) {
+export function ModalSubstituicao({ aberto, indiceSet, timeAtualId, lado, nomeTimeAtual, titulares, banco, placarCasa, placarVisitante, substituicoesNesteSet, rotCasa, rotVisit, aoConfirmar, aoFechar }: ModalSubstituicaoProps) {
   const [idSaindo, setIdSaindo] = useState<string | null>(null);
   const [idEntrando, setIdEntrando] = useState<string | null>(null);
 

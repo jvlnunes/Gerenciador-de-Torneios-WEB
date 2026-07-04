@@ -481,8 +481,7 @@ function DangerBlock({ torneioId }: { torneioId: string }) {
 
 /* ─── Página principal ───────────────────────────────────── */
 export default function TorneioConfiguracoes() {
-  const { torneio, setTorneio, torneioId } = useOutletContext<TorneioCtx>();
-  const canManage = torneio.podeGerenciar ?? false;
+  const { torneio, setTorneio, torneioId, canManage } = useOutletContext<TorneioCtx>();
 
   if (!canManage) {
     return (

@@ -256,7 +256,7 @@ export default function TorneioLayout() {
           canManage={canManage} 
         />
         <main style={{ flex: 1, overflowY: "auto", background: "var(--color-background)" }}>
-          <Outlet context={{ torneio, setTorneio, torneioId, liveCount }} />
+          <Outlet context={{ torneio, setTorneio, torneioId, liveCount, canManage }} />
         </main>
       </div>
     </div>

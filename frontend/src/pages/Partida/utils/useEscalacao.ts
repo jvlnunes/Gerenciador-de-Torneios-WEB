@@ -213,6 +213,12 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     return substituicoes.filter((s) => s.timeId === timeId && s.indiceSet === indiceSet);
   };
 
+  /**
+   * Retorna os 6 titulares atuais do time no set, já considerando substituições.
+   * IMPORTANTE: nunca duplica jogadorId — slots sem resolução ficam de fora
+   * em vez de cair num fallback fixo, que causava jogador repetido (e keys
+   * duplicadas em React) quando duas posições não eram resolvidas.
+   */
   const obterTitularesAtuais = (
     timeId: string,
     indiceSet: number,
@@ -228,22 +234,41 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     const escalacaoTime =
       escalacaoSet.casa.timeId === timeId ? escalacaoSet.casa : escalacaoSet.visitante;
     const mapaVolleyParaBanco = [1, 5, 4, 3, 0, 2];
+    const subsDoSet = obterSubstituicoesDoSet(timeId, indiceSet);
 
-    return mapaVolleyParaBanco.map((idxBanco) => {
+    const resultado: JogadorPartida[] = [];
+    const idsUsados = new Set<string>();
+
+    mapaVolleyParaBanco.forEach((idxBanco) => {
       const titular = escalacaoTime?.titulares?.find((t) => t.indicePosicao === idxBanco);
-      let jogadorId = titular ? titular.jogadorId : null;
+      let jogadorId: string | null = titular ? titular.jogadorId : null;
+      if (!jogadorId) return;
 
-      if (!jogadorId) return fallback[0];
-
-      const subsDoSet = obterSubstituicoesDoSet(timeId, indiceSet);
       subsDoSet.forEach((sub) => {
         if (sub.idJogadorSaindo === jogadorId) {
           jogadorId = sub.idJogadorEntrando;
         }
       });
 
-      return encontrarJogador(jogadores, jogadorId) || fallback[0];
+      const jogador = encontrarJogador(jogadores, jogadorId);
+      if (jogador && !idsUsados.has(jogador.id)) {
+        idsUsados.add(jogador.id);
+        resultado.push(jogador);
+      }
     });
+
+    // Completa até 6 apenas com jogadores ainda não usados (evita duplicar)
+    if (resultado.length < 6) {
+      for (const j of fallback) {
+        if (resultado.length >= 6) break;
+        if (!idsUsados.has(j.id)) {
+          idsUsados.add(j.id);
+          resultado.push(j);
+        }
+      }
+    }
+
+    return resultado;
   };
 
   const obterBancoAtual = (timeId: string, indiceSet: number, jogadores: JogadorPartida[]) => {
@@ -266,9 +291,18 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
       }
     });
 
-    return bancoAtualIds
-      .map((id) => encontrarJogador(jogadores, id))
-      .filter(Boolean) as JogadorPartida[];
+    // Deduplicação defensiva — mesma razão do fix acima
+    const idsUsados = new Set<string>();
+    const resultado: JogadorPartida[] = [];
+    bancoAtualIds.forEach((id) => {
+      const jogador = encontrarJogador(jogadores, id);
+      if (jogador && !idsUsados.has(jogador.id)) {
+        idsUsados.add(jogador.id);
+        resultado.push(jogador);
+      }
+    });
+
+    return resultado;
   };
 
   const obterQuadraAtual = (
