@@ -17,6 +17,9 @@ import { JwtAuthGuard, AuthenticatedUser } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
+import { CriarPartidaDto } from './dto/criar-partida.dto';
+import { AtualizarPartidaDto } from './dto/atualizar-partida.dto';
+
 type AuthenticatedRequest = Request & {
   user: AuthenticatedUser;
 };
@@ -31,7 +34,7 @@ export class PartidasController {
   @Roles('ADMIN', 'GERENTE')
   @Post()
   @ApiOperation({ summary: 'Cria uma nova partida entre dois times de um torneio' })
-  criar(@Body() dados: any, @Req() req: AuthenticatedRequest) {
+  criar(@Body() dados: CriarPartidaDto, @Req() req: AuthenticatedRequest) {
     return this.partidasService.criar(dados, req.user);
   }
 
@@ -63,7 +66,7 @@ export class PartidasController {
   @ApiOperation({ summary: 'Atualiza uma partida (status, placar de sets, etc.)' })
   atualizar(
     @Param('id') id: string,
-    @Body() dados: any,
+    @Body() dados: AtualizarPartidaDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.partidasService.atualizar(id, dados, req.user);

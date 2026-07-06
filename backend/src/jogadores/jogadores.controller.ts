@@ -18,6 +18,9 @@ import { JwtAuthGuard, AuthenticatedUser } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
+import { CriarJogadorDto } from './dto/criar-jogador.dto';
+import { AtualizarJogadorDto } from './dto/atualizar-jogador.dto';
+
 type AuthenticatedRequest = Request & {
   user: AuthenticatedUser;
 };
@@ -32,7 +35,7 @@ export class JogadoresController {
   @Roles('ADMIN', 'GERENTE')
   @Post()
   @ApiOperation({ summary: 'Cria um jogador (ADMIN ou GERENTE responsável pelo time)' })
-  criar(@Body() dados: any, @Req() req: AuthenticatedRequest) {
+  criar(@Body() dados: CriarJogadorDto, @Req() req: AuthenticatedRequest) {
     return this.jogadoresService.criar(dados, req.user);
   }
 
@@ -65,7 +68,7 @@ export class JogadoresPorTimeController {
   @ApiOperation({ summary: 'Cria um jogador vinculado a este time' })
   criar(
     @Param('timeId') timeId: string,
-    @Body() dados: any,
+    @Body() dados: CriarJogadorDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.jogadoresService.criar({ ...dados, timeId }, req.user);
@@ -78,7 +81,7 @@ export class JogadoresPorTimeController {
   @ApiOperation({ summary: 'Atualiza dados de um jogador' })
   atualizar(
     @Param('jogadorId') jogadorId: string,
-    @Body() dados: any,
+    @Body() dados: AtualizarJogadorDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.jogadoresService.atualizar(jogadorId, dados, req.user);

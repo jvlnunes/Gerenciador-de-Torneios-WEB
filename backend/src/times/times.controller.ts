@@ -18,6 +18,9 @@ import { JwtAuthGuard, AuthenticatedUser } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
+import { CriarTimeDto } from './dto/criar-time.dto';
+import { AtualizarTimeDto } from './dto/atualizar-time.dto';
+
 type AuthenticatedRequest = Request & {
   user: AuthenticatedUser;
 };
@@ -32,7 +35,7 @@ export class TimesController {
   @Roles('ADMIN', 'GERENTE')
   @Post()
   @ApiOperation({ summary: 'Cria um novo time em um torneio (ADMIN ou GERENTE organizador)' })
-  criar(@Body() dados: any, @Req() req: AuthenticatedRequest) {
+  criar(@Body() dados: CriarTimeDto, @Req() req: AuthenticatedRequest) {
     return this.timesService.criar(dados, req.user);
   }
 
@@ -59,7 +62,7 @@ export class TimesController {
   @ApiOperation({ summary: 'Atualiza um time (apenas organizador do torneio ou ADMIN)' })
   atualizar(
     @Param('id') id: string,
-    @Body() dados: any,
+    @Body() dados: AtualizarTimeDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.timesService.atualizar(id, dados, req.user);

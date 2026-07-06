@@ -7,6 +7,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
+import { CriarTorneioDto } from './dto/criar-torneio.dto';
+import { AtualizarTorneioDto } from './dto/atualizar-torneio.dto';
+
 type AuthenticatedRequest = Request & {
   user: AuthenticatedUser;
 };
@@ -21,7 +24,7 @@ export class TorneiosController {
   @Roles('ADMIN', 'GERENTE')
   @Post()
   @ApiOperation({ summary: 'Cria um novo torneio (ADMIN ou GERENTE)' })
-  criar(@Body() dados: any, @Req() req: AuthenticatedRequest) {
+  criar(@Body() dados: CriarTorneioDto, @Req() req: AuthenticatedRequest) {
     return this.torneiosService.criar(dados, req.user);
   }
 
@@ -46,7 +49,7 @@ export class TorneiosController {
   @ApiOperation({ summary: 'Atualiza um torneio (apenas organizador ou ADMIN)' })
   atualizar(
     @Param('id') id: string,
-    @Body() dados: any,
+    @Body() dados: AtualizarTorneioDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.torneiosService.atualizar(id, dados, req.user);
