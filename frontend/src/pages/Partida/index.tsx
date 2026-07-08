@@ -464,7 +464,23 @@ export default function PartidaLivePage() {
           )}
         </div>
 
-        <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/*
+          FIX RESPONSIVO:
+          - Antes o layout só virava "lado a lado" (flex-row) a partir de `lg` (1024px),
+            e o próprio <main> tinha `overflow-hidden` sem altura própria no modo empilhado
+            (flex-col). Resultado: em tablets — inclusive na horizontal, quando a largura
+            fica bem na borda do breakpoint `lg` — o conteúdo que não cabia na tela
+            (botões de ação, histórico do set, coluna do time visitante) ficava cortado
+            e sem nenhuma forma de rolar até ele.
+          - Agora:
+            1) O breakpoint para 3 colunas lado a lado caiu para `md` (768px), cobrindo
+               mais tablets em modo paisagem.
+            2) Quando ainda cair no modo empilhado (retrato / telas bem estreitas),
+               `overflow-y-auto` permite rolar verticalmente até ver tudo.
+            3) Em telas `md+` o comportamento original é mantido: `overflow-hidden` no
+               <main>, com cada coluna cuidando da própria rolagem interna.
+        */}
+        <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
 
           <ColunaTime
             lado="CASA"
@@ -478,7 +494,7 @@ export default function PartidaLivePage() {
             onAcao={(acao) => handleAcaoClick("CASA", acao)}
           />
 
-          <div className="w-full lg:w-[42%] flex flex-col border-r border-gray-100 bg-gray-50 overflow-hidden shrink-0">
+          <div className="w-full md:w-[42%] flex flex-col border-r border-gray-100 bg-gray-50 overflow-hidden md:shrink-0">
             <div className="p-4 border-b border-gray-100 bg-white shadow-sm z-10">
               <Quadra
                 jCasa={jCasaQuadra}
