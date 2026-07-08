@@ -1,7 +1,33 @@
 import { Link } from "react-router-dom";
-import { Trophy, Users, BarChart3, ChevronRight, Shield, Clock } from "lucide-react";
+import {
+  Trophy, Users, BarChart3, ChevronRight,
+  SlidersHorizontal, RefreshCw, Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
+
+const HERO_FEATURES = [
+  {
+    icon: SlidersHorizontal,
+    title: "Configuração completa",
+    desc: "Personalize torneios, times e regras de pontuação em poucos passos.",
+  },
+  {
+    icon: BarChart3,
+    title: "Estatísticas e gestão de partidas",
+    desc: "Acompanhe sets, substituições e o desempenho de cada atleta.",
+  },
+  {
+    icon: RefreshCw,
+    title: "Placar atualizado a cada ponto registrado",
+    desc: "A classificação e os rankings refletem o jogo em tempo real.",
+  },
+  {
+    icon: Layers,
+    title: "Fases flexíveis",
+    desc: "Racha, mata-mata ou pontos corridos — separados ou combinados.",
+  },
+];
 
 export default function IndexPage() {
   return (
@@ -13,7 +39,6 @@ export default function IndexPage() {
         className="relative overflow-hidden"
         style={{ background: "linear-gradient(160deg, #0a0a0a 0%, #0d1a0d 55%, #0a3d1f 100%)" }}
       >
-        {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -22,21 +47,20 @@ export default function IndexPage() {
             backgroundSize: "40px 40px",
           }}
         />
-        {/* Green glow */}
         <div
           className="absolute bottom-0 right-0 w-[600px] h-[400px] rounded-full blur-[120px] opacity-20"
           style={{ background: "#00843D" }}
         />
 
-        <div className="relative container mx-auto px-4 py-28 lg:py-36 grid lg:grid-cols-2 gap-16 items-center">
+        <div className="relative container mx-auto px-4 py-24 lg:py-32 grid lg:grid-cols-2 gap-16 items-center">
           {/* Left */}
           <div>
             <div
               className="inline-flex items-center gap-2 mb-6 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest"
               style={{ background: "rgba(0,132,61,0.2)", border: "1px solid rgba(0,132,61,0.4)", color: "#4ade80" }}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-              Ao vivo
+              <Trophy className="h-3 w-3" />
+              Para organizadores de vôlei
             </div>
 
             <h1
@@ -49,8 +73,8 @@ export default function IndexPage() {
             </h1>
 
             <p className="mt-6 text-base lg:text-lg leading-relaxed max-w-md" style={{ color: "rgba(255,255,255,0.60)" }}>
-              Plataforma profissional para organizar torneios de vôlei —
-              times, partidas e estatísticas em tempo real.
+              Monte times, organize a escalação e registre cada ponto da partida em tempo real —
+              do racha de fim de semana ao campeonato com fase de grupos e mata-mata.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-3">
@@ -72,96 +96,80 @@ export default function IndexPage() {
                 <Link to="/torneios">Ver torneios</Link>
               </Button>
             </div>
-
-            {/* Stats strip */}
-            <div
-              className="mt-12 flex gap-8 border-t pt-8"
-              style={{ borderColor: "rgba(255,255,255,0.10)" }}
-            >
-              {[
-                { n: "24", label: "Torneios ativos" },
-                { n: "186", label: "Times" },
-                { n: "1.2k", label: "Jogadores" },
-                { n: "7", label: "Ao vivo" },
-              ].map((s) => (
-                <div key={s.label}>
-                  <div className="font-display text-2xl font-black" style={{ color: "#00843D" }}>{s.n}</div>
-                  <div className="text-xs mt-0.5 font-medium" style={{ color: "rgba(255,255,255,0.40)" }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
           </div>
 
-          {/* Right — live scoreboard mock */}
-          <div className="hidden lg:block">
+          {/* Right — card limpo com os recursos reais, sem mockups */}
+          <div>
             <div
-              className="rounded-2xl overflow-hidden border"
-              style={{ background: "#111", borderColor: "rgba(255,255,255,0.08)" }}
+              className="rounded-2xl p-2"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
             >
-              <div
-                className="flex items-center justify-between px-5 py-3 text-xs font-bold uppercase tracking-widest"
-                style={{ background: "#00843D", color: "#fff" }}
-              >
-                <span>🏆 Copa VolleyHub — Semifinal</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Ao vivo
-                </span>
+              <div className="px-6 py-5">
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>
+                  Tudo em um só lugar
+                </p>
               </div>
-
-              <div className="px-5 py-6 space-y-4">
-                {[
-                  { team: "Tigres FC", score: 2, sets: [25, 23, 20], leading: true },
-                  { team: "Leões SP", score: 1, sets: [22, 25, 18], leading: false },
-                ].map((t) => (
-                  <div key={t.team} className="flex items-center gap-4">
+              <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                {HERO_FEATURES.map((f) => (
+                  <div
+                    key={f.title}
+                    className="flex items-start gap-4 px-6 py-5 transition-colors hover:bg-white/[0.03]"
+                  >
                     <div
-                      className="h-10 w-10 rounded-xl grid place-items-center text-lg font-black shrink-0"
-                      style={{ background: t.leading ? "#00843D" : "#222", color: "#fff" }}
+                      className="h-10 w-10 rounded-lg grid place-items-center shrink-0"
+                      style={{ background: "rgba(0,132,61,0.18)", border: "1px solid rgba(0,132,61,0.3)" }}
                     >
-                      {t.team[0]}
+                      <f.icon className="h-5 w-5" style={{ color: "#4ade80" }} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate" style={{ color: "#fff" }}>{t.team}</p>
-                      <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
-                        Sets: {t.sets.join(" · ")}
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-white leading-tight">{f.title}</p>
+                      <p className="text-xs mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+                        {f.desc}
                       </p>
                     </div>
-                    <span
-                      className="font-display text-3xl font-black"
-                      style={{ color: t.leading ? "#00843D" : "rgba(255,255,255,0.30)" }}
-                    >
-                      {t.score}
-                    </span>
                   </div>
                 ))}
-              </div>
-
-              <div className="px-5 pb-5 grid grid-cols-3 gap-2">
-                {[["25","22"], ["23","25"], ["20","18"]].map(([a, b], i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg p-3 text-center"
-                    style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.06)" }}
-                  >
-                    <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "rgba(255,255,255,0.30)" }}>
-                      Set {i + 1}
-                    </p>
-                    <p className="font-display font-black text-lg" style={{ color: "#fff" }}>
-                      {a} – {b}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                className="px-5 py-3 text-xs flex items-center justify-between"
-                style={{ background: "#0d0d0d", color: "rgba(255,255,255,0.28)", borderTop: "1px solid rgba(255,255,255,0.06)" }}
-              >
-                <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> 3º Set • Ponto 20</span>
-                <span>Ginásio Municipal</span>
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── COMO FUNCIONA ── */}
+      <section className="container mx-auto px-4 py-24 border-b border-border">
+        <div className="max-w-xl mb-14">
+          <p className="text-xs font-bold uppercase tracking-widest text-primary mb-3">Como funciona</p>
+          <h2 className="font-display text-3xl md:text-4xl font-black text-foreground">
+            Da criação ao apito final, em três etapas
+          </h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {[
+            {
+              n: "01",
+              title: "Crie o torneio",
+              desc: "Escolha o formato (racha, mata-mata ou pontos corridos), defina as regras de pontuação e convide os organizadores.",
+            },
+            {
+              n: "02",
+              title: "Monte times e escalação",
+              desc: "Cadastre jogadores por link de convite, defina titulares e posicione a formação arrastando na quadra visual.",
+            },
+            {
+              n: "03",
+              title: "Registre a partida ao vivo",
+              desc: "Aces, ataques, bloqueios e substituições são salvos a cada toque — a classificação e as estatísticas se atualizam sozinhas.",
+            },
+          ].map((step) => (
+            <div key={step.n} className="relative pl-14">
+              <span className="absolute left-0 top-0 font-display text-4xl font-black text-primary/25">
+                {step.n}
+              </span>
+              <h3 className="font-display text-lg font-bold text-foreground">{step.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -194,7 +202,7 @@ export default function IndexPage() {
             {
               icon: BarChart3,
               title: "Estatísticas ao vivo",
-              desc: "Registre pontos, aces e bloqueios em tempo real. Gere tabelas e rankings automaticamente.",
+              desc: "Registre pontos, aces e bloqueios em tempo real. A classificação e os rankings se atualizam automaticamente.",
               tag: "Stats",
             },
           ].map((f) => (
@@ -240,12 +248,12 @@ export default function IndexPage() {
             style={{ background: "#00843D" }}
           />
           <div className="relative">
-            <Shield className="h-12 w-12 mx-auto mb-4" style={{ color: "#00843D" }} />
+            <Trophy className="h-12 w-12 mx-auto mb-4" style={{ color: "#00843D" }} />
             <h2 className="font-display text-4xl md:text-5xl font-black" style={{ color: "#fff" }}>
               Pronto para o apito inicial?
             </h2>
             <p className="mt-4 text-lg max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.50)" }}>
-              Crie seu torneio e comece a gerenciar em menos de 5 minutos.
+              Crie seu torneio e comece a gerenciar em poucos minutos.
             </p>
             <Button
               size="lg" asChild
@@ -261,7 +269,7 @@ export default function IndexPage() {
       </section>
 
       <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} VolleyHub — Gerenciamento profissional de torneios de vôlei
+        © {new Date().getFullYear()} VolleyHub — Gerenciamento de torneios de vôlei
       </footer>
     </div>
   );

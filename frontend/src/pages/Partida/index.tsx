@@ -77,7 +77,11 @@ export default function PartidaLivePage() {
       const { partida: p, eventos: evs } = dados;
 
       const indexSetAtual = p.setsCasa + p.setsVisitante;
-      setSetAtivo(indexSetAtual);
+
+      const setInicial =
+        p.status === "FINALIZADA" ? Math.max(indexSetAtual - 1, 0) : indexSetAtual;
+
+      setSetAtivo(setInicial);
 
       const pontosNesteSet = evs.filter((e) => e.indiceSet === indexSetAtual && !e.anulado).length;
 

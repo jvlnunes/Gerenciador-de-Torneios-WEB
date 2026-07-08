@@ -79,10 +79,10 @@ export default function LoginPage() {
           <button type="button" onClick={() => setMode(mode === "login" ? "register" : "login")} className="mt-4 text-sm text-muted-foreground hover:text-foreground">
             {mode === "login" ? "Não tem conta? Cadastre-se" : "Já tem conta? Entre"}
           </button>
-          <div className="mt-8 rounded-lg border border-dashed bg-muted/40 p-4 text-xs text-muted-foreground">
+          {/* <div className="mt-8 rounded-lg border border-dashed bg-muted/40 p-4 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">Modo demo</p>
             <p>Sem API conectada (defina <code className="rounded bg-background px-1">VITE_API_URL</code>), use qualquer email. Inclua "admin" ou "manager" no email para ganhar permissões de gestão.</p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

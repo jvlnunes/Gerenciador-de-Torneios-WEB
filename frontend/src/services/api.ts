@@ -66,12 +66,20 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
     if (!res.ok) {
         const errorText = await res.text().catch(() => "");
+        let mensagem = errorText || `HTTP ${res.status}`;
+
         try {
             const errorJson = JSON.parse(errorText);
-            throw new Error(errorJson.message || `HTTP ${res.status}`);
+            if (errorJson?.message) {
+                mensagem = Array.isArray(errorJson.message)
+                    ? errorJson.message.join(", ")
+                    : errorJson.message;
+            }
         } catch {
-            throw new Error(errorText || `HTTP ${res.status}`);
+            // corpo não era JSON — mantém o texto cru como mensagem
         }
+
+        throw new Error(mensagem);
     }
 
     if (res.status === 204) return undefined as T;
