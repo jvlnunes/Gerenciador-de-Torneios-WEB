@@ -1,4 +1,28 @@
+
+#Local
+# version: '3.8'
+# services:
+#   postgres:
+#     image: postgres:15
+#     container_name: gerenciador_torneios_db
+#     environment:
+#       POSTGRES_USER: admin
+#       POSTGRES_PASSWORD: admin
+#       POSTGRES_DB: gerenciador_torneios
+#     ports:
+#       - "5433:5432" 
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+# volumes:
+#   postgres_data:
+
+
+
+# aws
+
 version: '3.8'
+
 services:
   postgres:
     image: postgres:15
@@ -8,9 +32,21 @@ services:
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: gerenciador_torneios
     ports:
-      - "5433:5432" 
+      - "5432:5432" # Ajustado para a porta padrão interna
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  api:
+    build: .
+    container_name: gerenciador_torneios_api
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: always
 
 volumes:
   postgres_data:
