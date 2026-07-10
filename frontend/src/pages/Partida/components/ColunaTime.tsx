@@ -1,9 +1,10 @@
 import { LadoPonto } from "@/services/api/types";
-import { Partida, JogadorPartida } from "@/services/api/interfaces";
+import { Partida, JogadorPartida, EventoPartida } from "@/services/api/interfaces";
 import { Play } from "lucide-react";
 import { cn } from "@/services/utils";
 import { ACOES_PONTO, ACOES_EXTRAS, ActionDef } from "../utils/LogicaPartida";
 import { BankPanel } from "./PainelBanco";
+import { EstatisticasTime } from "./EstatisticasTime";
 
 interface ColunaTimeProps {
   lado: LadoPonto;
@@ -12,13 +13,17 @@ interface ColunaTimeProps {
   reservas: JogadorPartida[];
   podeGerenciar: boolean;
   isAoVivo: boolean;
+  isFinalizada: boolean;
   setStarted: boolean;
+  eventosPartida: EventoPartida[];
+  todosJogadores: JogadorPartida[];
   onSub: () => void;
   onAcao: (acao: ActionDef) => void;
 }
 
 export function ColunaTime({
-  lado, partida, titulares, reservas, podeGerenciar, isAoVivo, setStarted, onSub, onAcao
+  lado, partida, titulares, reservas, podeGerenciar, isAoVivo, isFinalizada, setStarted,
+  eventosPartida, todosJogadores, onSub, onAcao
 }: ColunaTimeProps) {
   const isCasa = lado === "CASA";
   const nomeTime = isCasa ? partida.nomeTimeCasa : partida.nomeTimeVisitante;
@@ -32,12 +37,25 @@ export function ColunaTime({
         <h2 className="font-display text-3xl sm:text-4xl font-black text-gray-900 truncate">{nomeTime}</h2>
         <p className={cn("text-[10px] mt-1 uppercase tracking-[0.2em] font-bold", corTexto)}>{labelLado}</p>
       </div>
-      
-      <div className="px-3 py-3 border-b border-gray-100">
-        <BankPanel titulares={titulares} reservas={reservas} cor={corPadrao} nomeTime={nomeTime} canManage={podeGerenciar && isAoVivo && setStarted} onSub={onSub} />
-      </div>
 
-      {isAoVivo && podeGerenciar && setStarted && (
+      {!isFinalizada && (
+        <div className="px-3 py-3 border-b border-gray-100">
+          <BankPanel titulares={titulares} reservas={reservas} cor={corPadrao} nomeTime={nomeTime} canManage={podeGerenciar && isAoVivo && setStarted} onSub={onSub} />
+        </div>
+      )}
+
+      {isFinalizada && (
+        <div className="flex-1 overflow-y-auto">
+          <EstatisticasTime
+            eventos={eventosPartida}
+            jogadores={todosJogadores}
+            nomeTime={nomeTime}
+            cor={corPadrao}
+          />
+        </div>
+      )}
+
+      {!isFinalizada && isAoVivo && podeGerenciar && setStarted && (
         <div className="flex-1 flex flex-col gap-3 p-4 justify-center">
           <div className="grid grid-cols-3 gap-2.5">
             {ACOES_PONTO.map((a) => (
@@ -58,7 +76,7 @@ export function ColunaTime({
         </div>
       )}
 
-      {isAoVivo && podeGerenciar && !setStarted && (
+      {!isFinalizada && isAoVivo && podeGerenciar && !setStarted && (
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center">
             <Play className="h-10 w-10 text-gray-200 mx-auto mb-3" />

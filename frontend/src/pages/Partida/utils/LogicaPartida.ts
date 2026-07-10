@@ -1,4 +1,5 @@
-import { Partida, TipoPonto, LadoPonto } from "@/services/api";
+import { Partida } from "@/services/api/interfaces";
+import type { TipoPonto, LadoPonto, TipoErro } from "@/services/api/types";
 
 export type ActionDef = { type: TipoPonto; label: string; emoji: string };
 
@@ -82,4 +83,25 @@ export function verificarFimSet(
     novoSetsCasa: p.setsCasa,
     novoSetsVisitante: p.setsVisitante,
   };
-}
+};
+
+export const ACOES_POSITIVAS: ActionDef[] = [
+  { type: "SAQUE",    label: "Ace",      emoji: "🏐" },
+  { type: "ATAQUE",   label: "Ataque",   emoji: "⚡" },
+  { type: "BLOQUEIO", label: "Bloqueio", emoji: "🛡️" },
+];
+
+export const TIPOS_ERRO: { tipoErro: TipoErro; label: string }[] = [
+  { tipoErro: "ERRO_SAQUE",    label: "Erro de saque" },
+  { tipoErro: "TOQUE_REDE",    label: "Toque na rede" },
+  { tipoErro: "INVASAO",       label: "Invasão" },
+  { tipoErro: "BOLA_FORA",     label: "Bola fora" },
+  { tipoErro: "DOIS_TOQUES",   label: "Dois toques" },
+  { tipoErro: "QUATRO_TOQUES", label: "Quatro toques" },
+  { tipoErro: "CONDUCAO",      label: "Condução" },
+  { tipoErro: "ERRO_ROTACAO",  label: "Erro de rotação" },
+];
+
+export function ladoOposto(l: LadoPonto): LadoPonto {
+  return l === "CASA" ? "VISITANTE" : "CASA";
+};

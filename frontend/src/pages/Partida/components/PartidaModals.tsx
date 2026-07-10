@@ -69,6 +69,11 @@ interface SubstituicaoModalProps {
   rotVisit: number;
 }
 
+export type AlertaConfirmacao = {
+  msg: string;
+  onOk?: () => void | Promise<void>;
+};
+
 export interface PartidaModalsProps {
   config: ConfigModalProps;
   cartao: CartaoModalProps;
@@ -179,8 +184,8 @@ export function PartidaModals({ config, cartao, alerta, acao, escalacao, substit
           substituicoesNesteSet={substituicao.obterSubstituicoesDoSet(substituicao.timeSubId, substituicao.indiceSet)}
           aoConfirmar={substituicao.aoConfirmar}
           aoFechar={substituicao.aoFechar}
-          rotCasa={substituicao.rotCasa}
-          rotVisit={substituicao.rotVisit}
+          // rotCasa={substituicao.rotCasa}
+          // rotVisit={substituicao.rotVisit}
         />
       )}
     </>

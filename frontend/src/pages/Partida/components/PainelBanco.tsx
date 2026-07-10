@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { JogadorPartida } from "@/services/api";
+import { JogadorPartida } from "@/services/api/interfaces";
 import { cn } from "@/services/utils";
 import { ChevronDown, ArrowLeftRight } from "lucide-react";
 
@@ -15,24 +15,37 @@ interface BankPanelProps {
 export function BankPanel({ titulares, reservas, cor, nomeTime, canManage, onSub }: BankPanelProps) {
   const [open, setOpen] = useState(false);
   const accent = cor === "emerald" ? "text-emerald-700" : "text-orange-600";
-  const bg     = cor === "emerald" ? "bg-emerald-50 border-emerald-200" : "bg-orange-50 border-orange-200";
   const dot    = cor === "emerald" ? "bg-emerald-500" : "bg-orange-400";
+  const bg     = cor === "emerald" ? "bg-emerald-50 border-emerald-200" : "bg-orange-50 border-orange-200";
 
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left border-b border-gray-200"
-      >
+      {/* Header: nome do time + toggle de elenco + botão direto de substituição */}
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
         <span className={`h-2 w-2 rounded-full ${dot} shrink-0`} />
-        <span className={`text-[11px] font-black uppercase tracking-widest ${accent} flex-1 truncate`}>
-          {nomeTime}
-        </span>
-        <span className="text-[10px] text-gray-400 font-medium">
-          {titulares.length} titular · {reservas.length} reserva
-        </span>
-        <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform shrink-0", open && "rotate-180")} />
-      </button>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+        >
+          <span className={`text-[11px] font-black uppercase tracking-widest ${accent} truncate`}>
+            {nomeTime}
+          </span>
+          <span className="text-[10px] text-gray-400 font-medium shrink-0">
+            {titulares.length} titular · {reservas.length} reserva
+          </span>
+          <ChevronDown className={cn("h-3.5 w-3.5 text-gray-400 transition-transform shrink-0", open && "rotate-180")} />
+        </button>
+
+        {canManage && (
+          <button
+            onClick={onSub}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-gray-300 text-[10px] font-bold uppercase tracking-wider text-gray-600 hover:bg-gray-100 hover:border-gray-400 transition-all shrink-0"
+          >
+            <ArrowLeftRight className="h-3 w-3" />
+            Substituição
+          </button>
+        )}
+      </div>
 
       {open && (
         <div className="p-3 space-y-3">
@@ -81,17 +94,6 @@ export function BankPanel({ titulares, reservas, cor, nomeTime, canManage, onSub
               ))}
             </div>
           </div>
-
-          {/* Botão substituição */}
-          {canManage && (
-            <button
-              onClick={onSub}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-all"
-            >
-              <ArrowLeftRight className="h-3.5 w-3.5" />
-              Substituição
-            </button>
-          )}
         </div>
       )}
     </div>
