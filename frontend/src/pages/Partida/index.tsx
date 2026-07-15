@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Trophy, Target, Users } from "lucide-react";
+import { Loader2, Trophy, Target, Users, BarChart3, ChevronDown } from "lucide-react";
 import { cn } from "@/services/utils";
 
 import { ActionDef, ladoOposto } from "./utils/LogicaPartida";
@@ -15,8 +15,9 @@ import { PlacarHeader } from "./components/PlacarHeader";
 import { SetTimer } from "./components/Timer";
 import { Quadra } from "./components/Quadra";
 import { HistoricoSet } from "./components/HistoricoSet";
-import { BankPanel } from "./components/PainelBanco";
+import { PainelBanco } from "./components/PainelBanco";
 import { PainelAcaoJogador, type EscolhaAcao } from "./components/PainelAcaoJogador";
+import { EstatisticasTime } from "./components/EstatisticasTime";
 import { PartidaModals, type AlertaConfirmacao } from "./components/PartidaModals";
 
 import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
@@ -46,6 +47,10 @@ export default function PartidaLivePage() {
     jogador: JogadorPartida;
     lado: LadoPonto;
   } | null>(null);
+  // Em telas menores que "lg" o painel de ação vira uma seção colapsável
+  // (não fica fixo ocupando espaço) — abre sozinho quando um jogador é
+  // selecionado, e o usuário pode recolher pra rolar o resto da página.
+  const [painelAcaoAberto, setPainelAcaoAberto] = useState(false);
 
   /* ── Modais e Configurações ───────────────────────────────── */
   const [modalCartao, setModalCartao] = useState<LadoPonto | null>(null);
@@ -263,18 +268,6 @@ export default function PartidaLivePage() {
   const isFinalizada = partida.status === "FINALIZADA";
   const isAgendada = partida.status === "AGENDADA" || partida.status === "AQUECIMENTO";
 
-  const totalSetsJogados = partida.setsCasa + partida.setsVisitante;
-  const resultadosSets = isFinalizada
-    ? Array.from({ length: totalSetsJogados }, (_, i) => {
-        const evsDoSet = eventos.filter((e) => !e.anulado && e.indiceSet === i);
-        if (evsDoSet.length === 0) return null;
-        const ultimo = evsDoSet.reduce((acc, e) =>
-          new Date(e.horario).getTime() > new Date(acc.horario).getTime() ? e : acc
-        );
-        return { casa: ultimo.placarCasa, visitante: ultimo.placarVisitante };
-      }).filter((r): r is { casa: number; visitante: number } => r !== null)
-    : [];
-
   const titularesCasaList = obterTitularesAtuais(partida.timeCasaId, setAtivo, jogadores);
   const titularesVisList = obterTitularesAtuais(partida.timeVisitanteId, setAtivo, jogadores);
   const bancoCasaList = obterBancoAtual(partida.timeCasaId, setAtivo, jogadores);
@@ -291,6 +284,24 @@ export default function PartidaLivePage() {
 
   const reservasCasaAtivos = bancoCasaList.filter((j) => !jogadoresInativos.has(j.jogadorId));
   const reservasVisAtivos = bancoVisList.filter((j) => !jogadoresInativos.has(j.jogadorId));
+
+  // Placar final por set (usado no header e para popular o resumo "Set N: X–Y")
+  const totalSetsJogados = partida.setsCasa + partida.setsVisitante;
+  const resultadosSets = isFinalizada
+    ? Array.from({ length: totalSetsJogados }, (_, i) => {
+        const evsDoSet = eventos.filter((e) => !e.anulado && e.indiceSet === i);
+        if (evsDoSet.length === 0) return null;
+        const ultimo = evsDoSet.reduce((acc, e) =>
+          new Date(e.horario).getTime() > new Date(acc.horario).getTime() ? e : acc
+        );
+        return { casa: ultimo.placarCasa, visitante: ultimo.placarVisitante };
+      }).filter((r): r is { casa: number; visitante: number } => r !== null)
+    : [];
+
+  // Elenco completo (titulares + reservas) de cada time nesta partida — usado nas
+  // estatísticas pós-jogo, que substituem a quadra quando a partida está finalizada.
+  const jogadoresCasaTodos = jogadores.filter((j) => j.timeId === partida.timeCasaId);
+  const jogadoresVisTodos = jogadores.filter((j) => j.timeId === partida.timeVisitanteId);
 
   const evSetAtivo = eventos.filter((e) => !e.anulado && e.indiceSet === setAtivo).reverse();
   const eventosCron = [...evSetAtivo].reverse();
@@ -329,6 +340,7 @@ export default function PartidaLivePage() {
     if (!podeClicarQuadra) return;
     if (jogadoresInativos.has(jogador.jogadorId)) return; // expulso não pode ser selecionado
     setJogadorSelecionado({ jogador, lado });
+    setPainelAcaoAberto(true); // abre automaticamente a seção colapsável em telas < lg
   };
 
   /* ── Interceptador de escolha de ação no painel lateral ───── */
@@ -390,6 +402,14 @@ export default function PartidaLivePage() {
     <div className="h-screen bg-gray-100 text-gray-900 flex flex-col font-sans overflow-hidden">
 
       <PartidaModals
+        acao={{
+          modal: null,
+          partida: partida!,
+          jogadores,
+          sacadorAtual: sacadorAtual || "CASA",
+          onRegistrar: registrarAcao,
+          onClose: () => {},
+        }}
         config={{
           aberto: showConfig,
           configTimer,
@@ -410,25 +430,8 @@ export default function PartidaLivePage() {
           onClose: () => setModalCartao(null),
         }}
         alerta={{
-          alerta: alerta
-            ? {
-                msg: alerta.msg,
-                onOk: () => {
-                  // ensure callback exists and return type is void
-                  if (alerta.onOk) void alerta.onOk();
-                },
-              }
-            : null,
+          alerta: alerta ? { msg: alerta.msg, onOk: alerta.onOk || (() => {}) } : null,
           onCancelar: () => setAlerta(null),
-        }}
-        acao={{
-          modal: null,
-          partida,
-          jogadores,
-          sacadorAtual,
-          idSacador: getSacadorAtualJogador(sacadorAtual)?.jogadorId,
-          onRegistrar: registrarAcao,
-          onClose: () => {},
         }}
         escalacao={{
           aberto: modalEscalacaoAberto,
@@ -516,19 +519,51 @@ export default function PartidaLivePage() {
           )}
         </div>
 
-        <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+        {/*
+          Layout novo:
+          - Coluna esquerda (flex-1): quadra grande + seletor de sets + bancos colapsáveis + histórico.
+          - Coluna direita (fixa, só quando pode gerenciar/ao vivo/set iniciado): painel de ação do
+            jogador selecionado.
+          - Em telas pequenas empilha (flex-col) e tudo rola verticalmente via overflow-y-auto no <main>.
+        */}
+        <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
 
-          {/* Coluna esquerda: quadra + histórico */}
-          <div className="flex-1 flex flex-col overflow-y-auto md:overflow-hidden">
+          {/* Coluna esquerda: quadra (ou estatísticas, se finalizada) + histórico */}
+          <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden">
             <div className="p-4 border-b border-gray-100 bg-white shadow-sm z-10 shrink-0">
-              <Quadra
-                jCasa={jCasaQuadra}
-                jVisit={jVisQuadra}
-                sacador={sacadorAtual}
-                podeClicar={podeClicarQuadra}
-                jogadorSelecionadoId={jogadorSelecionado?.jogador.jogadorId}
-                onJogadorClick={handleJogadorClick}
-              />
+              {!isFinalizada ? (
+                <Quadra
+                  jCasa={jCasaQuadra}
+                  jVisit={jVisQuadra}
+                  sacador={sacadorAtual}
+                  podeClicar={podeClicarQuadra}
+                  jogadorSelecionadoId={jogadorSelecionado?.jogador.jogadorId}
+                  onJogadorClick={handleJogadorClick}
+                />
+              ) : (
+                <div className="rounded-2xl border border-gray-200 overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <BarChart3 className="h-4 w-4 text-gray-400" />
+                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">
+                      Estatísticas da partida
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                    <EstatisticasTime
+                      eventos={eventos}
+                      jogadores={jogadoresCasaTodos}
+                      nomeTime={partida.nomeTimeCasa}
+                      cor="emerald"
+                    />
+                    <EstatisticasTime
+                      eventos={eventos}
+                      jogadores={jogadoresVisTodos}
+                      nomeTime={partida.nomeTimeVisitante}
+                      cor="orange"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-center gap-1 mt-3 flex-wrap">
                 {Array.from(
@@ -564,24 +599,82 @@ export default function PartidaLivePage() {
               </div>
             </div>
 
-            {/* Bancos colapsáveis lado a lado */}
+            {/* Painel de ação — versão colapsável para telas menores que "lg".
+                Fica embutida no fluxo da página (não fixa), então dá pra rolar
+                livremente; abre sozinha ao clicar num jogador na quadra. */}
+            {podeGerenciar && isAoVivo && setStarted && (
+              <div className="lg:hidden border-b border-gray-100 shrink-0 bg-white">
+                <button
+                  onClick={() => setPainelAcaoAberto((v) => !v)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-xs font-bold text-gray-600 truncate">
+                    {jogadorSelecionado ? (
+                      <>
+                        <span
+                          className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            jogadorSelecionado.lado === "CASA" ? "bg-emerald-500" : "bg-orange-400"
+                          )}
+                        />
+                        <span className="truncate">Ação — {jogadorSelecionado.jogador.nomeJogador}</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">Toque em um jogador na quadra para registrar uma ação</span>
+                    )}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-gray-400 transition-transform shrink-0",
+                      painelAcaoAberto && "rotate-180"
+                    )}
+                  />
+                </button>
+                {painelAcaoAberto && (
+                  <div className="p-4 pt-0 max-h-[55vh] overflow-y-auto">
+                    <PainelAcaoJogador
+                      jogador={jogadorSelecionado?.jogador ?? null}
+                      lado={jogadorSelecionado?.lado ?? null}
+                      nomeTime={
+                        jogadorSelecionado?.lado === "CASA"
+                          ? partida.nomeTimeCasa
+                          : jogadorSelecionado?.lado === "VISITANTE"
+                            ? partida.nomeTimeVisitante
+                            : undefined
+                      }
+                      timeJaTemAmarelo={
+                        jogadorSelecionado?.lado === "CASA"
+                          ? casaTemAmarelo
+                          : jogadorSelecionado?.lado === "VISITANTE"
+                            ? visTemAmarelo
+                            : undefined
+                      }
+                      onEscolher={handleEscolherAcao}
+                      onLimparSelecao={() => setJogadorSelecionado(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bancos — só nome do time + botão de substituição (sem contagens) */}
             {isAoVivo && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
-                <BankPanel
-                  titulares={titularesCasaList}
-                  reservas={reservasCasaAtivos}
+                <PainelBanco
                   cor="emerald"
                   nomeTime={partida.nomeTimeCasa}
                   canManage={podeGerenciar && isAoVivo && setStarted}
                   onSub={() => abrirModalSubstituicao(partida.timeCasaId)}
+                  titulares={[]}
+                  reservas={[]}
                 />
-                <BankPanel
-                  titulares={titularesVisList}
-                  reservas={reservasVisAtivos}
+                <PainelBanco
                   cor="orange"
                   nomeTime={partida.nomeTimeVisitante}
                   canManage={podeGerenciar && isAoVivo && setStarted}
                   onSub={() => abrirModalSubstituicao(partida.timeVisitanteId)}
+                  titulares={[]}
+                  reservas={[]}
                 />
               </div>
             )}
@@ -594,9 +687,11 @@ export default function PartidaLivePage() {
             />
           </div>
 
-          {/* Coluna direita: painel de ação do jogador selecionado */}
+          {/* Coluna direita: painel de ação do jogador selecionado — só em telas
+              "lg" pra cima. Em telas menores, a versão colapsável acima (dentro
+              da coluna esquerda) já cobre essa função. */}
           {podeGerenciar && isAoVivo && setStarted && (
-            <div className="w-full md:w-[320px] shrink-0 p-4 border-t md:border-t-0 md:border-l border-gray-100 bg-gray-50">
+            <div className="hidden lg:flex lg:w-[320px] shrink-0 p-4 border-l border-gray-100 bg-gray-50 flex-col">
               <PainelAcaoJogador
                 jogador={jogadorSelecionado?.jogador ?? null}
                 lado={jogadorSelecionado?.lado ?? null}
@@ -620,9 +715,9 @@ export default function PartidaLivePage() {
             </div>
           )}
 
-          {!isAoVivo && (
+          {isAgendada && (
             <div className="flex-1 flex items-center justify-center p-10 text-sm text-gray-400">
-              {isAgendada ? "A partida ainda não começou." : "Partida finalizada."}
+              A partida ainda não começou.
             </div>
           )}
         </main>

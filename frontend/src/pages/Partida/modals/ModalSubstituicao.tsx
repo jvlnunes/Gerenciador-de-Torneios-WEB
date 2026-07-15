@@ -9,7 +9,6 @@ import type { ModalSubstituicaoProps, IndicePosicao } from "../components/Escala
 
 const MAX_SUBS_POR_SET = 6;
 
-// ─── Linha de jogador (usada tanto para titulares quanto pro banco) ───────
 function PlayerRow({
   jogador,
   cor,
@@ -75,7 +74,6 @@ export function ModalSubstituicao({
   const [idSaindo, setIdSaindo] = useState<string | null>(null);
   const [idEntrando, setIdEntrando] = useState<string | null>(null);
 
-  // Reseta seleção sempre que o modal reabre
   useEffect(() => {
     if (aberto) {
       setIdSaindo(null);
@@ -154,13 +152,12 @@ export function ModalSubstituicao({
           )}
 
           <div className="grid grid-cols-2 gap-5">
-            {/* Coluna: Titulares (quem sai) */}
             <div className="space-y-2">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-red-500" />
                 Em quadra — quem sai
               </p>
-              <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 pr-1">
                 {titulares.length === 0 && (
                   <div className="rounded-lg border border-border bg-muted/30 px-3 py-6 text-center text-xs text-muted-foreground">
                     Nenhum titular.

@@ -96,7 +96,7 @@ export function PainelAcaoJogador({
         {/* Erros — seção separada, sempre visível */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
-            <Flag className="h-3 w-3" /> Erros — ponto vai para o adversário
+            <Flag className="h-3 w-3" /> Erros 
           </p>
           <div className="grid grid-cols-2 gap-2">
             {TIPOS_ERRO.map((e) => (

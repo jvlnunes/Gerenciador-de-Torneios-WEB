@@ -315,16 +315,33 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     const escalacaoSet = escalacoes[indiceSet];
 
     if (!escalacaoSet) {
-      // Mesmo sem escalação salva (ex.: ainda carregando da API), aplicamos
-      // a rotação sobre o fallback estático para a quadra não "congelar".
-      const titularesConfig = fallback.filter((j) => j.titular);
-      const base = titularesConfig.length === 6 ? titularesConfig : fallback.slice(0, 6);
-      if (base.length < 6 || rotacao === 0) return base;
+      const titularesComPosicao = fallback.filter(
+        (j) => j.titular && j.indicePosicao != null
+      );
 
-      const idsTaticos = base.map((j) => j.jogadorId);
+      let idsTaticos: (string | null)[];
+
+      if (titularesComPosicao.length === 6) {
+        idsTaticos = new Array(6).fill(null);
+        titularesComPosicao.forEach((j) => {
+          idsTaticos[j.indicePosicao as number] = j.jogadorId;
+        });
+      } else {
+        const titularesConfig = fallback.filter((j) => j.titular);
+        const base = titularesConfig.length === 6 ? titularesConfig : fallback.slice(0, 6);
+        idsTaticos = base.map((j) => j.jogadorId);
+        while (idsTaticos.length < 6) idsTaticos.push(null);
+      }
+
+      if (idsTaticos.filter(Boolean).length < 6 || rotacao === 0) {
+        return idsTaticos
+          .map((id) => (id ? encontrarJogador(jogadores, id) : undefined))
+          .filter(Boolean) as JogadorPartida[];
+      }
+
       const idsFisicos = aplicarRotacao(idsTaticos, rotacao);
       return idsFisicos
-        .map((id) => encontrarJogador(jogadores, id))
+        .map((id) => (id ? encontrarJogador(jogadores, id) : undefined))
         .filter(Boolean) as JogadorPartida[];
     }
 
@@ -348,7 +365,7 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     const idsNaQuadraFisica = aplicarRotacao(trackingIds, rotacao);
 
     return idsNaQuadraFisica
-      .map((id) => encontrarJogador(jogadores, id))
+      .map((id) => (id ? encontrarJogador(jogadores, id) : undefined))
       .filter(Boolean) as JogadorPartida[];
   };
 

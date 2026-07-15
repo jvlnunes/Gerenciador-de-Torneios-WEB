@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/services/utils";
-import type { JogadorPartida } from "@/services/api";
+import type { JogadorPartida } from "@/services/api/interfaces";
 import { CheckCircle2, X, Trophy, GripVertical } from "lucide-react";
 
 import type {
@@ -14,36 +14,40 @@ import type {
   EscalacaoTime,
 } from "../components/Escalacao";
 
-// ─── Layout visual da quadra (igual ao componente Quadra.tsx da partida ao vivo)
-// Casa: cols [2fr 1fr] — Pos 5,4 / Pos 6,3 / Pos 1,2
-// Visitante: cols [1fr 2fr] — Pos 2,1 / Pos 3,6 / Pos 4,5
-//
-// Mapeamento indicePosicao → slot visual:
-// Casa (lado esquerdo da rede):
-//   row0: slot0=pos5(idx0?), slot1=pos4(idx3) ...
-// Para manter EXATAMENTE o mesmo layout do Quadra.tsx usamos os mesmos arrays:
 const ORDEM_CASA: IndicePosicao[] = [0, 3, 2, 4, 1, 5];
-//   grid-cols-[2fr_1fr]:
-//   [0]=vSlot5 [3]=vSlot4
-//   [2]=vSlot6 [4]=vSlot3
-//   [1]=vSlot1 [5]=vSlot2
+
 
 const ORDEM_VISITANTE: IndicePosicao[] = [5, 1, 4, 2, 3, 0];
-//   grid-cols-[1fr_2fr]:
-//   [5]=vSlot2 [1]=vSlot1
-//   [4]=vSlot3 [2]=vSlot6
-//   [3]=vSlot4 [0]=vSlot5
 
-// Label de cada slot visual no grid (para exibir "Pos X" nos cantos)
 const LABEL_CASA: Record<number, string> = { 0: "5", 1: "1●", 2: "6", 3: "4", 4: "3", 5: "2" };
 const LABEL_VIS: Record<number, string>  = { 5: "2", 1: "1●", 4: "3", 2: "6", 3: "4", 0: "5" };
 
 function montarEscalacaoPadrao(timeId: string, jogadores: JogadorPartida[]): EscalacaoTime {
-  const titulares: TitularEmQuadra[] = jogadores.slice(0, 6).map((j, i) => ({
-    jogadorId: j.jogadorId,
-    indicePosicao: i as IndicePosicao,
-  }));
-  const banco = jogadores.slice(6).map((j) => j.jogadorId);
+  const titularesComPosicao = jogadores.filter(
+    (j) => j.titular && j.indicePosicao != null
+  );
+
+  let titulares: TitularEmQuadra[];
+
+  if (titularesComPosicao.length === 6) {
+    titulares = titularesComPosicao.map((j) => ({
+      jogadorId: j.jogadorId,
+      indicePosicao: j.indicePosicao as IndicePosicao,
+    }));
+  } else {
+    const titularesSemPosicao = jogadores.filter((j) => j.titular);
+    const base = titularesSemPosicao.length === 6 ? titularesSemPosicao : jogadores.slice(0, 6);
+    titulares = base.map((j, i) => ({
+      jogadorId: j.jogadorId,
+      indicePosicao: i as IndicePosicao,
+    }));
+  }
+
+  const idsTitulares = new Set(titulares.map((t) => t.jogadorId));
+  const banco = jogadores
+    .filter((j) => !idsTitulares.has(j.jogadorId))
+    .map((j) => j.jogadorId);
+
   return { timeId, titulares, banco, indicePosicaoSaque: 1 };
 }
 

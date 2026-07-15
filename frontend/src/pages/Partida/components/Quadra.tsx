@@ -13,6 +13,15 @@ interface QuadraProps {
   onJogadorClick?: (jogador: JogadorPartida, lado: LadoPonto) => void;
 }
 
+const VSLOT_TO_INDICE: Record<number, number> = {
+  1: 1, // Pos 1
+  2: 5, // Pos 2
+  3: 4, // Pos 3
+  4: 3, // Pos 4
+  5: 0, // Pos 5
+  6: 2, // Pos 6
+};
+
 export function Quadra({
   jCasa,
   jVisit,
@@ -22,7 +31,8 @@ export function Quadra({
   onJogadorClick,
 }: QuadraProps) {
   const getJogador = (j: JogadorPartida[], vSlot: number) => {
-    return j[vSlot - 1] ?? null;
+    const indice = VSLOT_TO_INDICE[vSlot];
+    return j[indice] ?? null;
   };
 
   const Slot = ({ lado, vSlot, cor }: { lado: LadoPonto; vSlot: number; cor: string }) => {

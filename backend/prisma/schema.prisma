@@ -90,6 +90,7 @@ model Jogador {
   fotoUrl          String?
   entrouPorLink    Boolean          @default(false)
   titular          Boolean          @default(false)
+  indicePosicao    Int?
   criadoEm         DateTime         @default(now())
   timeId           String
   usuarioId        String?

@@ -16,7 +16,7 @@ const REGRAS_PADRAO = {
 
 @Injectable()
 export class PartidasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private normalizarDateTime(valor: any): string | undefined {
     if (!valor) return undefined;
@@ -183,6 +183,7 @@ export class PartidasService {
       numeroCamisa: j.numeroCamisa,
       posicao: j.posicao,
       titular: j.titular,
+      indicePosicao: j.indicePosicao,
     }));
   }
 

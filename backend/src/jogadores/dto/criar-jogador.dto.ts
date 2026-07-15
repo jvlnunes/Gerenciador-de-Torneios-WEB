@@ -8,6 +8,7 @@ import {
   Min,
   Max,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -43,4 +44,19 @@ export class CriarJogadorDto {
   @IsOptional()
   @IsBoolean()
   titular?: boolean;
+
+  @ApiPropertyOptional({
+    example: 1,
+    minimum: 0,
+    maximum: 5,
+    nullable: true,
+    description: 'Posição de quadra (0-5). Null quando o jogador está no banco.',
+  })
+  @IsOptional()
+  @ValidateIf((_obj, value) => value !== null)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(5)
+  indicePosicao?: number | null;
 }

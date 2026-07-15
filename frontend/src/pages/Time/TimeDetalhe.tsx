@@ -414,19 +414,31 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
     try {
       const jogs = await api.listarJogadores(time.id);
       setPlayers(jogs);
-      // Inicializa a quadra com quem já está marcado como titular
-      const titulares = jogs.filter((j) => j.titular);
-      setTitularesQuadra(
-        titulares.slice(0, 6).map((j, i) => ({
-          jogadorId: j.id,
-          indicePosicao: i as IndicePosicao,
-        }))
+
+      const titularesComPosicao = jogs.filter(
+        (j) => j.titular && j.indicePosicao != null
       );
+
+      if (titularesComPosicao.length > 0) {
+        setTitularesQuadra(
+          titularesComPosicao.map((j) => ({
+            jogadorId: j.id,
+            indicePosicao: j.indicePosicao as IndicePosicao,
+          }))
+        );
+      } else {
+        const fallbackTitulares = jogs.filter((j) => j.titular).slice(0, 6);
+        setTitularesQuadra(
+          fallbackTitulares.map((j, i) => ({
+            jogadorId: j.id,
+            indicePosicao: i as IndicePosicao,
+          }))
+        );
+      }
     } finally {
       setLoading(false);
     }
   }, [time.id]);
-
   useEffect(() => { load(); }, [load]);
 
   const handleUpdate = async (id: string, data: Partial<Jogador>) => {
@@ -448,7 +460,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
   const titulares = players.filter((p) => titularIds.has(p.id));
   const banco = players.filter((p) => !titularIds.has(p.id));
 
-// Drag state compartilhado entre quadra e banco
+  // Drag state compartilhado entre quadra e banco
   const dragRef = useRef<{ from: IndicePosicao | "bench"; jogadorId: string } | null>(null);
   const [isDraggingOverQuadra, setIsDraggingOverQuadra] = useState(false);
 
@@ -477,7 +489,6 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
     setTitularesQuadra((prev) => prev.filter((t) => t.indicePosicao !== indicePosicao));
   };
 
-  /* Toggle rápido pelo botão (sem arrastar) */
   const toggleTitular = (jogador: Jogador) => {
     if (titularIds.has(jogador.id)) {
       sendToBench(titularesQuadra.find((t) => t.jogadorId === jogador.id)!.indicePosicao);
@@ -486,7 +497,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
         alert("Máximo de 6 titulares. Remova um da quadra antes.");
         return;
       }
-      const slots = [0,1,2,3,4,5] as IndicePosicao[];
+      const slots = [0, 1, 2, 3, 4, 5] as IndicePosicao[];
       const livre = slots.find((s) => !titularesQuadra.some((t) => t.indicePosicao === s));
       if (livre !== undefined) {
         setTitularesQuadra((prev) => [...prev, { jogadorId: jogador.id, indicePosicao: livre }]);
@@ -494,30 +505,25 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
     }
   };
 
-  /* Salvar formação no backend */
   const salvarFormacao = async () => {
     setSaving(true);
     try {
-      await Promise.all(
-        players.map((p) =>
-          api.atualizarJogador(time.id, p.id, { titular: titularIds.has(p.id) })
-        )
+      const atualizados = await Promise.all(
+        players.map((p) => {
+          const t = titularesQuadra.find((t) => t.jogadorId === p.id);
+          return api.atualizarJogador(time.id, p.id, {
+            titular: !!t,
+            indicePosicao: t ? t.indicePosicao : null,
+          });
+        })
       );
-      setPlayers((prev) =>
-        prev.map((p) => ({ ...p, titular: titularIds.has(p.id) }))
-      );
+      setPlayers(atualizados);
     } catch (e) {
       alert("Erro ao salvar formação: " + (e as Error).message);
     } finally {
       setSaving(false);
     }
   };
-
-  if (loading) return (
-    <div className="flex justify-center py-20">
-      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -851,7 +857,7 @@ export default function TorneioTimeDetalhe() {
   const { torneioId, timeId } = useParams<{ torneioId: string; timeId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [time, setTime] = useState<Time | null>(null);
   const [torneio, setTorneio] = useState<Torneio | null>(null);
   const [loading, setLoading] = useState(true);

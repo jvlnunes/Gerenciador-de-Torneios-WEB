@@ -17,6 +17,13 @@ interface NavItem {
   end?: boolean;
 }
 
+const SIDEBAR_AUTO_OPEN_BREAKPOINT = 1024;
+
+function getDefaultCollapsed() {
+  if (typeof window === "undefined") return false;
+  return window.innerWidth < SIDEBAR_AUTO_OPEN_BREAKPOINT;
+}
+
 function TorneioSidebar({
   torneio,
   torneioId,
@@ -207,7 +214,9 @@ export default function TorneioLayout() {
   const [torneio,   setTorneio]   = useState<Torneio | null>(null);
   const [liveCount, setLiveCount] = useState(0);
   const [loading,   setLoading]   = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+  // Recolhida por padrão em telas menores que o breakpoint (tablets/celulares);
+  // aberta por padrão em desktop. O usuário pode alternar livremente depois.
+  const [collapsed, setCollapsed] = useState(getDefaultCollapsed);
 
   const load = useCallback(async () => {
     if (!torneioId) return;
@@ -241,7 +250,6 @@ export default function TorneioLayout() {
   if (!torneio) return null;
 
   const canManage = podeGerenciarTorneio(torneio, user);
-  const isOwner = ( user?.perfil === "GERENTE" || user?.perfil === "ADMIN" ) && canManage;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
@@ -253,7 +261,7 @@ export default function TorneioLayout() {
           liveCount={liveCount}
           collapsed={collapsed}
           onToggle={() => setCollapsed((c) => !c)}
-          canManage={canManage} 
+          canManage={canManage}
         />
         <main style={{ flex: 1, overflowY: "auto", background: "var(--color-background)" }}>
           <Outlet context={{ torneio, setTorneio, torneioId, liveCount, canManage }} />

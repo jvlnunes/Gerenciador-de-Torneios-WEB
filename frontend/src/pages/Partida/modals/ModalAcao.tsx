@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { JogadorPartida, Partida, LadoPonto, TipoErro } from "@/services/api";
+import type{ LadoPonto, TipoErro } from "@/services/api/types";
+import { JogadorPartida, Partida } from "@/services/api/interfaces";
 import { ActionDef } from "../utils/LogicaPartida";
 
 export interface ModalAcaoProps {

@@ -50,6 +50,7 @@ export interface Jogador {
     fotoUrl?: string;
     entrouPorLink?: boolean;
     titular?: boolean;
+    indicePosicao?: number | null;
     criadoEm?: string;
 }
 
@@ -62,7 +63,7 @@ export interface JogadorPartida {
     numeroCamisa?: number;
     posicao?: string;
     titular: boolean;
-    indicePosicao?: number;
+    indicePosicao?: number | null;
 }
 
 export interface EventoPartida {

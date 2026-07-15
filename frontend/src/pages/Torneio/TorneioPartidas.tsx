@@ -199,7 +199,6 @@ function MatchCard({
         >
           <div className="flex-1 text-right">
             <p className="font-display font-bold text-foreground">{match.nomeTimeCasa}</p>
-            <p className="text-xs text-muted-foreground">Casa</p>
           </div>
 
           {isScheduled ? (
@@ -224,7 +223,6 @@ function MatchCard({
 
           <div className="flex-1 text-left">
             <p className="font-display font-bold text-foreground">{match.nomeTimeVisitante}</p>
-            <p className="text-xs text-muted-foreground">Visitante</p>
           </div>
         </div>
 
