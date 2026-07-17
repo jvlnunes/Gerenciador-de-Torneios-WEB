@@ -1,4 +1,16 @@
-import { AuthUser, Torneio, EscalacaoTimeApi, EventoPartida, Jogador, JogadorPartida, Partida, RegrasTorneio, SubstituicaoApi, Time } from "./api/interfaces";
+import {
+    AuthUser,
+    Torneio,
+    EscalacaoTimeApi,
+    EventoPartida,
+    Jogador,
+    JogadorPartida,
+    Partida,
+    RegrasTorneio,
+    SubstituicaoApi,
+    Time,
+    OrganizadorTorneio
+} from "./api/interfaces";
 
 const API_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
 const TOKEN_KEY = "vb_token";
@@ -388,6 +400,25 @@ export const api = {
         return request<SubstituicaoApi[]>(`/partidas/${partidaId}/substituicoes${qs}`);
     },
 
+    /* ── Organizadores ──────────────────────────────────────── */
+
+    listarOrganizadores: async (torneioId: string): Promise<OrganizadorTorneio[]> => {
+        return request<OrganizadorTorneio[]>(`/torneios/${torneioId}/organizadores`);
+    },
+
+    adicionarOrganizador: async (torneioId: string, email: string): Promise<OrganizadorTorneio[]> => {
+        return request<OrganizadorTorneio[]>(`/torneios/${torneioId}/organizadores`, {
+            method: "POST",
+            body: JSON.stringify({ email }),
+        });
+    },
+
+    removerOrganizador: async (torneioId: string, usuarioId: string): Promise<OrganizadorTorneio[]> => {
+        return request<OrganizadorTorneio[]>(`/torneios/${torneioId}/organizadores/${usuarioId}`, {
+            method: "DELETE",
+        });
+    },
+
 };
 
 /* ── Gerencia de Acessos ────────────────────────────────────────── */
@@ -404,3 +435,4 @@ export function podeGerenciarTorneio(
     if (user.perfil === "ADMIN") return true;
     return user.perfil === "GERENTE" && souOrganizador(torneio, user.id);
 }
+

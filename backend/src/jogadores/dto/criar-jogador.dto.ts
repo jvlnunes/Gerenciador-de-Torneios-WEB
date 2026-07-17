@@ -15,12 +15,12 @@ import { Type } from 'class-transformer';
 export class CriarJogadorDto {
   @ApiProperty({ example: 'uuid-do-time' })
   @IsString()
-  timeId: string;
+  timeId!: string;
 
   @ApiProperty({ example: 'João Silva' })
   @IsString()
   @MinLength(2)
-  nome: string;
+  nome!: string;
 
   @ApiPropertyOptional({ example: 10, minimum: 1, maximum: 99 })
   @IsOptional()

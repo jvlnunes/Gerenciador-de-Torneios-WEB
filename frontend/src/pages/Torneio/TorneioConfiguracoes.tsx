@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
-import type { Torneio } from "@/services/api/interfaces";
+import type { Torneio, OrganizadorTorneio, TorneioCtx } from "@/services/api/interfaces";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,18 +12,12 @@ import { cn } from "@/services/utils";
 import {
   ChevronDown, Check, Loader2, AlertCircle,
   Info, Settings, Layers, Users, Image, Target, Shield,
+  Plus, X,
 } from "lucide-react";
 
-interface TorneioCtx {
-  torneio: Torneio;
-  setTorneio: (t: Torneio) => void;
-  torneioId: string;
-  liveCount: number;
-  canManage: boolean;
-}
 
-/* ─── ConfigBlock ────────────────────────────────────────── */
-function ConfigBlock({
+/* ─── BlocoConfig ────────────────────────────────────────── */
+function BlocoConfig({
   icon: Icon,
   title,
   description,
@@ -83,7 +78,7 @@ function ReadRow({ label, value }: { label: string; value?: string }) {
 }
 
 /* ─── Bloco: Informações básicas ─────────────────────────── */
-function BasicInfoBlock({
+function BlocoInfoGeral({
   torneio,
   onSaved,
 }: {
@@ -122,7 +117,7 @@ function BasicInfoBlock({
   };
 
   return (
-    <ConfigBlock
+    <BlocoConfig
       icon={Info}
       title="Informações básicas"
       description="Nome, local, datas e status"
@@ -253,14 +248,14 @@ function BasicInfoBlock({
           </div>
         </form>
       )}
-    </ConfigBlock>
+    </BlocoConfig>
   );
 }
 
 /* ─── Bloco: Fases ───────────────────────────────────────── */
-function PhasesBlock() {
+function BlocoFases() {
   return (
-    <ConfigBlock
+    <BlocoConfig
       icon={Layers}
       title="Formato e fases"
       description="Estrutura de disputa do campeonato"
@@ -269,28 +264,152 @@ function PhasesBlock() {
         <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
         Edição de fases disponível na aba <strong className="text-foreground">Fases</strong> do torneio.
       </div>
-    </ConfigBlock>
+    </BlocoConfig>
   );
 }
 
 /* ─── Bloco: Organizadores ───────────────────────────────── */
-function OrganizersBlock() {
+function BlocoOrganizadores({
+  torneioId,
+  canManage,
+  currentUserId,
+}: {
+  torneioId: string;
+  canManage: boolean;
+  currentUserId?: string;
+}) {
+  const [organizadores, setOrganizadores] = useState<OrganizadorTorneio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setOrganizadores(await api.listarOrganizadores(torneioId));
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [torneioId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAdd = async () => {
+    if (!email.trim()) return;
+    setAdding(true);
+    setError(null);
+    try {
+      const atualizado = await api.adicionarOrganizador(torneioId, email.trim());
+      setOrganizadores(atualizado);
+      setEmail("");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRemove = async (usuarioId: string) => {
+    if (!confirm("Remover este organizador do torneio?")) return;
+    setRemovingId(usuarioId);
+    setError(null);
+    try {
+      const atualizado = await api.removerOrganizador(torneioId, usuarioId);
+      setOrganizadores(atualizado);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
   return (
-    <ConfigBlock
+    <BlocoConfig
       icon={Users}
       title="Organizadores"
       description="Responsáveis pelo torneio"
     >
-      <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-        Gerenciamento de organizadores chegará em breve.
-      </div>
-    </ConfigBlock>
+      {error && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="mb-5">
+          {organizadores.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Nenhum organizador cadastrado.</p>
+          ) : (
+            organizadores.map((org) => (
+              <div key={org.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                <div className="h-8 w-8 rounded-full bg-primary/10 grid place-items-center shrink-0">
+                  <span className="text-xs font-bold text-primary">
+                    {org.nome?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                    {org.nome}
+                    {org.usuarioId === currentUserId && (
+                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                        você
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{org.email}</p>
+                </div>
+                {canManage && (
+                  <button
+                    onClick={() => handleRemove(org.usuarioId)}
+                    disabled={removingId === org.usuarioId}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 disabled:opacity-50"
+                    title="Remover organizador"
+                  >
+                    {removingId === org.usuarioId
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <X className="h-3.5 w-3.5" />}
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {canManage && (
+        <>
+          <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              placeholder="email@exemplo.com"
+              className="h-9 flex-1"
+            />
+            <Button size="sm" onClick={handleAdd} disabled={adding || !email.trim()} className="gap-1.5 shrink-0">
+              {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              Adicionar
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            O usuário precisa já estar cadastrado no sistema com este e-mail.
+          </p>
+        </>
+      )}
+    </BlocoConfig>
   );
 }
 
 /* ─── Bloco: Mídia ───────────────────────────────────────── */
-function MediaBlock({
+function BlocoMidia({
   torneio,
   onSaved,
 }: {
@@ -298,10 +417,10 @@ function MediaBlock({
   onSaved: (t: Torneio) => void;
 }) {
   const [bannerUrl, setBannerUrl] = useState(torneio.bannerUrl ?? "");
-  const [logoUrl, setLogoUrl]     = useState(torneio.logoUrl ?? "");
-  const [saving, setSaving]       = useState(false);
-  const [success, setSuccess]     = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState(torneio.logoUrl ?? "");
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const dirty = bannerUrl !== (torneio.bannerUrl ?? "") || logoUrl !== (torneio.logoUrl ?? "");
 
@@ -330,7 +449,7 @@ function MediaBlock({
   };
 
   return (
-    <ConfigBlock
+    <BlocoConfig
       icon={Image}
       title="Mídia e aparência"
       description="Banner e logo do torneio"
@@ -413,12 +532,12 @@ function MediaBlock({
           )}
         </div>
       </div>
-    </ConfigBlock>
+    </BlocoConfig>
   );
 }
 
 /* ─── Bloco: Zona de perigo ──────────────────────────────── */
-function DangerBlock({ torneioId }: { torneioId: string }) {
+function BlocoZonaPerigo({ torneioId }: { torneioId: string }) {
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -435,7 +554,7 @@ function DangerBlock({ torneioId }: { torneioId: string }) {
   };
 
   return (
-    <ConfigBlock
+    <BlocoConfig
       icon={Shield}
       title="Zona de perigo"
       description="Ações irreversíveis"
@@ -475,13 +594,14 @@ function DangerBlock({ torneioId }: { torneioId: string }) {
           </div>
         )}
       </div>
-    </ConfigBlock>
+    </BlocoConfig>
   );
 }
 
 /* ─── Página principal ───────────────────────────────────── */
 export default function TorneioConfiguracoes() {
   const { torneio, setTorneio, torneioId, canManage } = useOutletContext<TorneioCtx>();
+  const { user } = useAuth();
 
   if (!canManage) {
     return (
@@ -510,29 +630,43 @@ export default function TorneioConfiguracoes() {
       </div>
 
       <div className="space-y-3">
-        {/* Informações básicas */}
-        <BasicInfoBlock torneio={torneio} onSaved={setTorneio} />
+        <BlocoInfoGeral 
+          torneio={torneio} 
+          onSaved={setTorneio} 
+        />
 
-        {/* Regras de partida — bloco dedicado com o form completo */}
-        <ConfigBlock
+        {/* Regras de partida */}
+        <BlocoConfig
           icon={Target}
           title="Regras de partida"
           description="Sets, pontuação, titulares e vantagem — herdadas por todas as partidas"
         >
-          <RegrasTorneioForm torneioId={torneioId} canManage={canManage} />
-        </ConfigBlock>
+
+        <RegrasTorneioForm 
+          torneioId={torneioId} 
+          canManage={canManage} 
+        />
+        
+        </BlocoConfig>
 
         {/* Fases */}
-        <PhasesBlock />
+        <BlocoFases />
 
-        {/* Organizadores */}
-        <OrganizersBlock />
+        <BlocoOrganizadores 
+          torneioId={torneioId} 
+          canManage={canManage} 
+          currentUserId={user?.id} 
+        />
 
-        {/* Mídia */}
-        <MediaBlock torneio={torneio} />
+        <BlocoMidia 
+          torneio={torneio} 
+          onSaved={setTorneio} 
+        />
 
         {/* Zona de perigo */}
-        <DangerBlock torneioId={torneioId} />
+        <BlocoZonaPerigo 
+          torneioId={torneioId} 
+        />
       </div>
     </div>
   );

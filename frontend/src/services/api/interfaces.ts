@@ -145,3 +145,19 @@ export interface RegrasTorneio {
     vantagemDoisPontos: boolean;
     limiteJogadoresPorTime: number;
 }
+
+export interface OrganizadorTorneio {
+    id: string;
+    usuarioId: string;
+    nome: string;
+    email: string;
+}
+
+
+export interface TorneioCtx {
+  torneio: Torneio;
+  setTorneio: (t: Torneio) => void;
+  torneioId: string;
+  liveCount: number;
+  canManage: boolean;
+}

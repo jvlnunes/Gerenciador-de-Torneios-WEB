@@ -4,15 +4,15 @@ import { IsString, IsOptional, IsISO8601 } from 'class-validator';
 export class CriarPartidaDto {
   @ApiProperty({ example: 'uuid-do-torneio' })
   @IsString()
-  torneioId: string;
+  torneioId!: string;
 
   @ApiProperty({ example: 'uuid-do-time-casa' })
   @IsString()
-  timeCasaId: string;
+  timeCasaId!: string;
 
   @ApiProperty({ example: 'uuid-do-time-visitante' })
   @IsString()
-  timeVisitanteId: string;
+  timeVisitanteId!: string;
 
   @ApiPropertyOptional({ example: '2026-03-10T19:00:00Z' })
   @IsOptional()

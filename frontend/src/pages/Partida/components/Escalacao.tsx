@@ -37,15 +37,12 @@ export interface RegistroSubstituicao {
   id: string;
   indiceSet: number;
   timeId: string;
-  // Jogador que saiu
   idJogadorSaindo: string;
   nomeJogadorSaindo: string;
   numeroJogadorSaindo?: number;
-  // Jogador que entrou
   idJogadorEntrando: string;
   nomeJogadorEntrando: string;
   numeroJogadorEntrando?: number;
-  // Posição onde ocorreu
   indicePosicao: IndicePosicao;
   placarCasa: number;
   placarVisitante: number;

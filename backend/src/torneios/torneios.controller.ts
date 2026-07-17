@@ -9,6 +9,7 @@ import { Roles } from '../auth/roles.decorator';
 
 import { CriarTorneioDto } from './dto/criar-torneio.dto';
 import { AtualizarTorneioDto } from './dto/atualizar-torneio.dto';
+import { AdicionarOrganizadorDto } from './dto/adicionar-organizador.dto';
 
 type AuthenticatedRequest = Request & {
   user: AuthenticatedUser;
@@ -17,7 +18,7 @@ type AuthenticatedRequest = Request & {
 @ApiTags('torneios')
 @Controller('torneios')
 export class TorneiosController {
-  constructor(private readonly torneiosService: TorneiosService) {}
+  constructor(private readonly torneiosService: TorneiosService) { }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -62,5 +63,37 @@ export class TorneiosController {
   @ApiOperation({ summary: 'Remove um torneio (apenas organizador ou ADMIN)' })
   remover(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.torneiosService.remover(id, req.user);
+  }
+  
+  @Get(':id/organizadores')
+  @ApiOperation({ summary: 'Lista os organizadores do torneio (nome e e-mail)' })
+  listarOrganizadores(@Param('id') id: string) {
+    return this.torneiosService.listarOrganizadores(id);
+  }
+  
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'GERENTE')
+  @Post(':id/organizadores')
+  @ApiOperation({ summary: 'Adiciona um organizador ao torneio pelo e-mail' })
+  adicionarOrganizador(
+    @Param('id') id: string,
+    @Body() dados: AdicionarOrganizadorDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.torneiosService.adicionarOrganizador(id, dados.email, req.user);
+  }
+  
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'GERENTE')
+  @Delete(':id/organizadores/:usuarioId')
+  @ApiOperation({ summary: 'Remove um organizador do torneio' })
+  removerOrganizador(
+    @Param('id') id: string,
+    @Param('usuarioId') usuarioId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.torneiosService.removerOrganizador(id, usuarioId, req.user);
   }
 }

@@ -13,7 +13,7 @@ export class CriarTorneioDto {
   @ApiProperty({ example: 'Copa Verão 2026' })
   @IsString()
   @MinLength(3)
-  nome: string;
+  nome!: string;
 
   @ApiPropertyOptional({ example: 'Torneio aberto de vôlei de praia.' })
   @IsOptional()

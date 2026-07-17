@@ -4,12 +4,12 @@ import { IsString, IsOptional, IsUrl, IsEmail, MinLength } from 'class-validator
 export class CriarTimeDto {
   @ApiProperty({ example: 'uuid-do-torneio' })
   @IsString()
-  torneioId: string;
+  torneioId!: string;
 
   @ApiProperty({ example: 'Tigres FC' })
   @IsString()
   @MinLength(2)
-  nome: string;
+  nome!: string;
 
   @ApiPropertyOptional({ example: 'https://cdn.exemplo.com/brasao.png' })
   @IsOptional()
