@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api } from "@/services/api";
+import  api from "@/services/api";
 import type { Torneio, OrganizadorTorneio, TorneioCtx } from "@/services/api/interfaces";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -101,7 +101,7 @@ function BlocoInfoGeral({
     if (!nome.trim()) { setError("O nome é obrigatório"); return; }
     setSaving(true); setError(null);
     try {
-      const updated = await api.atualizarTorneio(torneio.id, {
+      const updated = await api.torneios.atualizarTorneio(torneio.id, {
         nome: nome.trim(), descricao, local, dataInicio, dataFim,
         status: status as Torneio["status"],
       });
@@ -288,7 +288,7 @@ function BlocoOrganizadores({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setOrganizadores(await api.listarOrganizadores(torneioId));
+      setOrganizadores(await api.torneios.listarOrganizadores(torneioId));
     } catch {
     } finally {
       setLoading(false);
@@ -302,7 +302,7 @@ function BlocoOrganizadores({
     setAdding(true);
     setError(null);
     try {
-      const atualizado = await api.adicionarOrganizador(torneioId, email.trim());
+      const atualizado = await api.torneios.adicionarOrganizador(torneioId, email.trim());
       setOrganizadores(atualizado);
       setEmail("");
     } catch (e) {
@@ -317,7 +317,7 @@ function BlocoOrganizadores({
     setRemovingId(usuarioId);
     setError(null);
     try {
-      const atualizado = await api.removerOrganizador(torneioId, usuarioId);
+      const atualizado = await api.torneios.removerOrganizador(torneioId, usuarioId);
       setOrganizadores(atualizado);
     } catch (e) {
       setError((e as Error).message);
@@ -428,7 +428,7 @@ function BlocoMidia({
     setSaving(true);
     setError(null);
     try {
-      const updated = await api.atualizarTorneio(torneio.id, {
+      const updated = await api.torneios.atualizarTorneio(torneio.id, {
         bannerUrl: bannerUrl || undefined,
         logoUrl: logoUrl || undefined,
       });
@@ -545,7 +545,7 @@ function BlocoZonaPerigo({ torneioId }: { torneioId: string }) {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await api.removerTorneio(torneioId);
+      await api.torneios.removerTorneio(torneioId);
       navigate("/torneios");
     } catch {
       setDeleting(false);

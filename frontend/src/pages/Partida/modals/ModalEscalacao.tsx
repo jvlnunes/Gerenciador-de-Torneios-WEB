@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/services/utils";
@@ -20,7 +18,7 @@ const ORDEM_CASA: IndicePosicao[] = [0, 3, 2, 4, 1, 5];
 const ORDEM_VISITANTE: IndicePosicao[] = [5, 1, 4, 2, 3, 0];
 
 const LABEL_CASA: Record<number, string> = { 0: "5", 1: "1●", 2: "6", 3: "4", 4: "3", 5: "2" };
-const LABEL_VIS: Record<number, string>  = { 5: "2", 1: "1●", 4: "3", 2: "6", 3: "4", 0: "5" };
+const LABEL_VIS: Record<number, string> = { 5: "2", 1: "1●", 4: "3", 2: "6", 3: "4", 0: "5" };
 
 function montarEscalacaoPadrao(timeId: string, jogadores: JogadorPartida[]): EscalacaoTime {
   const titularesComPosicao = jogadores.filter(
@@ -48,7 +46,7 @@ function montarEscalacaoPadrao(timeId: string, jogadores: JogadorPartida[]): Esc
     .filter((j) => !idsTitulares.has(j.jogadorId))
     .map((j) => j.jogadorId);
 
-  return { timeId, titulares, banco, indicePosicaoSaque: 1 };
+  return { timeId, titulares, banco, indicePosicaoSaque: 1, sacaPrimeiro: false };
 }
 
 // ─── Slot individual da quadra ────────────────────────────────────────────────
@@ -130,8 +128,8 @@ function MeiaQuadra({
 }) {
   const drag = useRef<{ from: IndicePosicao | "banco"; jogadorId: string } | null>(null);
   const [overBanco, setOverBanco] = useState(false);
-  const corText  = isCasa ? "text-emerald-700" : "text-orange-700";
-  const ordem    = isCasa ? ORDEM_CASA : ORDEM_VISITANTE;
+  const corText = isCasa ? "text-emerald-700" : "text-orange-700";
+  const ordem = isCasa ? ORDEM_CASA : ORDEM_VISITANTE;
   const labelMap = isCasa ? LABEL_CASA : LABEL_VIS;
 
   const getJogador = (indice: IndicePosicao) => {
@@ -165,7 +163,7 @@ function MeiaQuadra({
     } else {
       // Quadra → quadra: troca posições
       const tFrom = novosTitulares.find(t => t.indicePosicao === from);
-      const tTo   = novosTitulares.find(t => t.indicePosicao === toIndice);
+      const tTo = novosTitulares.find(t => t.indicePosicao === toIndice);
       if (tFrom && tTo) {
         const tmp = tFrom.jogadorId;
         tFrom.jogadorId = tTo.jogadorId;
@@ -323,7 +321,7 @@ export function ModalEscalacao({
   aoFechar,
 }: ModalEscalacaoProps) {
   const jCasa = jogadores.filter(j => j.timeId === timeCasaId);
-  const jVis  = jogadores.filter(j => j.timeId === timeVisitanteId);
+  const jVis = jogadores.filter(j => j.timeId === timeVisitanteId);
 
   const [escCasa, setEscCasa] = useState<EscalacaoTime>(() =>
     escalacaoAnterior?.casa ?? montarEscalacaoPadrao(timeCasaId, jCasa)
@@ -343,14 +341,14 @@ export function ModalEscalacao({
   if (!aberto) return null;
 
   const casaOk = escCasa.titulares.length === 6;
-  const visOk  = escVis.titulares.length === 6;
+  const visOk = escVis.titulares.length === 6;
   const canConfirm = casaOk && visOk;
 
   const handleConfirmar = () => {
     aoConfirmar({
       indiceSet,
-      casa:      { ...escCasa,  indicePosicaoSaque: 1 },
-      visitante: { ...escVis,   indicePosicaoSaque: 1 },
+      casa: { ...escCasa, indicePosicaoSaque: 1, sacaPrimeiro: equipeQueIniciaSaque === "CASA" },
+      visitante: { ...escVis, indicePosicaoSaque: 1, sacaPrimeiro: equipeQueIniciaSaque === "VISITANTE" },
     });
   };
 
@@ -435,7 +433,7 @@ export function ModalEscalacao({
           {!canConfirm && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
               {!casaOk && `${nomeTimeCasa}: posicione mais ${6 - escCasa.titulares.length} jogador(es) na quadra. `}
-              {!visOk  && `${nomeTimeVisitante}: posicione mais ${6 - escVis.titulares.length} jogador(es) na quadra.`}
+              {!visOk && `${nomeTimeVisitante}: posicione mais ${6 - escVis.titulares.length} jogador(es) na quadra.`}
             </p>
           )}
         </div>

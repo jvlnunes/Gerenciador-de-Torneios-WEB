@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/services/api";
+import api from "@/services/api";
 import { cn } from "@/services/utils";
 import {
   Plus, Loader2, Swords, Trophy, Play, Clock, MapPin, Trash2, X,
@@ -208,19 +208,25 @@ function ModalCriarPartida({
   const submit = async () => {
     if (!timeCasaId || !timeVisitanteId) { setError("Selecione os dois times"); return; }
     if (timeCasaId === timeVisitanteId) { setError("Times precisam ser diferentes"); return; }
+
     setSaving(true);
     setError(null);
+
     try {
-      const m = await api.criarPartida({
+      const m = await api.partidas.criar(torneioId, {
         torneioId,
         timeCasaId,
         timeVisitanteId,
         agendadoPara: agendadoPara || undefined,
         local: local || undefined,
-      } as unknown as Omit<Partida, "id">);
+      });
+
       onCreated(m);
-    } catch (e) { setError((e as Error).message); }
-    finally { setSaving(false); }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const sel = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary";
@@ -647,8 +653,8 @@ export default function TorneioFases() {
 
   const load = useCallback(async () => {
     const [ts, ps] = await Promise.all([
-      api.listarTimes(torneioId),
-      api.listarPartidas(torneioId),
+      api.times.listarPorTorneio(torneioId),
+      api.partidas.listarPorTorneio(torneioId),
     ]);
     setTimes(ts);
     setPartidas(ps);
@@ -677,7 +683,7 @@ export default function TorneioFases() {
   const handleStart = async (partidaId: string) => {
     setStarting(partidaId);
     try {
-      const updated = await api.comecaPartida(partidaId);
+      const updated = await api.partidas.comecaPartida(partidaId);
       setPartidas((prev) => prev.map((m) => m.id === partidaId ? updated : m));
       navigate(`/partidas/${partidaId}`);
     } finally { setStarting(null); }
@@ -685,7 +691,7 @@ export default function TorneioFases() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta partida?")) return;
-    await api.removerPartida(id);
+    await api.partidas.removerPartida(id);
     setPartidas((prev) => prev.filter((m) => m.id !== id));
   };
 
@@ -821,7 +827,7 @@ export default function TorneioFases() {
                         onPartidaDeleted={handleDelete}
                         onPartidaStart={handleStart}
                         onPartidaOpen={(id) => navigate(`/partidas/${id}`)}
-                        onFaseProgress={() => {}}
+                        onFaseProgress={() => { }}
                       />
                     ) : (
                       <FaseMataMata

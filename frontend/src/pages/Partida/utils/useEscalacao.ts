@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { api } from "@/services/api";
+import  api  from "@/services/api";
 import type { EscalacaoSet, RegistroSubstituicao, EscalacaoTime } from "../components/Escalacao";
 import type { JogadorPartida } from "@/services/api/interfaces";
+import type { LadoPonto } from "@/services/api/types";
 
 function encontrarJogador(jogadores: JogadorPartida[], id?: string) {
   if (!id) return undefined;
@@ -13,13 +14,19 @@ function encontrarFallbackDoTime(jogadores: JogadorPartida[], timeId: string) {
   return doTime.find((j) => j.titular) ?? doTime[0];
 }
 
-/** Aplica rotação física a uma lista ordenada de 6 ids (posição tática 0..5) */
+const INDICE_PARA_POSICAO: number[] = [5, 1, 6, 4, 3, 2];
+const POSICAO_PARA_INDICE: Record<number, number> = { 1: 1, 2: 5, 3: 4, 4: 3, 5: 0, 6: 2 };
+
+/** Aplica rotação física a uma lista indexada por indicePosicao (0-5) */
 function aplicarRotacao(idsTaticos: (string | null)[], rotacao: number) {
-  const idsNaQuadraFisica = new Array(6);
-  for (let posFisica = 0; posFisica < 6; posFisica++) {
-    const idxTaticoOriginal = (posFisica + rotacao) % 6;
-    idsNaQuadraFisica[posFisica] = idsTaticos[idxTaticoOriginal];
+  const idsNaQuadraFisica: (string | null)[] = new Array(6);
+
+  for (let indice = 0; indice < 6; indice++) {
+    const posicaoAtual = INDICE_PARA_POSICAO[indice];
+    const posicaoOrigem = ((posicaoAtual - 1 + rotacao) % 6) + 1;
+    idsNaQuadraFisica[indice] = idsTaticos[POSICAO_PARA_INDICE[posicaoOrigem]];
   }
+
   return idsNaQuadraFisica;
 }
 
@@ -44,7 +51,7 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     async (indiceSet: number) => {
       if (!partidaId) return;
       try {
-        const rows = await api.listarEscalacao(partidaId, indiceSet);
+        const rows = await api.partidas.buscarEscalacao(partidaId, indiceSet);
         tentativasFeitas.current.add(indiceSet);
 
         if (rows.length < 2) return; // ainda não foi salva escalação pra esse set
@@ -55,12 +62,14 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
           titulares: a.titulares as any,
           banco: a.banco as any,
           indicePosicaoSaque: a.indicePosicaoSaque as any,
+          sacaPrimeiro: a.sacaPrimeiro,
         };
         const escalacaoB: EscalacaoTime = {
           timeId: b.timeId,
           titulares: b.titulares as any,
           banco: b.banco as any,
           indicePosicaoSaque: b.indicePosicaoSaque as any,
+          sacaPrimeiro: b.sacaPrimeiro,
         };
 
         setEscalacoes((prev) => ({
@@ -78,7 +87,7 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
   const carregarSubstituicoes = useCallback(async () => {
     if (!partidaId) return;
     try {
-      const subs = await api.listarSubstituicoes(partidaId);
+      const subs = await api.partidas.listarSubstituicoes(partidaId);
       setSubstituicoes(
         subs.map((s) => ({
           id: s.id,
@@ -144,17 +153,21 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
   const confirmarEscalacao = async (escalacao: EscalacaoSet) => {
     if (!partidaId) return;
 
-    await api.salvarEscalacao(partidaId, {
+    await api.partidas.salvarEscalacao(partidaId, {
       indiceSet: escalacao.indiceSet,
-      casa: {
+      escalacaoCasa: {
+        timeId: escalacao.casa.timeId,
         titulares: escalacao.casa.titulares,
         banco: escalacao.casa.banco,
         indicePosicaoSaque: escalacao.casa.indicePosicaoSaque,
+        sacaPrimeiro: escalacao.casa.sacaPrimeiro,
       },
-      visitante: {
+      escalacaoVisitante: {
+        timeId: escalacao.visitante.timeId,
         titulares: escalacao.visitante.titulares,
         banco: escalacao.visitante.banco,
         indicePosicaoSaque: escalacao.visitante.indicePosicaoSaque,
+        sacaPrimeiro: escalacao.visitante.sacaPrimeiro,
       },
     });
 
@@ -169,7 +182,7 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
   ) => {
     if (!partidaId) return;
 
-    const salva = await api.registrarSubstituicao(partidaId, {
+    const salva = await api.partidas.registrarSubstituicao(partidaId, {
       indiceSet: sub.indiceSet,
       timeId: sub.timeId,
       idJogadorSaindo: sub.idJogadorSaindo,
@@ -206,6 +219,12 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
   /* ── Consultas (Getters) ─────────────────────────────────── */
 
   const obterEscalacao = (indiceSet: number) => escalacoes[indiceSet];
+
+  const obterSacadorInicial = (indiceSet: number): LadoPonto => {
+    const escalacaoSet = escalacoes[indiceSet];
+    if (!escalacaoSet) return "CASA";
+    return escalacaoSet.casa.sacaPrimeiro ? "CASA" : "VISITANTE";
+  };
 
   const setJaTemEscalacao = (indiceSet: number) => setsComEscalacao.has(indiceSet);
 
@@ -398,6 +417,7 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
     obterSubstituicoesDoSet,
     obterTodasSubstituicoesDoSet,
     obterEscalacao,
+    obterSacadorInicial,
     setJaTemEscalacao,
     obterJogadorPosicao1,
     obterQuadraAtual,

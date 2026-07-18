@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: '*', // '*' libera todas as portas.
+    origin: true, 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
@@ -35,7 +35,7 @@ async function bootstrap() {
         description: 'Informe o token JWT obtido em /auth/login',
         in: 'header',
       },
-      'access-token', // nome de referência usado no @ApiBearerAuth() dos controllers
+      'access-token',
     )
     .addTag('auth', 'Autenticação e registro de usuários')
     .addTag('torneios', 'Gestão de torneios')
@@ -49,6 +49,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
 
-  await app.listen(3000);
+  await app.listen(3000, '0.0.0.0');
 }
 bootstrap();

@@ -1,0 +1,440 @@
+import {
+    AuthUser,
+    Torneio,
+    EscalacaoTimeApi,
+    EventoPartida,
+    Jogador,
+    JogadorPartida,
+    Partida,
+    RegrasTorneio,
+    SubstituicaoApi,
+    Time,
+    OrganizadorTorneio
+} from "./api/interfaces";
+
+const API_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
+const TOKEN_KEY = "vb_token";
+const USER_KEY = "vb_user";
+
+/* ── SSR-safe storage ─────────────────────────────────────── */
+const isBrowser = typeof window !== "undefined";
+
+const ls = {
+    get: (k: string) => {
+        try {
+            return isBrowser ? localStorage.getItem(k) : null;
+        } catch {
+            return null;
+        }
+    },
+    set: (k: string, v: string) => {
+        try {
+            if (isBrowser) localStorage.setItem(k, v);
+        } catch { }
+    },
+    del: (k: string) => {
+        try {
+            if (isBrowser) localStorage.removeItem(k);
+        } catch { }
+    },
+};
+
+export const auth = {
+    getToken: () => ls.get(TOKEN_KEY),
+
+    getUser: (): AuthUser | null => {
+        try {
+            return JSON.parse(ls.get(USER_KEY) ?? "null");
+        } catch {
+            return null;
+        }
+    },
+
+    setSession: (token: string, user: AuthUser) => {
+        ls.set(TOKEN_KEY, token);
+        ls.set(USER_KEY, JSON.stringify(user));
+        if (isBrowser) window.dispatchEvent(new Event("auth-change"));
+    },
+
+    clear: () => {
+        ls.del(TOKEN_KEY);
+        ls.del(USER_KEY);
+        if (isBrowser) window.dispatchEvent(new Event("auth-change"));
+    },
+};
+
+/* ── HTTP helper ──────────────────────────────────────────── */
+async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
+    const token = auth.getToken();
+
+    const res = await fetch(`${API_URL}${path}`, {
+        ...opts,
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(opts.headers ?? {}),
+        },
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        let mensagem = errorText || `HTTP ${res.status}`;
+
+        try {
+            const errorJson = JSON.parse(errorText);
+            if (errorJson?.message) {
+                mensagem = Array.isArray(errorJson.message)
+                    ? errorJson.message.join(", ")
+                    : errorJson.message;
+            }
+        } catch {
+            // corpo não era JSON — mantém o texto cru como mensagem
+        }
+
+        throw new Error(mensagem);
+    }
+
+    if (res.status === 204) return undefined as T;
+
+    return res.json();
+}
+
+/* ── API EXPORTADA ────────────────────────────────────────── */
+export const api = {
+    /* ── Autenticação ───────────────────────────────────────── */
+
+    login: async (email: string, senha: string) => {
+        const data = await request<{ token: string; user: AuthUser }>("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ email, password: senha }),
+        });
+        auth.setSession(data.token, data.user);
+        return data;
+    },
+
+    register: async (nome: string, email: string, senha: string) => {
+        return request<AuthUser>("/auth/register", {
+            method: "POST",
+            body: JSON.stringify({ nome, email, password: senha }),
+        });
+    },
+
+    logout: () => {
+        auth.clear();
+    },
+
+    /* ── Torneios ───────────────────────────────────────────── */
+
+    listarTorneios: async (): Promise<Torneio[]> => {
+        return request<Torneio[]>("/torneios");
+    },
+
+    buscarTorneio: async (id: string): Promise<Torneio> => {
+        return request<Torneio>(`/torneios/${id}`);
+    },
+
+    criarTorneio: async (data: Omit<Torneio, "id">): Promise<Torneio> => {
+        return request<Torneio>("/torneios", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    atualizarTorneio: async (
+        id: string,
+        data: Partial<Torneio>,
+    ): Promise<Torneio> => {
+        return request<Torneio>(`/torneios/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+    removerTorneio: async (id: string): Promise<void> => {
+        return request<void>(`/torneios/${id}`, {
+            method: "DELETE",
+        });
+    },
+
+    /* ── Times ──────────────────────────────────────────────── */
+
+    listarTimes: async (torneioId: string): Promise<Time[]> => {
+        return request<Time[]>(`/times?torneioId=${torneioId}`);
+    },
+
+    buscarTime: async (id: string): Promise<Time> => {
+        return request<Time>(`/times/${id}`);
+    },
+
+    criarTime: async (data: Omit<Time, "id">): Promise<Time> => {
+        return request<Time>("/times", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    atualizarTime: async (id: string, data: Partial<Time>): Promise<Time> => {
+        return request<Time>(`/times/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+    removerTime: async (id: string): Promise<void> => {
+        return request<void>(`/times/${id}`, {
+            method: "DELETE",
+        });
+    },
+
+    /* ── Jogadores ──────────────────────────────────────────── */
+
+    listarJogadores: async (timeId: string): Promise<Jogador[]> => {
+        return request<Jogador[]>(`/times/${timeId}/jogadores`);
+    },
+
+    criarJogador: async (data: Omit<Jogador, "id">): Promise<Jogador> => {
+        return request<Jogador>(`/times/${data.timeId}/jogadores`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    atualizarJogador: async (
+        timeId: string,
+        jogadorId: string,
+        data: Partial<Jogador>,
+    ): Promise<Jogador> => {
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+    deletarJogador: async (
+        timeId: string,
+        jogadorId: string,
+    ): Promise<void> => {
+        return request<void>(`/times/${timeId}/jogadores/${jogadorId}`, {
+            method: "DELETE",
+        });
+    },
+
+    definirTitular: async (
+        timeId: string,
+        jogadorId: string,
+        titular: boolean,
+    ): Promise<Jogador> => {
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}/titular`, {
+            method: "PUT",
+            body: JSON.stringify({ titular }),
+        });
+    },
+
+    /* ── Convite de time (join) ───────────────────────────────── */
+
+    getTeamByInvite: async (
+        token: string,
+    ): Promise<Time & { tournamentName: string }> => {
+        return request(`/times/convite/${token}`);
+    },
+
+    joinTeamByInvite: async (
+        token: string,
+        data: { name: string; jerseyNumber?: number; position?: string },
+    ): Promise<Jogador> => {
+        return request<Jogador>(`/times/convite/${token}/entrar`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    /* ── Partidas ───────────────────────────────────────────── */
+
+    listarPartidas: async (torneioId: string): Promise<Partida[]> => {
+        return request<Partida[]>(`/partidas?torneioId=${torneioId}`);
+    },
+
+    buscarPartida: async (id: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${id}`);
+    },
+
+    criarPartida: async (data: Omit<Partida, "id">): Promise<Partida> => {
+        return request<Partida>("/partidas", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    comecaPartida: async (partidaId: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: "AO_VIVO" }),
+        });
+    },
+
+    atualizarPartida: async (
+        id: string,
+        data: Partial<Partida>,
+    ): Promise<Partida> => {
+        return request<Partida>(`/partidas/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+    removerPartida: async (id: string): Promise<void> => {
+        return request<void>(`/partidas/${id}`, {
+            method: "DELETE",
+        });
+    },
+
+    finalizarPartida: async (partidaId: string): Promise<Partida> => {
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: "FINALIZADA" }),
+        });
+    },
+
+    /* ── Elenco da Partida ─────────────────────────────────── */
+
+    listarJogadoresPartida: async (
+        partidaId: string,
+    ): Promise<JogadorPartida[]> => {
+        return request<JogadorPartida[]>(`/partidas/${partidaId}/jogadores`);
+    },
+
+    /* ── Eventos / Placar Ao Vivo ──────────────────────────── */
+
+    listarEventosPartida: async (
+        partidaId: string,
+    ): Promise<EventoPartida[]> => {
+        return request<EventoPartida[]>(`/partidas/${partidaId}/eventos`);
+    },
+
+    registrarEvento: async (
+        partidaId: string,
+        data: Omit<EventoPartida, "id" | "partidaId" | "horario">,
+    ): Promise<{ evento: EventoPartida; partida: Partida }> => {
+        return request(`/partidas/${partidaId}/eventos`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    anularUltimoEvento: async (
+        partidaId: string,
+    ): Promise<{ partida: Partida }> => {
+        return request(`/partidas/${partidaId}/eventos/anular-ultimo`, {
+            method: "POST",
+        });
+    },
+
+    /* ── Regras de Partida do Torneio ─────────────────────────── */
+
+    buscarRegras: async (torneioId: string): Promise<RegrasTorneio> => {
+        return request<RegrasTorneio>(`/torneios/${torneioId}/regras`);
+    },
+
+    atualizarRegras: async (
+        torneioId: string,
+        data: Partial<Omit<RegrasTorneio, "id" | "torneioId">>,
+    ): Promise<RegrasTorneio> => {
+        return request<RegrasTorneio>(`/torneios/${torneioId}/regras`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+
+    /** Escalação por Set */
+    salvarEscalacao: async (
+        partidaId: string,
+        data: {
+            indiceSet: number;
+            casa: { titulares: { jogadorId: string; indicePosicao: number }[]; banco: string[]; indicePosicaoSaque?: number };
+            visitante: { titulares: { jogadorId: string; indicePosicao: number }[]; banco: string[]; indicePosicaoSaque?: number };
+        },
+    ): Promise<EscalacaoTimeApi[]> => {
+        return request<EscalacaoTimeApi[]>(`/partidas/${partidaId}/escalacao`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    listarEscalacao: async (
+        partidaId: string,
+        indiceSet: number,
+    ): Promise<EscalacaoTimeApi[]> => {
+        return request<EscalacaoTimeApi[]>(`/partidas/${partidaId}/escalacao?indiceSet=${indiceSet}`);
+    },
+
+    /* ── Substituições ─────────────────────────────────────── */
+
+    registrarSubstituicao: async (
+        partidaId: string,
+        data: {
+            indiceSet: number;
+            timeId: string;
+            idJogadorSaindo: string;
+            nomeJogadorSaindo: string;
+            numeroJogadorSaindo?: number;
+            idJogadorEntrando: string;
+            nomeJogadorEntrando: string;
+            numeroJogadorEntrando?: number;
+            indicePosicao: number;
+            placarCasa: number;
+            placarVisitante: number;
+        },
+    ): Promise<SubstituicaoApi> => {
+        return request<SubstituicaoApi>(`/partidas/${partidaId}/substituicoes`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    listarSubstituicoes: async (
+        partidaId: string,
+        indiceSet?: number,
+    ): Promise<SubstituicaoApi[]> => {
+        const qs = indiceSet !== undefined ? `?indiceSet=${indiceSet}` : "";
+        return request<SubstituicaoApi[]>(`/partidas/${partidaId}/substituicoes${qs}`);
+    },
+
+    /* ── Organizadores ──────────────────────────────────────── */
+
+    listarOrganizadores: async (torneioId: string): Promise<OrganizadorTorneio[]> => {
+        return request<OrganizadorTorneio[]>(`/torneios/${torneioId}/organizadores`);
+    },
+
+    adicionarOrganizador: async (torneioId: string, email: string): Promise<OrganizadorTorneio[]> => {
+        return request<OrganizadorTorneio[]>(`/torneios/${torneioId}/organizadores`, {
+            method: "POST",
+            body: JSON.stringify({ email }),
+        });
+    },
+
+    removerOrganizador: async (torneioId: string, usuarioId: string): Promise<OrganizadorTorneio[]> => {
+        return request<OrganizadorTorneio[]>(`/torneios/${torneioId}/organizadores/${usuarioId}`, {
+            method: "DELETE",
+        });
+    },
+
+};
+
+/* ── Gerencia de Acessos ────────────────────────────────────────── */
+export function souOrganizador(torneio: Torneio, userId?: string): boolean {
+    if (!userId) return false;
+    return (torneio.organizadores ?? []).some((o) => o.usuarioId === userId);
+}
+
+export function podeGerenciarTorneio(
+    torneio: Torneio,
+    user: AuthUser | null,
+): boolean {
+    if (!user) return false;
+    if (user.perfil === "ADMIN") return true;
+    return user.perfil === "GERENTE" && souOrganizador(torneio, user.id);
+}
+
+/* ── Fases de torneio (Racha, etc.) ──────────────────────────────── */
+export { fasesApi } from "./api/fasesTorneio";

@@ -3,7 +3,7 @@ import { Partida, JogadorPartida, EventoPartida } from "@/services/api/interface
 import { Play } from "lucide-react";
 import { cn } from "@/services/utils";
 import { ACOES_PONTO, ACOES_EXTRAS, ActionDef } from "../utils/LogicaPartida";
-import { BankPanel } from "./PainelBanco";
+import { PainelBanco } from "./PainelBanco";
 import { EstatisticasTime } from "./EstatisticasTime";
 
 interface ColunaTimeProps {
@@ -40,7 +40,7 @@ export function ColunaTime({
 
       {!isFinalizada && (
         <div className="px-3 py-3 border-b border-gray-100">
-          <BankPanel titulares={titulares} reservas={reservas} cor={corPadrao} nomeTime={nomeTime} canManage={podeGerenciar && isAoVivo && setStarted} onSub={onSub} />
+          <PainelBanco titulares={titulares} reservas={reservas} cor={corPadrao} nomeTime={nomeTime} canManage={podeGerenciar && isAoVivo && setStarted} onSub={onSub} />
         </div>
       )}
 

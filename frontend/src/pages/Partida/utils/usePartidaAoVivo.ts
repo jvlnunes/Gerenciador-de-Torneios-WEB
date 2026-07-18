@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { api } from "@/services/api";
+import api from "@/services/api";
 import { Partida, EventoPartida, JogadorPartida, Torneio } from "@/services/api/interfaces";
 import type { LadoPonto, TipoErro, TipoCartao } from "@/services/api/types";
 import { ActionDef } from "./LogicaPartida";
@@ -21,15 +21,15 @@ export function usePartidaAoVivo(partidaId: string | undefined) {
   const load = useCallback(async () => {
     if (!partidaId) return null;
     const [p, evs, jgs] = await Promise.all([
-      api.buscarPartida(partidaId),
-      api.listarEventosPartida(partidaId),
-      api.listarJogadoresPartida(partidaId),
+      api.partidas.buscar(partidaId),
+      api.partidas.listarEventos(partidaId),
+      api.partidas.listarJogadoresRelacionados(partidaId),
     ]);
     setPartida(p);
     setEventos(evs);
     setJogadores(jgs);
 
-    const t = await api.buscarTorneio(p.torneioId);
+    const t = await api.torneios.buscarTorneio(p.torneioId);
     setTorneio(t);
     setLoading(false);
 

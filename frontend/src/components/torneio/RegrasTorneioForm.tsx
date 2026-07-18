@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { api, type RegrasTorneio } from "@/services/api";
+import api from "@/services/api";
+import type { RegrasTorneio } from "@/services/api/interfaces";
 import { cn } from "@/services/utils";
 import {
   Loader2, Check, AlertCircle, Trophy, Zap,
@@ -233,7 +234,7 @@ export function RegrasTorneioForm({ torneioId, canManage }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const regras = await api.buscarRegras(torneioId);
+      const regras = await api.torneios.buscarRegras(torneioId);
       const values = {
         setsParaVencer:         regras.setsParaVencer,
         pontosPorSet:           regras.pontosPorSet,
@@ -268,7 +269,7 @@ export function RegrasTorneioForm({ torneioId, canManage }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await api.atualizarRegras(torneioId, form);
+      await api.torneios.atualizarRegras(torneioId, form);
       setOriginal({ ...form });
       setDirty(false);
       setSuccess(true);

@@ -1,4 +1,3 @@
-// frontend/src/components/tournament/team-card.tsx
 import { Link } from "react-router-dom"
 import { Shield, Users, Trash2 } from "lucide-react"
 import { type Time } from "@/services/api"

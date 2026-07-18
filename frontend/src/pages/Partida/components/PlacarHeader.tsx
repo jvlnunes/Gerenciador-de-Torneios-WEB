@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Flag, Play, RotateCcw, Settings } from "lucide-react";
 import { Partida } from "@/services/api/interfaces";
 import type { LadoPonto } from "@/services/api/types";
+
+import { useEffect, useState } from "react";
+import { ArrowLeft, Flag, Play, RotateCcw, Settings, Maximize2, Minimize2 } from "lucide-react";
 
 interface PlacarHeaderProps {
   partida: Partida;
@@ -29,6 +31,23 @@ export function PlacarHeader({
   const valorVisitante = isFinalizada ? partida.setsVisitante : partida.setAtualVisitante;
   const destacarCasa = !isFinalizada || partida.setsCasa > partida.setsVisitante;
   const destacarVisitante = !isFinalizada || partida.setsVisitante > partida.setsCasa;
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    onChange();
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => { });
+    } else {
+      document.exitFullscreen?.().catch(() => { });
+    }
+  };
 
   const NomeCasa = ({ className = "" }: { className?: string }) => (
     <span className={`flex items-center gap-1.5 min-w-0 font-bold text-gray-600 uppercase tracking-wider truncate ${className}`}>
@@ -120,35 +139,45 @@ export function PlacarHeader({
       </div>
 
       {/* Ações header direita */}
-      {podeGerenciar && (
-        <div className="absolute right-4 sm:right-5 flex gap-2">
-          {isAgendada && (
-            <button onClick={onIniciarPartida} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow">
-              <Flag className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Iniciar</span>
-            </button>
-          )}
-          {isAoVivo && !setStarted && (
-            <button onClick={onIniciarSet} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow">
-              <Play className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Iniciar Set</span>
-            </button>
-          )}
-          {isAoVivo && setStarted && (
-            <>
-              <button onClick={onOpenConfig} className="flex items-center justify-center p-2 text-gray-500 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition shadow-sm">
-                <Settings className="w-4 h-4" />
+      <div className="absolute right-4 sm:right-5 flex gap-2">
+        {podeGerenciar && (
+          <>
+            {isAgendada && (
+              <button onClick={onIniciarPartida} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow">
+                <Flag className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Iniciar</span>
               </button>
-              <button onClick={onAnularPonto} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition text-gray-700">
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline">Anular</span>
+            )}
+            {isAoVivo && !setStarted && (
+              <button onClick={onIniciarSet} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition shadow">
+                <Play className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Iniciar Set</span>
               </button>
-              <button onClick={onEncerrarPartida} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition">
-                <Flag className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline">Encerrar</span>
-              </button>
-            </>
-          )}
-        </div>
-      )}
+            )}
+            {isAoVivo && setStarted && (
+              <>
+                <button onClick={onOpenConfig} className="flex items-center justify-center p-2 text-gray-500 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition shadow-sm">
+                  <Settings className="w-4 h-4" />
+                </button>
+                <button onClick={onAnularPonto} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition text-gray-700">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">Anular</span>
+                </button>
+                <button onClick={onEncerrarPartida} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold uppercase tracking-wider bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition">
+                  <Flag className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">Encerrar</span>
+                </button>
+              </>
+            )}
+          </>
+        )}
+
+        <button
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+          className="flex items-center justify-center p-2 text-gray-500 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition shadow-sm"
+        >
+          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
+      </div>
     </header>
   );
 }

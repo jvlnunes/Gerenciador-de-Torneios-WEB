@@ -9,6 +9,7 @@ import { TimesModule } from './times/times.module';
 import { JogadoresModule } from './jogadores/jogadores.module';
 import { RegrasTorneioModule } from './regras-torneio/regras-torneio.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { FasesTorneioModule } from './fases-torneio/fases-torneio.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     JogadoresModule,
     RegrasTorneioModule,
     UsuariosModule,
+    FasesTorneioModule,
   ],
   controllers: [AppController],
   providers: [AppService],

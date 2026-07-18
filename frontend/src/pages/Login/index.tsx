@@ -4,7 +4,7 @@ import { Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/services/api";
+import api from "@/services/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -21,18 +21,18 @@ export default function LoginPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true); 
+    setLoading(true);
     setError(null);
     try {
-      if (mode === "register") await api.register(name, email, password);
-      await api.login(email, password);
-      
+      if (mode === "register") await api.auth.register(name, email, password);
+      await api.auth.login(email, password);
+
       // Navegação estilo react-router-dom (passamos apenas a string do caminho)
       navigate(redirect || "/torneios");
     } catch (e) {
       setError((e as Error).message);
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 

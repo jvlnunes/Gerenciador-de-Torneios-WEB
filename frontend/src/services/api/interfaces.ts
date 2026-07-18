@@ -1,4 +1,18 @@
-import { PerfilUsuario, StatusTorneio, StatusPartida, VisibilidadeTorneio, LadoPonto, TipoPonto, TipoCartao, TipoErro } from './types.ts';
+import {
+    PerfilUsuario,
+    StatusTorneio,
+    StatusPartida,
+    VisibilidadeTorneio,
+    LadoPonto,
+    TipoPonto,
+    TipoCartao,
+    TipoErro,
+    FormatoTorneio,
+    FormatoFase,
+    ModoFormacaoTimes,
+    CriterioSorteio,
+    ModoGeracaoPartidas
+} from './types';
 
 export interface AuthUser {
     id: string;
@@ -26,6 +40,7 @@ export interface Torneio {
 export interface Time {
     id: string;
     torneioId: string;
+    faseId?: string | null;
     nome: string;
     logoUrl?: string;
     tokenConvite?: string;
@@ -42,7 +57,7 @@ export interface Time {
 
 export interface Jogador {
     id: string;
-    timeId: string;
+    timeId?: string | null;
     usuarioId?: string;
     nome: string;
     numeroCamisa?: number;
@@ -51,6 +66,7 @@ export interface Jogador {
     entrouPorLink?: boolean;
     titular?: boolean;
     indicePosicao?: number | null;
+    notaHabilidade?: number | null;
     criadoEm?: string;
 }
 
@@ -96,6 +112,7 @@ export interface EscalacaoTimeApi {
     titulares: { jogadorId: string; indicePosicao: number }[];
     banco: string[];
     indicePosicaoSaque: number;
+    sacaPrimeiro: boolean;
 }
 
 export interface SubstituicaoApi {
@@ -153,11 +170,47 @@ export interface OrganizadorTorneio {
     email: string;
 }
 
+export interface ConfiguracaoRacha {
+    id: string;
+    faseId: string;
+    modoFormacaoTimes: ModoFormacaoTimes;
+    criterioSorteio: CriterioSorteio;
+    modoGeracaoPartidas: ModoGeracaoPartidas;
+    jogadoresPorTime: number;
+    vitoriasSeguidasParaSair: number;
+}
+
+export interface FaseTorneio {
+    id: string;
+    torneioId: string;
+    tipo: FormatoTorneio | FormatoFase;
+    ordem: number;
+    nome?: string | null;
+    configuracaoRacha?: ConfiguracaoRacha | null;
+}
+
+export interface PoolJogadorRacha {
+    id: string;
+    faseId: string;
+    jogadorId: string;
+    alocado: boolean;
+    jogador: Jogador;
+}
+
+export interface FilaRachaEstado {
+    id: string;
+    faseId: string;
+    timeDefensorId?: string | null;
+    vitoriasSeguidas: number;
+    timesAguardando: string[];
+    partidaAtualId?: string | null;
+}
 
 export interface TorneioCtx {
-  torneio: Torneio;
-  setTorneio: (t: Torneio) => void;
-  torneioId: string;
-  liveCount: number;
-  canManage: boolean;
+    torneio: Torneio;
+    setTorneio: (t: Torneio) => void;
+    torneioId: string;
+    liveCount: number;
+    canManage: boolean;
+    faseRacha?: FaseTorneio | null;
 }

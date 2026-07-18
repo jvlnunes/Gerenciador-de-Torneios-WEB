@@ -1,25 +1,48 @@
-import type { Torneio } from "@/services/api/interfaces";
+import type { Torneio, FaseTorneio } from "@/services/api/interfaces";
 import { Outlet, NavLink, useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
-import { api, podeGerenciarTorneio } from "@/services/api";
+import { useState, useEffect, useCallback, type ComponentType, type Dispatch, type SetStateAction } from "react";
+import api from "@/services/api";
 import { SiteHeader } from "@/components/site-header";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Home, Swords, Users, BarChart3, Settings,
-  ChevronLeft, ChevronRight, Loader2, Trophy,
+  ChevronLeft, ChevronRight, Loader2, Trophy, Shuffle,
 } from "lucide-react";
 
 interface NavItem {
   to: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   badge?: number;
   end?: boolean;
 }
 
+interface TorneioSidebarProps {
+  torneio: Torneio;
+  torneioId: string;
+  liveCount: number;
+  collapsed: boolean;
+  canManage: boolean;
+  faseRacha: FaseTorneio | null;
+  onToggle: () => void;
+}
+
+interface TorneioLayoutParams extends Record<string, string | undefined> {
+  torneioId?: string;
+}
+
+interface TorneioLayoutOutletContext {
+  torneio: Torneio;
+  setTorneio: Dispatch<SetStateAction<Torneio | null>>;
+  torneioId: string;
+  liveCount: number;
+  canManage: boolean;
+  faseRacha: FaseTorneio | null;
+}
+
 const SIDEBAR_AUTO_OPEN_BREAKPOINT = 1024;
 
-function getDefaultCollapsed() {
+function getDefaultCollapsed(): boolean {
   if (typeof window === "undefined") return false;
   return window.innerWidth < SIDEBAR_AUTO_OPEN_BREAKPOINT;
 }
@@ -30,24 +53,21 @@ function TorneioSidebar({
   liveCount,
   collapsed,
   canManage,
+  faseRacha,
   onToggle,
-}: {
-  torneio: Torneio;
-  torneioId: string;
-  liveCount: number;
-  collapsed: boolean;
-  canManage: boolean;
-  onToggle: () => void;
-}) {
+}: TorneioSidebarProps) {
   const base = `/torneios/${torneioId}`;
 
   const navItems: NavItem[] = [
-    { to: base,                    icon: Home,      label: "Visão geral",  end: true },
-    { to: `${base}/partidas`,      icon: Swords,    label: "Partidas",     badge: liveCount > 0 ? liveCount : undefined },
-    { to: `${base}/times`,         icon: Users,     label: "Times" },
-    { to: `${base}/classificacao`, icon: Trophy,    label: "Classificação" },
-    { to: `${base}/estatisticas`,  icon: BarChart3, label: "Estatísticas" },
-    { to: `${base}/configuracoes`, icon: Settings,  label: "Configurações" },
+    { to: base, icon: Home, label: "Visão geral", end: true },
+    { to: `${base}/partidas`, icon: Swords, label: "Partidas", badge: liveCount > 0 ? liveCount : undefined },
+    { to: `${base}/times`, icon: Users, label: "Times" },
+    ...(faseRacha
+      ? [{ to: `${base}/racha`, icon: Shuffle, label: "Racha" } as NavItem]
+      : []),
+    { to: `${base}/classificacao`, icon: Trophy, label: "Classificação" },
+    { to: `${base}/estatisticas`, icon: BarChart3, label: "Estatísticas" },
+    { to: `${base}/configuracoes`, icon: Settings, label: "Configurações" },
   ];
 
   return (
@@ -84,7 +104,7 @@ function TorneioSidebar({
       >
         {collapsed
           ? <ChevronRight className="h-3.5 w-3.5" />
-          : <ChevronLeft  className="h-3.5 w-3.5" />}
+          : <ChevronLeft className="h-3.5 w-3.5" />}
       </button>
 
       {/* Tournament info */}
@@ -207,26 +227,27 @@ function TorneioSidebar({
 }
 
 export default function TorneioLayout() {
-  const { torneioId } = useParams<{ torneioId: string }>();
+  const { torneioId } = useParams<TorneioLayoutParams>();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [torneio,   setTorneio]   = useState<Torneio | null>(null);
-  const [liveCount, setLiveCount] = useState(0);
-  const [loading,   setLoading]   = useState(true);
-  // Recolhida por padrão em telas menores que o breakpoint (tablets/celulares);
-  // aberta por padrão em desktop. O usuário pode alternar livremente depois.
-  const [collapsed, setCollapsed] = useState(getDefaultCollapsed);
+  const [torneio, setTorneio] = useState<Torneio | null>(null);
+  const [liveCount, setLiveCount] = useState<number>(0);
+  const [faseRacha, setFaseRacha] = useState<FaseTorneio | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [collapsed, setCollapsed] = useState<boolean>(getDefaultCollapsed);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<void> => {
     if (!torneioId) return;
     try {
-      const [t, partidas] = await Promise.all([
-        api.buscarTorneio(torneioId),
-        api.listarPartidas(torneioId),
+      const [t, partidas, fases] = await Promise.all([
+        api.torneios.buscarTorneio(torneioId),
+        api.partidas.listarPorTorneio(torneioId),
+        api.torneios.listarFases(torneioId).catch(() => []),
       ]);
       setTorneio(t);
       setLiveCount(partidas.filter((p) => p.status === "AO_VIVO").length);
+      setFaseRacha(fases.find((f) => f.tipo === "RACHA") ?? null);
     } catch {
       navigate("/torneios");
     } finally {
@@ -249,7 +270,7 @@ export default function TorneioLayout() {
 
   if (!torneio) return null;
 
-  const canManage = podeGerenciarTorneio(torneio, user);
+  const canManage = api.torneios.podeGerenciarTorneio(torneio, user);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
@@ -262,9 +283,10 @@ export default function TorneioLayout() {
           collapsed={collapsed}
           onToggle={() => setCollapsed((c) => !c)}
           canManage={canManage}
+          faseRacha={faseRacha}
         />
         <main style={{ flex: 1, overflowY: "auto", background: "var(--color-background)" }}>
-          <Outlet context={{ torneio, setTorneio, torneioId, liveCount, canManage }} />
+          <Outlet context={{ torneio, setTorneio, torneioId, liveCount, canManage, faseRacha }} />
         </main>
       </div>
     </div>

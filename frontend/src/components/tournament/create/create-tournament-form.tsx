@@ -6,7 +6,7 @@ import { RulesStep, type TournamentRules } from "./steps/rules"
 import { OrganizersStep, type Organizer } from "./steps/organizers"
 import { MediaStep, type MediaData } from "./steps/media"
 import { ReviewStep } from "./steps/review"
-import { api, auth } from "@/services/api"
+import  api from "@/services/api"
 import { cn } from "@/services/utils"
 import { CheckCircle2, X, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -159,7 +159,7 @@ export function CreateTournamentForm() {
   const [error, setError]         = useState<string | null>(null)
 
   // Pre-fill organizer with current user
-  const currentUser = auth.getUser()
+  const currentUser = api.auth.getUser()
 
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     name: "",
@@ -206,7 +206,7 @@ export function CreateTournamentForm() {
     setError(null)
     try {
       // await api.createTournament({
-      await api.criarTorneio({
+      await api.torneios.criarTorneio({
         nome: basicInfo.name,
         descricao: basicInfo.description,
         local: basicInfo.location,

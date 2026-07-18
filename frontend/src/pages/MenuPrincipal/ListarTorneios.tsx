@@ -1,7 +1,6 @@
 import type { Torneio } from "@/services/api/interfaces";
 import { Trophy, Plus, MapPin, Calendar, Lock, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api, souOrganizador } from "@/services/api";
 import { Link, useNavigate } from "react-router-dom";
 import { SiteHeader } from "@/components/site-header";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,18 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/services/utils";
 
+import api from "@/services/api";
+
 const statusColor: Record<string, string> = {
-  RASCUNHO:     "bg-muted text-muted-foreground",
-  ABERTO:       "bg-success/20 text-success border-success/30",
+  RASCUNHO: "bg-muted text-muted-foreground",
+  ABERTO: "bg-success/20 text-success border-success/30",
   EM_ANDAMENTO: "bg-primary/20 text-primary border-primary/30",
-  FINALIZADO:   "bg-secondary text-secondary-foreground",
+  FINALIZADO: "bg-secondary text-secondary-foreground",
 };
 
 const statusLabel: Record<string, string> = {
-  RASCUNHO:     "Rascunho",
-  ABERTO:       "Inscrições abertas",
+  RASCUNHO: "Rascunho",
+  ABERTO: "Inscrições abertas",
   EM_ANDAMENTO: "Em andamento",
-  FINALIZADO:   "Finalizado",
+  FINALIZADO: "Finalizado",
 };
 
 function TournamentCard({
@@ -121,7 +122,8 @@ function TournamentGrid({
   return (
     <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
       {list.map((t) => {
-        const canManage = user?.perfil === "ADMIN" || (user?.perfil === "GERENTE" && souOrganizador(t, user.id));
+        const canManage = api.torneios.podeGerenciarTorneio(t, user);
+
         return (
           <TournamentCard
             key={t.id}
@@ -149,7 +151,7 @@ export default function TorneiosListPage() {
   const load = async () => {
     setLoading(true);
     try {
-      setList(await api.listarTorneios());
+      setList(await api.torneios.listarTorneios());
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -163,13 +165,12 @@ export default function TorneiosListPage() {
   const remove = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (!confirm("Excluir este torneio?")) return;
-    await api.removerTorneio(id);
+    await api.torneios.removerTorneio(id);
     load();
   };
 
-  // Separação apenas para GERENTE: meus vs. outros
-  const meus   = isGerente ? list.filter((t) => souOrganizador(t, user!.id)) : [];
-  const outros = isGerente ? list.filter((t) => !souOrganizador(t, user!.id)) : list;
+  const meus   = isGerente ? list.filter((t) =>  api.torneios.souOrganizador(t, user?.id)) : [];
+  const outros = isGerente ? list.filter((t) => !api.torneios.souOrganizador(t, user?.id)) : list;
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,8 +183,8 @@ export default function TorneiosListPage() {
               {user?.perfil === "ADMIN"
                 ? "Você é administrador: pode gerenciar todos os torneios."
                 : isGerente
-                ? "Gerencie seus torneios ou explore os demais."
-                : "Explore os torneios de vôlei."}
+                  ? "Gerencie seus torneios ou explore os demais."
+                  : "Explore os torneios de vôlei."}
             </p>
           </div>
           {canCreate && (

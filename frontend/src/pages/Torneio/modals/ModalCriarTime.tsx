@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { api } from "@/services/api";
+import api from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Time } from "@/services/api/interfaces";
 import { Loader2, X, Plus } from "lucide-react";
@@ -23,7 +23,7 @@ export function ModalCriarTime({
     if (!name.trim()) { setError("Informe o nome do time"); return; }
     setSaving(true); setError(null);
     try {
-      const t = await api.criarTime({ torneioId, nome: name.trim(), corPrimaria: cor } as any);
+      const t = await api.times.criar({ torneioId, nome: name.trim(), corPrimaria: cor } as any);
       onCreated(t);
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }

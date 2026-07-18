@@ -37,6 +37,7 @@ model Torneio {
   partidas      Partida[]
   regras        RegrasTorneio?
   times         Time[]
+  fases         FaseTorneio[]
 }
 
 model RegrasTorneio {
@@ -60,6 +61,77 @@ model OrganizadorTorneios {
   @@unique([torneioId, usuarioId])
 }
 
+model FaseTorneio {
+  id        String   @id @default(uuid())
+  torneioId String
+  tipo      FormatoTorneio
+  ordem     Int
+  nome      String?
+  criadoEm  DateTime @default(now())
+
+  torneio           Torneio            @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+  configuracaoRacha ConfiguracaoRacha?
+  poolJogadores     PoolJogadorRacha[]
+  filaRacha         FilaRachaEstado?
+  times             Time[]
+
+  @@unique([torneioId, ordem])
+}
+
+enum ModoFormacaoTimes {
+  MANUAL
+  POOL_SORTEIO
+}
+
+enum CriterioSorteio {
+  ALEATORIO
+  NOTA
+}
+
+enum ModoGeracaoPartidas {
+  AUTOMATICO
+  MANUAL
+}
+
+model ConfiguracaoRacha {
+  id     String @id @default(uuid())
+  faseId String @unique
+  fase   FaseTorneio @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  modoFormacaoTimes        ModoFormacaoTimes   @default(MANUAL)
+  criterioSorteio          CriterioSorteio     @default(ALEATORIO)
+  modoGeracaoPartidas      ModoGeracaoPartidas @default(MANUAL)
+  jogadoresPorTime         Int                 @default(4)
+  vitoriasSeguidasParaSair Int                 @default(2)
+
+  atualizadoEm DateTime @updatedAt
+}
+
+model PoolJogadorRacha {
+  id        String   @id @default(uuid())
+  faseId    String
+  jogadorId String
+  alocado   Boolean  @default(false)
+  criadoEm  DateTime @default(now())
+
+  fase    FaseTorneio @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  jogador Jogador     @relation(fields: [jogadorId], references: [id], onDelete: Cascade)
+
+  @@unique([faseId, jogadorId])
+}
+
+model FilaRachaEstado {
+  id     String @id @default(uuid())
+  faseId String @unique
+  fase   FaseTorneio @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  timeDefensorId   String?
+  vitoriasSeguidas Int      @default(0)
+  timesAguardando  Json     @default("[]")
+  partidaAtualId   String?
+  atualizadoEm     DateTime @updatedAt
+}
+
 model Time {
   id                  String           @id @default(uuid())
   nome                String
@@ -67,6 +139,7 @@ model Time {
   tokenConvite        String?          @unique
   quantidadeJogadores Int              @default(0)
   torneioId           String
+  faseId              String?
   corPrimaria         String?
   corSecundaria       String?
   email               String?
@@ -80,24 +153,27 @@ model Time {
   partidasComoCasa    Partida[]        @relation("PartidaCasa")
   partidasComoVisita  Partida[]        @relation("PartidaVisitante")
   torneio             Torneio          @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+  fase                FaseTorneio?     @relation(fields: [faseId], references: [id], onDelete: SetNull)
 }
 
 model Jogador {
-  id               String           @id @default(uuid())
+  id               String             @id @default(uuid())
   nome             String
   numeroCamisa     Int?
   posicao          String?
   fotoUrl          String?
-  entrouPorLink    Boolean          @default(false)
-  titular          Boolean          @default(false)
+  entrouPorLink    Boolean            @default(false)
+  titular          Boolean            @default(false)
   indicePosicao    Int?
-  criadoEm         DateTime         @default(now())
-  timeId           String
+  notaHabilidade   Float?
+  criadoEm         DateTime           @default(now())
+  timeId           String?
   usuarioId        String?
   eventosPartida   EventoPartida[]
-  time             Time             @relation(fields: [timeId], references: [id], onDelete: Cascade)
-  usuario          Usuario?         @relation(fields: [usuarioId], references: [id])
+  time             Time?              @relation(fields: [timeId], references: [id], onDelete: SetNull)
+  usuario          Usuario?           @relation(fields: [usuarioId], references: [id])
   aparicoesPartida JogadorPartida[]
+  aparicoesPool    PoolJogadorRacha[]
 }
 
 model Partida {
@@ -129,6 +205,7 @@ model EscalacaoSet {
   titulares          Json
   banco              Json
   indicePosicaoSaque Int      @default(1)
+  sacaPrimeiro       Boolean  @default(false)
   criadoEm           DateTime @default(now())
   atualizadoEm       DateTime @updatedAt
   partida            Partida  @relation(fields: [partidaId], references: [id], onDelete: Cascade)

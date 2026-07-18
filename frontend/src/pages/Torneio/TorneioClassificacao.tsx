@@ -3,7 +3,7 @@ import { Loader2, Award, Minus, Trophy, BarChart3 } from "lucide-react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { api } from "@/services/api";
+import api from "@/services/api";
 import { cn } from "@/services/utils";
 
 interface TorneioCtx {
@@ -62,7 +62,7 @@ function buildStandings(times: Time[], partidas: Partida[]): StandingRow[] {
       if (casaGanhou) {
         casa.vitorias++;
         visit.derrotas++;
-        if (p.setsVisitante == 2){
+        if (p.setsVisitante == 2) {
           visit.pts += 1;
           casa.pts += 2;
         }
@@ -73,7 +73,7 @@ function buildStandings(times: Time[], partidas: Partida[]): StandingRow[] {
       } else {
         visit.vitorias++;
         casa.derrotas++;
-        if (p.setsCasa == 2){
+        if (p.setsCasa == 2) {
           casa.pts += 1;
           visit.pts += 2;
         }
@@ -113,8 +113,8 @@ function FormBadge({ result }: { result: "V" | "D" | "-" }) {
         result === "V"
           ? "bg-emerald-100 text-emerald-700"
           : result === "D"
-          ? "bg-red-100 text-red-600"
-          : "bg-gray-100 text-gray-400"
+            ? "bg-red-100 text-red-600"
+            : "bg-gray-100 text-gray-400"
       )}
     >
       {result}
@@ -125,7 +125,7 @@ function FormBadge({ result }: { result: "V" | "D" | "-" }) {
 export default function TorneioClassificacao() {
   const { torneio, torneioId } = useOutletContext<TorneioCtx>();
   const navigate = useNavigate();
-  
+
   const [times, setTimes] = useState<Time[]>([]);
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [topJogadores, setTopJogadores] = useState<PlayerScorer[]>([]);
@@ -133,7 +133,7 @@ export default function TorneioClassificacao() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([api.listarTimes(torneioId), api.listarPartidas(torneioId)])
+    Promise.all([api.times.listarPorTorneio(torneioId), api.partidas.listarPorTorneio(torneioId)])
       .then(async ([ts, ps]) => {
         setTimes(ts);
         setPartidas(ps);
@@ -145,7 +145,7 @@ export default function TorneioClassificacao() {
         try {
           const eventosByPartida = await Promise.all(
             partidasAlvo.map((p) =>
-              api.listarEventosPartida(p.id).then((evs) => ({ partida: p, evs }))
+              api.partidas.listarEventos(p.id).then((evs) => ({ partida: p, evs }))
             )
           );
 
@@ -315,7 +315,7 @@ export default function TorneioClassificacao() {
       )}
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* LADO ESQUERDO: RESULTADOS RECENTES */}
         <div className="space-y-3">
           <h2 className="font-display text-xl font-bold text-foreground">Resultados recentes</h2>
@@ -350,9 +350,9 @@ export default function TorneioClassificacao() {
             <h2 className="font-display text-xl font-bold text-foreground flex items-center gap-1.5">
               <Trophy className="h-5 w-5 text-yellow-500 shrink-0" /> Maiores Pontuadores
             </h2>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate("../estatisticas")}
               className="h-8 gap-1 text-xs font-bold border-primary/20 text-primary hover:bg-primary/5"
             >

@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ChevronRight, CheckCircle2, Loader2, MapPin, Calendar, AlertCircle, Plus, Trash2, GripVertical, Info, Users, Target } from "lucide-react";
+import { ArrowLeft, ChevronRight, CheckCircle2, Loader2, MapPin, Calendar, AlertCircle, Plus, Trash2, GripVertical, Info, Lock } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/services/api";
 import { cn } from "@/services/utils";
+
+import api from "@/services/api";
 
 /* ─── Tipos ──────────────────────────────────────────────── */
 type Status = "RASCUNHO" | "ABERTO" | "EM_ANDAMENTO" | "FINALIZADO";
@@ -190,7 +191,7 @@ function StepBasicInfo({
 
 /* ─── Step 1: Fases ──────────────────────────────────────── */
 const FORMAT_OPTIONS: { value: PhaseFormat; label: string; icon: string; desc: string }[] = [
-  { value: "RACHA",     label: "Racha",          icon: "🤝", desc: "Times se formam no local." },
+  { value: "RACHA",     label: "Racha",          icon: "🤝", desc: "Fase única. Sorteio/times e partidas configurados depois." },
   { value: "MATA_MATA", label: "Mata-Mata",       icon: "⚔️", desc: "Eliminação direta." },
   { value: "PONTOS",    label: "Pontos corridos", icon: "📊", desc: "Todos jogam entre si." },
   { value: "HIBRIDO",   label: "Híbrido",         icon: "🔀", desc: "Grupos + eliminatórias." },
@@ -207,15 +208,30 @@ function StepFases({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const add = () => setPhases([
-    ...phases,
-    { id: crypto.randomUUID(), name: `Fase ${phases.length + 1}`, format: "HIBRIDO" },
-  ]);
+  const temRacha = phases.some((p) => p.format === "RACHA");
+
+  const add = () => {
+    if (temRacha) return; // RACHA é sempre fase única do torneio
+    setPhases([
+      ...phases,
+      { id: crypto.randomUUID(), name: `Fase ${phases.length + 1}`, format: "HIBRIDO" },
+    ]);
+  };
 
   const remove = (id: string) => setPhases(phases.filter((p) => p.id !== id));
 
-  const update = (id: string, data: Partial<Phase>) =>
+  const update = (id: string, data: Partial<Phase>) => {
+    // Escolher RACHA em qualquer fase remove as demais — não faz sentido
+    // misturar racha com outros formatos no mesmo torneio.
+    if (data.format === "RACHA") {
+      const fase = phases.find((p) => p.id === id);
+      if (fase) {
+        setPhases([{ ...fase, ...data }]);
+        return;
+      }
+    }
     setPhases(phases.map((p) => (p.id === id ? { ...p, ...data } : p)));
+  };
 
   return (
     <div className="space-y-5">
@@ -225,6 +241,16 @@ function StepFases({
           Configure as fases em ordem. Cada uma pode ter um formato diferente.
         </p>
       </div>
+
+      {temRacha && (
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <Lock className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+          <p className="text-sm text-emerald-700">
+            <strong>Racha</strong> é sempre fase única. Depois de criar o torneio, configure
+            times/sorteio e geração de partidas na aba <strong>Racha</strong> do torneio.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         {phases.length === 0 && (
@@ -246,12 +272,14 @@ function StepFases({
                 className="flex-1 bg-transparent text-sm font-semibold text-foreground outline-none"
                 placeholder="Nome da fase..."
               />
-              <button
-                onClick={() => remove(phase.id)}
-                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {!temRacha && (
+                <button
+                  onClick={() => remove(phase.id)}
+                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <div className="p-4 grid grid-cols-2 gap-2">
               {FORMAT_OPTIONS.map((opt) => (
@@ -280,12 +308,14 @@ function StepFases({
         ))}
       </div>
 
-      <button
-        onClick={add}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/40 py-4 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5 transition-all"
-      >
-        <Plus className="h-4 w-4" /> Adicionar fase
-      </button>
+      {!temRacha && (
+        <button
+          onClick={add}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/40 py-4 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5 transition-all"
+        >
+          <Plus className="h-4 w-4" /> Adicionar fase
+        </button>
+      )}
 
       <div className="flex justify-between pt-2">
         <Button variant="outline" onClick={onBack} className="gap-2 h-11">
@@ -423,7 +453,7 @@ export default function CriarTorneioPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await api.criarTorneio({
+      const torneio = await api.torneios.criarTorneio({
         nome: basicInfo.name,
         descricao: basicInfo.description,
         local: basicInfo.location,
@@ -431,7 +461,24 @@ export default function CriarTorneioPage() {
         dataFim: basicInfo.endDate || undefined,
         status: basicInfo.status as any,
       });
-      navigate("/torneios");
+
+      const faseRacha = phases.length === 1 && phases[0].format === "RACHA"
+        ? phases[0]
+        : null;
+
+      if (faseRacha) {
+        try {
+          await api.fases.criarFase(torneio.id, {
+            tipo: "RACHA",
+            nome: faseRacha.name || "Racha",
+            ordem: 1,
+          });
+        } catch (e) {
+          console.error("Falha ao criar fase RACHA:", e);
+        }
+      }
+
+      navigate(`/torneios/${torneio.id}`);
     } catch (e) {
       setError((e as Error).message);
       setSubmitting(false);

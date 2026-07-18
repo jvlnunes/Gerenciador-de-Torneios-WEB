@@ -313,11 +313,13 @@ export class PartidasService {
           titulares: dados.casa.titulares,
           banco: dados.casa.banco,
           indicePosicaoSaque: dados.casa.indicePosicaoSaque ?? 1,
+          sacaPrimeiro: dados.casa.sacaPrimeiro ?? false,
         },
         update: {
           titulares: dados.casa.titulares,
           banco: dados.casa.banco,
           indicePosicaoSaque: dados.casa.indicePosicaoSaque ?? 1,
+          sacaPrimeiro: dados.casa.sacaPrimeiro ?? false,
         },
       }),
       this.prisma.escalacaoSet.upsert({
@@ -335,11 +337,13 @@ export class PartidasService {
           titulares: dados.visitante.titulares,
           banco: dados.visitante.banco,
           indicePosicaoSaque: dados.visitante.indicePosicaoSaque ?? 1,
+          sacaPrimeiro: dados.visitante.sacaPrimeiro ?? false,
         },
         update: {
           titulares: dados.visitante.titulares,
           banco: dados.visitante.banco,
           indicePosicaoSaque: dados.visitante.indicePosicaoSaque ?? 1,
+          sacaPrimeiro: dados.visitante.sacaPrimeiro ?? false,
         },
       }),
     ]);

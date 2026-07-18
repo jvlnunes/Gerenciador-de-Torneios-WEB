@@ -1,7 +1,6 @@
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, Info } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, Info, Lock } from "lucide-react"
 import { cn } from "@/services/utils"
 
 export type PhaseFormat = "RACHA" | "MATA_MATA" | "PONTOS" | "HIBRIDO"
@@ -25,7 +24,7 @@ const FORMAT_OPTIONS: { value: PhaseFormat; label: string; icon: string; descrip
     value: "RACHA",
     label: "Racha",
     icon: "🤝",
-    description: "Times se formam no local. Informal e divertido.",
+    description: "Times sorteados por pool ou manuais. Fase única do torneio.",
     color: "bg-green-50 border-green-200 text-green-800 hover:bg-green-100",
   },
   {
@@ -54,18 +53,18 @@ const FORMAT_OPTIONS: { value: PhaseFormat; label: string; icon: string; descrip
 function PhaseCard({
   phase,
   index,
+  isRachaLock,
   onRemove,
   onChangeFormat,
   onChangeName,
 }: {
   phase: Phase
   index: number
+  isRachaLock: boolean
   onRemove: () => void
   onChangeFormat: (f: PhaseFormat) => void
   onChangeName: (n: string) => void
 }) {
-  const fmt = FORMAT_OPTIONS.find((f) => f.value === phase.format)!
-
   return (
     <div className="rounded-xl border-2 border-border bg-card shadow-sm overflow-hidden">
       {/* Header */}
@@ -80,12 +79,14 @@ function PhaseCard({
           className="flex-1 bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
           placeholder="Nome da fase..."
         />
-        <button
-          onClick={onRemove}
-          className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        {!isRachaLock && (
+          <button
+            onClick={onRemove}
+            className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Format picker */}
@@ -117,7 +118,10 @@ function PhaseCard({
 }
 
 export function FormatStep({ phases, setPhases, onNext, onBack }: Props) {
+  const temRacha = phases.some((p) => p.format === "RACHA")
+
   const addPhase = () => {
+    if (temRacha) return // RACHA é sempre fase única
     setPhases([
       ...phases,
       {
@@ -134,6 +138,15 @@ export function FormatStep({ phases, setPhases, onNext, onBack }: Props) {
   }
 
   const updatePhase = (id: string, update: Partial<Phase>) => {
+    // Ao escolher RACHA em qualquer fase, ela vira a fase única do torneio —
+    // remove todas as outras automaticamente pra evitar mistura ambígua.
+    if (update.format === "RACHA") {
+      const fase = phases.find((p) => p.id === id)
+      if (fase) {
+        setPhases([{ ...fase, ...update }])
+        return
+      }
+    }
     setPhases(phases.map((p) => (p.id === id ? { ...p, ...update } : p)))
   }
 
@@ -148,6 +161,17 @@ export function FormatStep({ phases, setPhases, onNext, onBack }: Props) {
         </p>
       </div>
 
+      {temRacha && (
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <Lock className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+          <p className="text-sm text-emerald-700">
+            O formato <strong>Racha</strong> só pode existir como fase única do torneio.
+            A configuração detalhada (formação de times, sorteio e geração de partidas) fica
+            disponível na aba <strong>Racha</strong> do torneio depois de criado.
+          </p>
+        </div>
+      )}
+
       {/* Phases */}
       <div className="space-y-4">
         {phases.length === 0 && (
@@ -161,6 +185,7 @@ export function FormatStep({ phases, setPhases, onNext, onBack }: Props) {
             key={phase.id}
             phase={phase}
             index={i}
+            isRachaLock={temRacha}
             onRemove={() => removePhase(phase.id)}
             onChangeFormat={(f) => updatePhase(phase.id, { format: f })}
             onChangeName={(n) => updatePhase(phase.id, { name: n })}
@@ -169,12 +194,14 @@ export function FormatStep({ phases, setPhases, onNext, onBack }: Props) {
       </div>
 
       {/* Add phase button */}
-      <button
-        onClick={addPhase}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/40 py-4 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5 transition-all"
-      >
-        <Plus className="h-4 w-4" /> Adicionar fase
-      </button>
+      {!temRacha && (
+        <button
+          onClick={addPhase}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/40 py-4 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5 transition-all"
+        >
+          <Plus className="h-4 w-4" /> Adicionar fase
+        </button>
+      )}
 
       {/* Navigation */}
       <div className="flex justify-between pt-2">

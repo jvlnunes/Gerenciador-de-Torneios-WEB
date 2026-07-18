@@ -1,7 +1,7 @@
 import type { Time, Jogador, Torneio } from "@/services/api/interfaces";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { api, podeGerenciarTorneio } from "@/services/api";
+import api from "@/services/api";
 import { SiteHeader } from "@/components/site-header";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";

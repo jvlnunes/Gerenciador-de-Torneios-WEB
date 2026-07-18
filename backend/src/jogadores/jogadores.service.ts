@@ -11,9 +11,12 @@ export class JogadoresService {
   constructor(private prisma: PrismaService) {}
 
   private async verificarPermissaoTime(
-    timeId: string,
+    timeId: string | null,
     user: AuthenticatedUser,
   ) {
+    if (!timeId) {
+      throw new NotFoundException('Time não encontrado');
+    }
     if (user.perfil === 'ADMIN') {
       return;
     }

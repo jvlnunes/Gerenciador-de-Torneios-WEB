@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import { api } from "@/services/api";
+import  api from "@/services/api";
 import type { Torneio } from "@/services/api/interfaces";
 import { Loader2, BarChart3, Search, ShieldAlert, BarChart } from "lucide-react";
 import { cn } from "@/services/utils";
@@ -54,8 +54,8 @@ export default function TorneioEstatisticas() {
   useEffect(() => {
     async function load() {
       const [partidas, ts] = await Promise.all([
-        api.listarPartidas(torneioId),
-        api.listarTimes(torneioId),
+        api.partidas.listarPorTorneio(torneioId),
+        api.times.listarPorTorneio(torneioId),
       ]);
       setTimes(ts.map((t) => ({ id: t.id, nome: t.nome })));
       const timeNomeMap = new Map(ts.map((t) => [t.id, t.nome]));
@@ -63,7 +63,7 @@ export default function TorneioEstatisticas() {
       const eventosByPartida = await Promise.all(
         partidas
           .filter((p) => p.status === "FINALIZADA" || p.status === "AO_VIVO")
-          .map((p) => api.listarEventosPartida(p.id).then((evs) => ({ partida: p, evs })))
+          .map((p) => api.partidas.listarEventos(p.id).then((evs) => ({ partida: p, evs })))
       );
 
       const playerMap = new Map<string, PlayerStat>();

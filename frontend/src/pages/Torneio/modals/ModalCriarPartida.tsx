@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Time, Partida } from "@/services/api/interfaces";
-import { api } from "@/services/api";
+import api from "@/services/api";
 import { Button } from "@/components/ui/button";
 import {
   Plus, Loader2, X, Calendar, MapPin

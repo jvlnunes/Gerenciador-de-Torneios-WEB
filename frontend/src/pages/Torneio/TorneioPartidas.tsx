@@ -4,7 +4,7 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import { ModalCriarPartida } from "@/pages/Torneio/modals/ModalCriarPartida";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/services/api";
+import  api  from "@/services/api";
 import { cn } from "@/services/utils";
 import {
   Plus, Loader2, Swords, Trophy, Play, Clock,
@@ -164,8 +164,8 @@ export default function TorneioPartidas() {
     setLoading(true);
     try {
       const [ms, ts] = await Promise.all([
-        api.listarPartidas(torneioId),
-        api.listarTimes(torneioId),
+        api.partidas.listarPorTorneio(torneioId),
+        api.times.listarPorTorneio(torneioId),
       ]);
       setMatches(ms);
       setTeams(ts);
@@ -179,7 +179,7 @@ export default function TorneioPartidas() {
   const handleStart = async (matchId: string) => {
     setStarting(matchId);
     try {
-      const updated = await api.comecaPartida(matchId);
+      const updated = await api.partidas.comecaPartida(matchId);
       setMatches((prev) => prev.map((m) => m.id === matchId ? updated : m));
       navigate(`/partidas/${matchId}`);
     } finally { setStarting(null); }
@@ -187,7 +187,7 @@ export default function TorneioPartidas() {
 
   const handleDelete = async (matchId: string) => {
     if (!confirm("Excluir esta partida?")) return;
-    await api.removerPartida(matchId);
+    await api.partidas.removerPartida(matchId);
     setMatches((prev) => prev.filter((m) => m.id !== matchId));
   };
 

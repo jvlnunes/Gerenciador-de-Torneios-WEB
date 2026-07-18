@@ -21,8 +21,9 @@ export interface TitularEmQuadra {
 export interface EscalacaoTime {
   timeId: string;
   titulares: TitularEmQuadra[];
-  banco: string[]; // IDs dos reservas
+  banco: string[];
   indicePosicaoSaque: IndicePosicao;
+  sacaPrimeiro: boolean; // NOVO
 }
 
 /** Escalação das duas equipes para um set */

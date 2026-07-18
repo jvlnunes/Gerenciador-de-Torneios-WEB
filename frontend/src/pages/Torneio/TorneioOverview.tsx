@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api } from "@/services/api";
+import  api from "@/services/api";
 import type { Torneio, Partida, Time } from "@/services/api/interfaces";
 import { Loader2, Shield, Swords, Users, ChevronLeft, ChevronRight, Trophy, Zap, Award } from "lucide-react";
 import { cn } from "@/services/utils";
@@ -36,8 +36,8 @@ export default function TorneioOverview() {
     async function loadData() {
       try {
         const [ts, ps] = await Promise.all([
-          api.listarTimes(torneioId),
-          api.listarPartidas(torneioId),
+          api.times.listarPorTorneio(torneioId),
+          api.partidas.listarPorTorneio(torneioId),
         ]);
         setTimes(ts);
         setPartidas(ps);
@@ -50,7 +50,7 @@ export default function TorneioOverview() {
         // Busca todos os eventos em paralelo
         const eventosByPartida = await Promise.all(
           partidasValidas.map((p) =>
-            api.listarEventosPartida(p.id).then((evs) => ({ partida: p, evs }))
+            api.partidas.listarEventos(p.id).then((evs) => ({ partida: p, evs }))
           )
         );
 

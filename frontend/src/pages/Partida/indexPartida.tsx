@@ -21,8 +21,8 @@ import { EstatisticasTime } from "./components/EstatisticasTime";
 import { PartidaModals, type AlertaConfirmacao } from "./components/PartidaModals";
 
 import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
-import { JogadorPartida } from "@/services/api/interfaces";
-import { api, podeGerenciarTorneio } from "@/services/api";
+import { JogadorPartida, Partida } from "@/services/api/interfaces";
+import api  from "@/services/api";
 
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
@@ -50,6 +50,7 @@ export default function PartidaLivePage() {
 
   const [painelAcaoAberto, setPainelAcaoAberto] = useState(false);
   const [historicoModalAberto, setHistoricoModalAberto] = useState(false);
+  const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false); // NOVO
 
   /* ── Modais e Configurações ───────────────────────────────── */
   const [modalCartao, setModalCartao] = useState<LadoPonto | null>(null);
@@ -67,7 +68,7 @@ export default function PartidaLivePage() {
     modalEscalacaoAberto, abrirModalEscalacao, fecharModalEscalacao, confirmarEscalacao,
     modalSubAberto, timeSubId, abrirModalSubstituicao, fecharModalSubstituicao, confirmarSubstituicao,
     obterTitularesAtuais, obterBancoAtual, obterSubstituicoesDoSet, obterTodasSubstituicoesDoSet, obterEscalacao,
-    obterJogadorPosicao1, obterQuadraAtual, recarregar,
+    obterJogadorPosicao1, obterQuadraAtual, obterSacadorInicial, recarregar, // + obterSacadorInicial
   } = useEscalacao(partidaId, setAtivo);
 
   /* ── Timer effect ─────────────────────────────────────────── */
@@ -154,11 +155,11 @@ export default function PartidaLivePage() {
         setAlerta({
           msg: `🏆 ${nomeVencedor} venceu a partida! Encerrar agora?`,
           onOk: async () => {
-            await api.atualizarPartida(partidaId, {
+            await api.partidas.atualizarPartida(partidaId, {
               setsCasa: novoSetsCasa, setsVisitante: novoSetsVisitante,
               setAtualCasa: 0, setAtualVisitante: 0,
             });
-            await api.finalizarPartida(partidaId);
+            await api.partidas.finalizarPartida(partidaId);
             await recarregarTudo();
             setAlerta(null);
           },
@@ -169,7 +170,7 @@ export default function PartidaLivePage() {
         setAlerta({
           msg: `✅ ${nomeVencedor} venceu o set! Iniciar próximo set?`,
           onOk: async () => {
-            await api.atualizarPartida(partidaId, {
+            await api.partidas.atualizarPartida(partidaId, {
               setsCasa: novoSetsCasa, setsVisitante: novoSetsVisitante,
               setAtualCasa: 0, setAtualVisitante: 0,
             });
@@ -214,7 +215,7 @@ export default function PartidaLivePage() {
           setAlerta({
             msg: `🏆 ${nomeVencedor} venceu a partida! Encerrar agora?`,
             onOk: async () => {
-              await api.finalizarPartida(partidaId);
+              await api.partidas.finalizarPartida(partidaId);
               await recarregarTudo();
               setAlerta(null);
             },
@@ -225,7 +226,7 @@ export default function PartidaLivePage() {
           setAlerta({
             msg: `✅ ${nomeVencedor} venceu o set! Iniciar próximo set?`,
             onOk: async () => {
-              await api.atualizarPartida(partidaId, {
+              await api.partidas.atualizarPartida(partidaId, {
                 setsCasa: novoSetsCasa, setsVisitante: novoSetsVisitante,
                 setAtualCasa: 0, setAtualVisitante: 0,
               });
@@ -262,7 +263,7 @@ export default function PartidaLivePage() {
   );
 
   /* ── Derivações ───────────────────────────────────────────── */
-  const podeGerenciar = torneio ? podeGerenciarTorneio(torneio, user) : false;
+  const podeGerenciar = torneio ? api.torneios.podeGerenciarTorneio(torneio, user) : false;
   const isAoVivo = partida.status === "AO_VIVO";
   const isFinalizada = partida.status === "FINALIZADA";
   const isAgendada = partida.status === "AGENDADA" || partida.status === "AQUECIMENTO";
@@ -306,15 +307,15 @@ export default function PartidaLivePage() {
   const eventosCron = [...evSetAtivo].reverse();
 
   // ── Cálculo do sacador e rotação ──────────────────────────
-  let ladoSaque: LadoPonto = "CASA";
+  let ladoSaque: LadoPonto = obterSacadorInicial(setAtivo);
   if (eventosCron.length > 0) {
     ladoSaque = eventosCron[eventosCron.length - 1].lado;
   }
 
   let rotCasa = 0, rotVisit = 0;
-  let ladoAnterior: LadoPonto | null = null;
+  let ladoAnterior: LadoPonto = obterSacadorInicial(setAtivo);
   for (const ev of eventosCron) {
-    if (ladoAnterior !== null && ev.lado !== ladoAnterior) {
+    if (ev.lado !== ladoAnterior) {
       if (ev.lado === "CASA") rotCasa++;
       else rotVisit++;
     }
@@ -469,29 +470,45 @@ export default function PartidaLivePage() {
           sacadorAtual={sacadorAtual}
           podeGerenciar={podeGerenciar}
           resultadosSets={resultadosSets}
-          onIniciarPartida={async () => {
-            if (confirm("Iniciar a partida?")) {
-              const p = await api.comecaPartida(partidaId!);
-              setPartida(p);
-              setSetStarted(false);
-              modalJaAbertoPorSet.current.add(0);
-              abrirModalEscalacao();
-            }
+          onIniciarPartida={() => {
+            setAlerta({
+              msg: "Iniciar a partida?",
+              onOk: async () => {
+                const p = await api.partidas.comecaPartida(partidaId!);
+                setPartida(p);
+                setSetStarted(false);
+                modalJaAbertoPorSet.current.add(0);
+                setAlerta(null);
+                abrirModalEscalacao();
+              },
+            });
           }}
           onIniciarSet={() => abrirModalEscalacao()}
-          onAnularPonto={async () => {
-            if (confirm("Anular último ponto/ação?")) {
-              const { partida: p } = await api.anularUltimoEvento(partidaId!);
-              setPartida(p);
-              await recarregarTudo();
-            }
+          onAnularPonto={() => {
+            setAlerta({
+              msg: "Anular último ponto/ação?",
+              onOk: async () => {
+                try {
+                  await api.partidas.anularUltimoEvento(partidaId!);
+                  await recarregarTudo();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setAlerta(null);
+                }
+              },
+            });
           }}
-          onEncerrarPartida={async () => {
-            if (confirm("Encerrar partida permanentemente?")) {
-              await api.finalizarPartida(partidaId!);
-              setTimerOn(false);
-              await recarregarTudo();
-            }
+          onEncerrarPartida={() => {
+            setAlerta({
+              msg: "Encerrar partida permanentemente?",
+              onOk: async () => {
+                await api.partidas.finalizarPartida(partidaId!);
+                setTimerOn(false);
+                await recarregarTudo();
+                setAlerta(null);
+              },
+            });
           }}
           onOpenConfig={() => setShowConfig(true)}
         />
@@ -590,62 +607,6 @@ export default function PartidaLivePage() {
               </div>
             </div>
 
-
-            {/* {podeGerenciar && isAoVivo && setStarted && (
-              <div className="lg:hidden border-b border-gray-100 shrink-0 bg-white">
-                <button
-                  onClick={() => setPainelAcaoAberto((v) => !v)}
-                  className="w-full flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-gray-50 transition-colors"
-                >
-                  <span className="flex items-center gap-2 text-xs font-bold text-gray-600 truncate">
-                    {jogadorSelecionado ? (
-                      <>
-                        <span
-                          className={cn(
-                            "w-2 h-2 rounded-full shrink-0",
-                            jogadorSelecionado.lado === "CASA" ? "bg-emerald-500" : "bg-orange-400"
-                          )}
-                        />
-                        <span className="truncate">Ação — {jogadorSelecionado.jogador.nomeJogador}</span>
-                      </>
-                    ) : (
-                      <span className="text-gray-400">Toque em um jogador na quadra para registrar uma ação</span>
-                    )}
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 text-gray-400 transition-transform shrink-0",
-                      painelAcaoAberto && "rotate-180"
-                    )}
-                  />
-                </button>
-                {painelAcaoAberto && (
-                  <div className="p-4 pt-0 max-h-[55vh] overflow-y-auto">
-                    <PainelAcaoJogador
-                      jogador={jogadorSelecionado?.jogador ?? null}
-                      lado={jogadorSelecionado?.lado ?? null}
-                      nomeTime={
-                        jogadorSelecionado?.lado === "CASA"
-                          ? partida.nomeTimeCasa
-                          : jogadorSelecionado?.lado === "VISITANTE"
-                            ? partida.nomeTimeVisitante
-                            : undefined
-                      }
-                      timeJaTemAmarelo={
-                        jogadorSelecionado?.lado === "CASA"
-                          ? casaTemAmarelo
-                          : jogadorSelecionado?.lado === "VISITANTE"
-                            ? visTemAmarelo
-                            : undefined
-                      }
-                      onEscolher={handleEscolherAcao}
-                      onLimparSelecao={() => setJogadorSelecionado(null)}
-                    />
-                  </div>
-                )}
-              </div>
-            )} */}
-
             {/* Painel de ação — em telas < lg vira modal de foco, abre sozinho ao selecionar jogador */}
             {podeGerenciar && isAoVivo && setStarted && jogadorSelecionado && (
               <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center">
@@ -692,29 +653,26 @@ export default function PartidaLivePage() {
               </div>
             )}
 
-            {/* Histórico inline — só em telas grandes */}
-            <div className="hidden lg:block order-4 lg:order-none">
-              <HistoricoSet
-                eventos={evSetAtivo}
-                substituicoes={obterTodasSubstituicoesDoSet(setAtivo)}
-                partida={partida}
-                setStarted={setStarted}
-              />
-            </div>
-
-            {/* Botão para abrir histórico em modal — só em telas pequenas/médias */}
-            <div className="lg:hidden order-4 border-t border-gray-100 px-4 py-3 shrink-0">
+            {/* Botões para abrir histórico e estatísticas em modal — padrão em todas as telas */}
+            <div className="order-4 border-t border-gray-100 px-4 py-3 shrink-0 grid grid-cols-2 gap-2">
               <button
                 onClick={() => setHistoricoModalAberto(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 <Activity className="h-3.5 w-3.5" />
-                Ver histórico ({evSetAtivo.length})
+                Histórico ({evSetAtivo.length})
+              </button>
+              <button
+                onClick={() => setEstatisticasModalAberto(true)}
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                Estatísticas
               </button>
             </div>
 
             {historicoModalAberto && (
-              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center lg:hidden">
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
                 <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 shrink-0">
                     <span className="text-sm font-black text-gray-800">Histórico do set</span>
@@ -731,6 +689,39 @@ export default function PartidaLivePage() {
                     partida={partida}
                     setStarted={setStarted}
                   />
+                </div>
+              </div>
+            )}
+
+            {estatisticasModalAberto && (
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+                <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 shrink-0">
+                    <span className="text-sm font-black text-gray-800 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-gray-400" />
+                      Estatísticas {isFinalizada ? "da partida" : "ao vivo"}
+                    </span>
+                    <button
+                      onClick={() => setEstatisticasModalAberto(false)}
+                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 flex items-center justify-center text-lg"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                    <EstatisticasTime
+                      eventos={eventos}
+                      jogadores={jogadoresCasaTodos}
+                      nomeTime={partida.nomeTimeCasa}
+                      cor="emerald"
+                    />
+                    <EstatisticasTime
+                      eventos={eventos}
+                      jogadores={jogadoresVisTodos}
+                      nomeTime={partida.nomeTimeVisitante}
+                      cor="orange"
+                    />
+                  </div>
                 </div>
               </div>
             )}

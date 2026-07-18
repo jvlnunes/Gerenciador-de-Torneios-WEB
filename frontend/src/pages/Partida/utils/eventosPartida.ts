@@ -1,7 +1,7 @@
-import type { LadoPonto, TipoErro,  TipoCartao   } from "@/services/api/types";
+import type { LadoPonto, TipoErro, TipoCartao } from "@/services/api/types";
 import { ActionDef, verificarFimSet } from "./LogicaPartida";
 import { Partida, JogadorPartida } from "@/services/api/interfaces";
-import { api } from "@/services/api";
+import api from "@/services/api";
 
 export interface ContextoEvento {
   partida: Partida;
@@ -33,7 +33,7 @@ export async function registrarPonto(
   const nV = ctx.partida.setAtualVisitante + (ladoAcao === "VISITANTE" ? 1 : 0);
   const jogadorNome = ctx.jogadores.find((j) => j.jogadorId === jogadorId)?.nomeJogador;
 
-  const { partida: p } = await api.registrarEvento(ctx.partidaId, {
+  const p = await api.partidas.registrarEvento(ctx.partidaId, {
     indiceSet: ctx.partida.setsCasa + ctx.partida.setsVisitante,
     lado: ladoAcao,
     tipo: acao.type,
@@ -68,7 +68,7 @@ export async function registrarCartao(
   const ladoQueGanhaPonto: LadoPonto = ladoPenalizado === "CASA" ? "VISITANTE" : "CASA";
   const jogadorNome = ctx.jogadores.find((j) => j.jogadorId === jogadorId)?.nomeJogador;
 
-  const { partida: p } = await api.registrarEvento(ctx.partidaId, {
+  const p = await api.partidas.registrarEvento(ctx.partidaId, {
     indiceSet: ctx.partida.setsCasa + ctx.partida.setsVisitante,
     lado: daPonto ? ladoQueGanhaPonto : ladoPenalizado,
     tipo: "CARTAO_ADVERSARIO",

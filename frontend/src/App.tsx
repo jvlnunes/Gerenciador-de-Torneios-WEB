@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Páginas públicas / globais
 import LoginPage         from "./pages/Login";
-import PartidaLivePage   from "./pages/Partida/index";
+import PartidaLivePage   from "./pages/Partida/indexPartida";
 import TorneiosListPage  from "./pages/MenuPrincipal/ListarTorneios";
 import CriarTorneioPage  from "./pages/MenuPrincipal/CriarTorneio";
 
@@ -19,10 +19,9 @@ import TorneioTimeDetalhe   from "./pages/Time/TimeDetalhe";
 import TorneioEstatisticas  from "./pages/Torneio/TorneioEstatisticas";
 import TorneioConfiguracoes from "./pages/Torneio/TorneioConfiguracoes";
 import TorneioClassificacao from "./pages/Torneio/TorneioClassificacao";
+import TorneioRacha         from "./pages/Torneio/TorneioRacha";
 
-import JoinTeamPage from "./pages/Join/JoinTime";
-
-import IndexPage from "./pages/Index";
+import IndexPage from "./pages/IndexTorneio";
 
 export default function App() {
   return (
@@ -37,9 +36,6 @@ export default function App() {
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Convite de time */}
-        <Route path="/join/:token" element={<JoinTeamPage />} />
-
         {/* Páginas de gerenciamento geral */}
         <Route path="/torneios"      element={<TorneiosListPage />} />
         <Route path="/torneios/novo" element={<CriarTorneioPage />} />
@@ -50,7 +46,8 @@ export default function App() {
         {/* Layout interno do torneio */}
         <Route path="/torneios/:torneioId" element={<TorneioLayout />}>
           <Route index                       element={<TorneioOverview />} />
-          <Route path="fases"                element={<TorneioFases />} />
+          <Route path="fases"                element={<TorneioFases />} />          
+          <Route path="racha"                element={<TorneioRacha />} />
           <Route path="partidas"             element={<TorneioPartidas />} />
           <Route path="times"                element={<TorneioTimes />} />
           <Route path="classificacao"        element={<TorneioClassificacao />} />

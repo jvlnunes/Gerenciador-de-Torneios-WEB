@@ -1,7 +1,7 @@
 import type { Torneio, Time } from "@/services/api/interfaces";
 import { useEffect, useState, useCallback } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { api } from "@/services/api";
+import api from "@/services/api";
 import { Plus, Loader2, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalCriarTime } from "@/pages/Torneio/modals/ModalCriarTime"
@@ -12,8 +12,6 @@ interface TorneioCtx {
   liveCount: number;
   canManage: boolean;
 }
-
-
 
 /* ─── Card do time ───────────────────────────────────────── */
 function TimeCard({
@@ -104,13 +102,13 @@ function TimeCard({
               title="Excluir time"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
               </svg>
             </button>
           )}
           <span className="text-muted-foreground group-hover:text-primary transition-colors p-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
+              <polyline points="9 18 15 12 9 6" />
             </svg>
           </span>
         </div>
@@ -130,7 +128,7 @@ export default function TorneioTimes() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setTeams(await api.listarTimes(torneioId)); }
+    try { setTeams(await api.times.listarPorTorneio(torneioId)); }
     finally { setLoading(false); }
   }, [torneioId]);
 
@@ -138,7 +136,7 @@ export default function TorneioTimes() {
 
   const deleteTeam = async (id: string) => {
     if (!confirm("Excluir este time? Todos os jogadores serão removidos.")) return;
-    await api.removerTime(id);
+    await api.times.remover(id);
     setTeams((prev) => prev.filter((t) => t.id !== id));
   };
 
