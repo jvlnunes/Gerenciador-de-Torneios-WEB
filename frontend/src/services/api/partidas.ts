@@ -23,18 +23,18 @@ export const partidasApi = {
      * Busca os dados completos de uma partida específica (placar, sets, times).
      */
     buscar: async (partidaId: string): Promise<Partida> => {
-        return request<Partida>(`/partidas?partidaId=${partidaId}`);
-    },
+    return request<Partida>(`/partidas/${partidaId}`);
+},
 
     /**
      * Cria uma nova partida no torneio.
      */
     criar: async (torneioId: string, data: Partial<Partida>): Promise<Partida> => {
-        return request<Partida>(`/torneios/${torneioId}/partidas`, {
-            method: "POST",
-            body: JSON.stringify(data),
-        });
-    },
+    return request<Partida>(`/partidas`, {
+        method: "POST",
+        body: JSON.stringify({ ...data, torneioId }),
+    });
+},
 
     /**
      * Remove uma partida do sistema.
@@ -49,30 +49,31 @@ export const partidasApi = {
      * Atualiza dados gerais da partida (usado para placares, status, etc.)
      */
     atualizarPartida: async (partidaId: string, data: Partial<Partida>): Promise<Partida> => {
-        return request<Partida>(`/partidas/${partidaId}`, {
-            method: "PATCH",
-            body: JSON.stringify(data),
-        });
-    },
+    return request<Partida>(`/partidas/${partidaId}`, {
+        method: "PUT",          // era PATCH
+        body: JSON.stringify(data),
+    });
+},
 
     /**
      * Finaliza a partida de forma definitiva.
      */
     finalizarPartida: async (partidaId: string): Promise<Partida> => {
-        return request<Partida>(`/partidas/${partidaId}/finalizar`, {
-            method: "POST",
-        });
-    },
+    return request<Partida>(`/partidas/${partidaId}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "FINALIZADA" }),
+    });
+},
 
     /**
      * Atualiza o status da partida (ex: de AGENDADA para AQUECIMENTO ou AO_VIVO).
      */
     atualizarStatus: async (partidaId: string, status: StatusPartida): Promise<Partida> => {
-        return request<Partida>(`/partidas/${partidaId}/status`, {
-            method: "PATCH",
-            body: JSON.stringify({ status }),
-        });
-    },
+    return request<Partida>(`/partidas/${partidaId}`, {
+        method: "PUT",          // era PATCH /status
+        body: JSON.stringify({ status }),
+    });
+},
 
     /* ── Relacionados e Escalação (Drag and Drop) ───────────── */
 
@@ -109,15 +110,15 @@ export const partidasApi = {
      */
     salvarEscalacao: async (
         partidaId: string,
-        data: {
-            indiceSet: number;
-            escalacaoCasa: Omit<EscalacaoTimeApi, "id" | "partidaId" | "indiceSet">;
-            escalacaoVisitante: Omit<EscalacaoTimeApi, "id" | "partidaId" | "indiceSet">;
-        }
+        data: { indiceSet: number; escalacaoCasa: EscalacaoTimeApi; escalacaoVisitante: EscalacaoTimeApi }
     ): Promise<void> => {
         return request<void>(`/partidas/${partidaId}/escalacao`, {
             method: "POST",
-            body: JSON.stringify(data),
+            body: JSON.stringify({
+                indiceSet: data.indiceSet,
+                casa: data.escalacaoCasa,          // renomeado
+                visitante: data.escalacaoVisitante, // renomeado
+            }),
         });
     },
 
@@ -144,8 +145,8 @@ export const partidasApi = {
      * Remove o último evento registrado na partida (botão Desfazer/Anular).
      */
     anularUltimoEvento: async (partidaId: string): Promise<void> => {
-        return request<void>(`/partidas/${partidaId}/eventos/ultimo`, {
-            method: "DELETE",
+        return request<void>(`/partidas/${partidaId}/eventos/anular-ultimo`, {
+            method: "POST",
         });
     },
 
@@ -173,9 +174,9 @@ export const partidasApi = {
      * Inicia a partida alterando o status no backend.
      */
     comecaPartida: async (partidaId: string): Promise<Partida> => {
-        return request<Partida>(`/partidas/${partidaId}`, {
-            method: "PATCH", 
-            body: JSON.stringify({ status: "AQUECIMENTO" }),
-        });
-    },
+    return request<Partida>(`/partidas/${partidaId}`, {
+        method: "PUT",          // era PATCH
+        body: JSON.stringify({ status: "AQUECIMENTO" }),
+    });
+},
 };

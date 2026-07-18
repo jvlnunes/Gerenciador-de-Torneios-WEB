@@ -105,3 +105,22 @@ export const TIPOS_ERRO: { tipoErro: TipoErro; label: string }[] = [
 export function ladoOposto(l: LadoPonto): LadoPonto {
   return l === "CASA" ? "VISITANTE" : "CASA";
 };
+
+export interface ResultadoSet {
+  casa: number;
+  visitante: number;
+}
+
+export function calcularResultadosSets(
+  totalSets: number,
+  eventos: { indiceSet: number; anulado?: boolean; horario: string; placarCasa: number; placarVisitante: number }[],
+): ResultadoSet[] {
+  return Array.from({ length: totalSets }, (_, i) => {
+    const evsDoSet = eventos.filter((e) => !e.anulado && e.indiceSet === i);
+    if (evsDoSet.length === 0) return null;
+    const ultimo = evsDoSet.reduce((acc, e) =>
+      new Date(e.horario).getTime() > new Date(acc.horario).getTime() ? e : acc
+    );
+    return { casa: ultimo.placarCasa, visitante: ultimo.placarVisitante };
+  }).filter((r): r is ResultadoSet => r !== null);
+}

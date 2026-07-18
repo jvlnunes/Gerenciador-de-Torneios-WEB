@@ -30,8 +30,7 @@ export function ModalCriarPartida({
     if (homeTeamId === awayTeamId) { setError("Os times precisam ser diferentes"); return; }
     setSaving(true); setError(null);
     try {
-      const m = await api.criarPartida({
-        torneioId: tournamentId,
+      const m = await api.partidas.criar(tournamentId ,{        
         timeCasaId: homeTeamId,
         timeVisitanteId: awayTeamId,
         agendadoPara: scheduledAt || undefined,

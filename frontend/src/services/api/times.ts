@@ -21,8 +21,8 @@ export const timesApi = {
     /**
      * Cria um novo time dentro de um torneio.
      */
-    criar: async (torneioId: string, data: Partial<Time>): Promise<Time> => {
-        return request<Time>(`/torneios/${torneioId}/times`, {
+    criar: async (data: Partial<Time> & { torneioId: string }): Promise<Time> => {
+        return request<Time>(`/times`, {
             method: "POST",
             body: JSON.stringify(data),
         });
@@ -67,20 +67,20 @@ export const timesApi = {
     },
 
     /**
-     * Atualiza os dados de um jogador específico (rota raiz /jogadores).
-     */
-    atualizarJogador: async (jogadorId: string, data: Partial<Jogador>): Promise<Jogador> => {
-        return request<Jogador>(`/jogadores/${jogadorId}`, {
+    * Atualiza os dados de um jogador específico (rota aninhada em /times/:timeId/jogadores/:jogadorId).
+    */
+    atualizarJogador: async (timeId: string, jogadorId: string, data: Partial<Jogador>): Promise<Jogador> => {
+        return request<Jogador>(`/times/${timeId}/jogadores/${jogadorId}`, {
             method: "PUT",
             body: JSON.stringify(data),
         });
     },
 
     /**
-     * Remove um jogador do time (rota raiz /jogadores).
+     * Remove um jogador do time (rota aninhada em /times/:timeId/jogadores/:jogadorId).
      */
-    removerJogador: async (jogadorId: string): Promise<void> => {
-        return request<void>(`/jogadores/${jogadorId}`, {
+    removerJogador: async (timeId: string, jogadorId: string): Promise<void> => {
+        return request<void>(`/times/${timeId}/jogadores/${jogadorId}`, {
             method: "DELETE",
         });
     },

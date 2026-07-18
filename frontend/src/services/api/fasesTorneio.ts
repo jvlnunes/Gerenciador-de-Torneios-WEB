@@ -27,8 +27,8 @@ export const fasesTorneioApi = {
      * Atualiza as configurações de uma fase de racha.
      */
     atualizarConfiguracaoRacha: async (faseId: string, data: Partial<ConfiguracaoRacha>): Promise<ConfiguracaoRacha> => {
-        return request<ConfiguracaoRacha>(`/fases/${faseId}/configuracao`, {
-            method: "PATCH",
+        return request<ConfiguracaoRacha>(`/fases/${faseId}/configuracao-racha`, {
+            method: "PUT",
             body: JSON.stringify(data),
         });
     },
@@ -45,9 +45,9 @@ export const fasesTorneioApi = {
      */
     adicionarPool: async (
         faseId: string,
-        data: { 
-            jogadorIds?: string[]; 
-            novosJogadores?: { nome: string; notaHabilidade?: number }[] 
+        data: {
+            jogadorIds?: string[];
+            novosJogadores?: { nome: string; notaHabilidade?: number }[]
         },
     ): Promise<PoolJogadorRacha[]> => {
         return request<PoolJogadorRacha[]>(`/fases/${faseId}/pool`, {
@@ -74,9 +74,9 @@ export const fasesTorneioApi = {
     ): Promise<{ times: Time[]; jogadoresNaoAlocados: Jogador[] }> => {
         return request<{ times: Time[]; jogadoresNaoAlocados: Jogador[] }>(
             `/fases/${faseId}/pool/sortear`,
-            { 
-                method: "POST", 
-                body: JSON.stringify(data) 
+            {
+                method: "POST",
+                body: JSON.stringify(data)
             }
         );
     },
@@ -92,8 +92,15 @@ export const fasesTorneioApi = {
      * Inicializa a fila de espera do racha para dar início aos jogos.
      */
     iniciarFilaRacha: async (faseId: string): Promise<{ estado: FilaRachaEstado }> => {
-        return request<{ estado: FilaRachaEstado }>(`/fases/${faseId}/fila-racha`, {
+        return request<{ estado: FilaRachaEstado }>(`/fases/${faseId}/fila-racha/iniciar`, {
             method: "POST",
+        });
+    },
+
+    avancarFilaRacha: async (faseId: string, timeVencedorId: string) => {
+        return request(`/fases/${faseId}/fila-racha/avancar`, {
+            method: "POST",
+            body: JSON.stringify({ timeVencedorId }),
         });
     },
 };

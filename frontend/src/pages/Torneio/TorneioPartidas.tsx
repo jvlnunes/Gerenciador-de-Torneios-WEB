@@ -4,8 +4,9 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import { ModalCriarPartida } from "@/pages/Torneio/modals/ModalCriarPartida";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import  api  from "@/services/api";
+import api from "@/services/api";
 import { cn } from "@/services/utils";
+import { calcularResultadosSets, type ResultadoSet } from "@/pages/Partida/utils/LogicaPartida";
 import {
   Plus, Loader2, Swords, Trophy, Play, Clock,
   CheckCircle2, MapPin, Trash2,
@@ -34,17 +35,18 @@ const matchStatusLabel: Record<string, string> = {
 };
 
 
-
 /* ── Match Card ──────────────────────────────────────────── */
 function MatchCard({
   match,
   canManage,
+  resultadosSets,
   onStart,
   onDelete,
   onOpen,
 }: {
   match: Partida;
   canManage: boolean;
+  resultadosSets?: ResultadoSet[];
   onStart: () => void;
   onDelete: () => void;
   onOpen: () => void;
@@ -95,6 +97,15 @@ function MatchCard({
             <div className="px-4 py-2 rounded-xl bg-muted text-center min-w-[4rem]">
               <span className="font-display text-lg font-black text-muted-foreground">vs</span>
             </div>
+          ) : isFinished ? (
+            <div
+              className="px-4 py-2 rounded-xl text-center min-w-[5rem]"
+              style={{ background: "linear-gradient(135deg, #0a0a0a, #0a3d1f)" }}
+            >
+              <span className="font-display text-2xl font-black text-white">
+                {match.setsCasa} × {match.setsVisitante}
+              </span>
+            </div>
           ) : (
             <div
               className="px-4 py-2 rounded-xl text-center min-w-[5rem]"
@@ -103,11 +114,6 @@ function MatchCard({
               <span className="font-display text-2xl font-black text-white">
                 {match.setAtualCasa} – {match.setAtualVisitante}
               </span>
-              {(match.setsCasa > 0 || match.setsVisitante > 0) && (
-                <p className="text-[10px] text-white/60 mt-0.5">
-                  {match.setsCasa}×{match.setsVisitante}
-                </p>
-              )}
             </div>
           )}
 
@@ -115,6 +121,22 @@ function MatchCard({
             <p className="font-display font-bold text-foreground">{match.nomeTimeVisitante}</p>
           </div>
         </div>
+
+        {/* Placar de cada set, só para partidas finalizadas */}
+        {isFinished && resultadosSets && resultadosSets.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+            {resultadosSets.map((r, i) => (
+              <div key={i} className="flex flex-col items-center px-2 py-1 rounded-lg bg-muted border border-border">
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                  Set {i + 1}
+                </span>
+                <span className="text-xs font-black text-foreground tabular-nums">
+                  {r.casa}-{r.visitante}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {canManage && (
           <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
@@ -158,7 +180,9 @@ export default function TorneioPartidas() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
-  const [showFinished, setShowFinished] = useState(false); 
+  const [showFinished, setShowFinished] = useState(false);
+
+  const [resultadosPorPartida, setResultadosPorPartida] = useState<Record<string, ResultadoSet[]>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -169,6 +193,16 @@ export default function TorneioPartidas() {
       ]);
       setMatches(ms);
       setTeams(ts);
+
+      const finalizadas = ms.filter((m) => m.status === "FINALIZADA");
+      const entradas = await Promise.all(
+        finalizadas.map(async (m) => {
+          const eventos = await api.partidas.listarEventos(m.id);
+          const totalSets = m.setsCasa + m.setsVisitante;
+          return [m.id, calcularResultadosSets(totalSets, eventos)] as const;
+        })
+      );
+      setResultadosPorPartida(Object.fromEntries(entradas));
     } finally {
       setLoading(false);
     }
@@ -309,6 +343,7 @@ export default function TorneioPartidas() {
                   key={m.id}
                   match={m}
                   canManage={canManage}
+                  resultadosSets={resultadosPorPartida[m.id]}
                   onStart={() => handleStart(m.id)}
                   onDelete={() => handleDelete(m.id)}
                   onOpen={() => navigate(`/partidas/${m.id}`)}

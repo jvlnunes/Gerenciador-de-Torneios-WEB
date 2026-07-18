@@ -22,7 +22,7 @@ import { PartidaModals, type AlertaConfirmacao } from "./components/PartidaModal
 
 import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
 import { JogadorPartida, Partida } from "@/services/api/interfaces";
-import api  from "@/services/api";
+import api from "@/services/api";
 
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
@@ -122,6 +122,14 @@ export default function PartidaLivePage() {
   /* ── Handlers de Escalação ────────────────────────────────── */
   const handleConfirmarEscalacao = async (escalacao: EscalacaoSet) => {
     await confirmarEscalacao(escalacao);
+
+    if (partida && partida.status !== "AO_VIVO") {
+      const partidaAtualizada = await api.partidas.atualizarPartida(partidaId!, {
+        status: "AO_VIVO",
+      });
+      setPartida(partidaAtualizada);
+    }
+
     setSetStarted(true);
     setTimerSecs(0);
     setTimerOn(true);
@@ -306,15 +314,18 @@ export default function PartidaLivePage() {
   const evSetAtivo = eventos.filter((e) => !e.anulado && e.indiceSet === setAtivo).reverse();
   const eventosCron = [...evSetAtivo].reverse();
 
-  // ── Cálculo do sacador e rotação ──────────────────────────
+  const eventosCronParaRotacao = eventosCron.filter(
+    (e) => !(e.tipo === "CARTAO_ADVERSARIO" && e.tipoCartao === "AMARELO")
+  );
+
   let ladoSaque: LadoPonto = obterSacadorInicial(setAtivo);
-  if (eventosCron.length > 0) {
-    ladoSaque = eventosCron[eventosCron.length - 1].lado;
+  if (eventosCronParaRotacao.length > 0) {
+    ladoSaque = eventosCronParaRotacao[eventosCronParaRotacao.length - 1].lado;
   }
 
   let rotCasa = 0, rotVisit = 0;
   let ladoAnterior: LadoPonto = obterSacadorInicial(setAtivo);
-  for (const ev of eventosCron) {
+  for (const ev of eventosCronParaRotacao) {
     if (ev.lado !== ladoAnterior) {
       if (ev.lado === "CASA") rotCasa++;
       else rotVisit++;

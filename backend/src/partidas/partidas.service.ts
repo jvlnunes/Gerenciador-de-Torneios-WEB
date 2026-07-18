@@ -93,7 +93,15 @@ export class PartidasService {
       ...dados,
       agendadoPara: this.normalizarDateTime(dados.agendadoPara),
     };
-    return this.prisma.partida.create({ data: dadosFormatados });
+
+    const partidaCriada = await this.prisma.partida.create({
+      data: dadosFormatados,
+      include: { timeCasa: true, timeVisitante: true },   // 👈 adiciona isso
+    });
+
+    const regras = await this.buscarRegras(partidaCriada.torneioId);
+
+    return this.formatarPartida(partidaCriada, regras);   // 👈 formata igual aos outros métodos
   }
 
   async listarPorTorneio(torneioId: string) {

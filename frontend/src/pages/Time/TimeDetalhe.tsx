@@ -12,7 +12,7 @@ import {
   ArrowLeft, Plus, Loader2, X, Users, Star, StarOff,
   Check, AlertCircle, Instagram, Phone, Globe, Facebook,
   MessageCircle, Mail, Palette, Save, ChevronRight,
-  GripVertical, Info,
+  GripVertical,
 } from "lucide-react";
 
 type Tab = "elenco" | "identidade";
@@ -341,8 +341,7 @@ function AddPlayerRow({
     setSaving(true); setError(null);
     const numeroCamisa = jersey ? Number(jersey) : proximoCamisa(players);
     try {
-      const p = await api.criarJogador({
-        timeId: teamId,
+      const p = await api.times.adicionarJogador(teamId, {
         nome: name.trim(),
         numeroCamisa,
         posicao: position || undefined,
@@ -412,7 +411,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const jogs = await api.listarJogadores(time.id);
+      const jogs = await api.times.listarJogadores(time.id);
       setPlayers(jogs);
 
       const titularesComPosicao = jogs.filter(
@@ -443,14 +442,14 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
 
   const handleUpdate = async (id: string, data: Partial<Jogador>) => {
     try {
-      const updated = await api.atualizarJogador(time.id, id, data);
+      const updated = await api.times.atualizarJogador(time.id,id, data);
       setPlayers((prev) => prev.map((p) => p.id === id ? { ...p, ...updated } : p));
     } catch (e) { console.error(e); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Remover jogador?")) return;
-    await api.deletarJogador(time.id, id);
+    await api.times.removerJogador(time.id, id);
     setPlayers((prev) => prev.filter((p) => p.id !== id));
     setTitularesQuadra((prev) => prev.filter((t) => t.jogadorId !== id));
   };
@@ -511,7 +510,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
       const atualizados = await Promise.all(
         players.map((p) => {
           const t = titularesQuadra.find((t) => t.jogadorId === p.id);
-          return api.atualizarJogador(time.id, p.id, {
+          return api.times.atualizarJogador(time.id,p.id, {
             titular: !!t,
             indicePosicao: t ? t.indicePosicao : null,
           });
@@ -725,7 +724,7 @@ function TabIdentidade({
     if (!nome.trim()) { setError("Nome é obrigatório"); return; }
     setSaving(true); setError(null);
     try {
-      const updated = await api.atualizarTime(time.id, {
+      const updated = await api.times.atualizar(time.id, {
         nome: nome.trim(), logoUrl: logoUrl || undefined,
         corPrimaria: corPrimaria || undefined, corSecundaria: corSecundaria || undefined,
         email: email || undefined, telefone: telefone || undefined,
@@ -863,14 +862,14 @@ export default function TorneioTimeDetalhe() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("elenco");
 
-  const canManage = torneio ? podeGerenciarTorneio(torneio, user) : false;
+  const canManage = torneio ? api.torneios.podeGerenciarTorneio(torneio, user) : false;
 
   useEffect(() => {
     if (!timeId) return;
-    api.buscarTime(timeId)
+    api.times.buscar(timeId)
       .then(async (t) => {
         setTime(t);
-        const torneioData = await api.buscarTorneio(t.torneioId);
+        const torneioData = await api.torneios.buscarTorneio(t.torneioId);
         setTorneio(torneioData);
       })
       .catch(() => navigate(`/torneios/${torneioId}`))
