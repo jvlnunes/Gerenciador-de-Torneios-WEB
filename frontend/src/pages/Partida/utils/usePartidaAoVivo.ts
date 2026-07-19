@@ -52,7 +52,7 @@ export function usePartidaAoVivo(partidaId: string | undefined) {
         jogadorId,
         tipoErro,
       );
-      setPartida(resultado.partidaAtualizada);
+
       return resultado;
     },
     [partida, partidaId, jogadores],
@@ -72,7 +72,7 @@ export function usePartidaAoVivo(partidaId: string | undefined) {
         tipoCartao,
         ladoPenalizado,
       );
-      setPartida(resultado.partidaAtualizada);
+      
       return resultado;
     },
     [partida, partidaId, jogadores],

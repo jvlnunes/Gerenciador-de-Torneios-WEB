@@ -33,7 +33,7 @@ export async function registrarPonto(
   const nV = ctx.partida.setAtualVisitante + (ladoAcao === "VISITANTE" ? 1 : 0);
   const jogadorNome = ctx.jogadores.find((j) => j.jogadorId === jogadorId)?.nomeJogador;
 
-  const p = await api.partidas.registrarEvento(ctx.partidaId, {
+  const resposta = await api.partidas.registrarEvento(ctx.partidaId, {
     indiceSet: ctx.partida.setsCasa + ctx.partida.setsVisitante,
     lado: ladoAcao,
     tipo: acao.type,
@@ -46,6 +46,8 @@ export async function registrarPonto(
     quadraVisitanteAntes: ctx.jVisQuadra.map((j) => j.jogadorId),
     sacadorAntes: ctx.sacadorAtual,
   });
+
+  const p = resposta.partida; 
 
   return { partidaAtualizada: p, ...verificarFimSet(p, nC, nV) };
 }
@@ -68,7 +70,7 @@ export async function registrarCartao(
   const ladoQueGanhaPonto: LadoPonto = ladoPenalizado === "CASA" ? "VISITANTE" : "CASA";
   const jogadorNome = ctx.jogadores.find((j) => j.jogadorId === jogadorId)?.nomeJogador;
 
-  const p = await api.partidas.registrarEvento(ctx.partidaId, {
+  const resposta = await api.partidas.registrarEvento(ctx.partidaId, {
     indiceSet: ctx.partida.setsCasa + ctx.partida.setsVisitante,
     lado: daPonto ? ladoQueGanhaPonto : ladoPenalizado,
     tipo: "CARTAO_ADVERSARIO",
@@ -81,6 +83,8 @@ export async function registrarCartao(
     quadraVisitanteAntes: ctx.jVisQuadra.map((j) => j.jogadorId),
     sacadorAntes: ctx.sacadorAtual,
   });
+
+  const p = resposta.partida; 
 
   const res = daPonto
     ? verificarFimSet(p, nC, nV)

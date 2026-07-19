@@ -24,6 +24,8 @@ import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
 import { JogadorPartida, Partida } from "@/services/api/interfaces";
 import api from "@/services/api";
 
+import { EstatisticasComparativoTime } from "./components/Estatisticascomparativotime";
+
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
   const { user } = useAuth();
@@ -50,7 +52,8 @@ export default function PartidaLivePage() {
 
   const [painelAcaoAberto, setPainelAcaoAberto] = useState(false);
   const [historicoModalAberto, setHistoricoModalAberto] = useState(false);
-  const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false); // NOVO
+  const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false);
+  const [abaEstatisticas, setAbaEstatisticas] = useState<"time" | "jogador">("time");
 
   /* ── Modais e Configurações ───────────────────────────────── */
   const [modalCartao, setModalCartao] = useState<LadoPonto | null>(null);
@@ -69,7 +72,7 @@ export default function PartidaLivePage() {
     modalSubAberto, timeSubId, abrirModalSubstituicao, fecharModalSubstituicao, confirmarSubstituicao,
     obterTitularesAtuais, obterBancoAtual, obterSubstituicoesDoSet, obterTodasSubstituicoesDoSet, obterEscalacao,
     obterJogadorPosicao1, obterQuadraAtual, obterSacadorInicial, recarregar, // + obterSacadorInicial
-  } = useEscalacao(partidaId, setAtivo);
+  } = useEscalacao(partidaId, setAtivo, partida?.timeCasaId);
 
   /* ── Timer effect ─────────────────────────────────────────── */
   useEffect(() => {
@@ -83,6 +86,7 @@ export default function PartidaLivePage() {
 
   /* ── Carregar dados ───────────────────────────────────────── */
   useEffect(() => {
+    if (partida?.timeCasaId) recarregar();
     async function init() {
       const dados = await load();
       if (!dados) return;
@@ -111,7 +115,7 @@ export default function PartidaLivePage() {
     }
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [partidaId]);
+  }, [partida?.timeCasaId]);
 
   const recarregarTudo = async () => {
     const dados = await load();
@@ -306,8 +310,6 @@ export default function PartidaLivePage() {
     }).filter((r): r is { casa: number; visitante: number } => r !== null)
     : [];
 
-  // Elenco completo (titulares + reservas) de cada time nesta partida — usado nas
-  // estatísticas pós-jogo, que substituem a quadra quando a partida está finalizada.
   const jogadoresCasaTodos = jogadores.filter((j) => j.timeId === partida.timeCasaId);
   const jogadoresVisTodos = jogadores.filter((j) => j.timeId === partida.timeVisitanteId);
 
@@ -707,6 +709,7 @@ export default function PartidaLivePage() {
             {estatisticasModalAberto && (
               <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
                 <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
+                  {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 shrink-0">
                     <span className="text-sm font-black text-gray-800 flex items-center gap-2">
                       <BarChart3 className="h-4 w-4 text-gray-400" />
@@ -719,19 +722,56 @@ export default function PartidaLivePage() {
                       ×
                     </button>
                   </div>
-                  <div className="overflow-y-auto grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-                    <EstatisticasTime
-                      eventos={eventos}
-                      jogadores={jogadoresCasaTodos}
-                      nomeTime={partida.nomeTimeCasa}
-                      cor="emerald"
-                    />
-                    <EstatisticasTime
-                      eventos={eventos}
-                      jogadores={jogadoresVisTodos}
-                      nomeTime={partida.nomeTimeVisitante}
-                      cor="orange"
-                    />
+
+                  {/* Abas: Por time / Por jogador */}
+                  <div className="flex gap-1 px-4 pt-3 shrink-0">
+                    <button
+                      onClick={() => setAbaEstatisticas("time")}
+                      className={cn(
+                        "flex-1 rounded-lg py-2 text-xs font-black uppercase tracking-wider transition-colors",
+                        abaEstatisticas === "time"
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      )}
+                    >
+                      Por time
+                    </button>
+                    <button
+                      onClick={() => setAbaEstatisticas("jogador")}
+                      className={cn(
+                        "flex-1 rounded-lg py-2 text-xs font-black uppercase tracking-wider transition-colors",
+                        abaEstatisticas === "jogador"
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      )}
+                    >
+                      Por jogador
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto flex-1">
+                    {abaEstatisticas === "time" ? (
+                      <EstatisticasComparativoTime
+                        eventos={eventos}
+                        partida={partida}
+                        setAtivo={setAtivo}
+                      />
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                        <EstatisticasTime
+                          eventos={eventos}
+                          jogadores={jogadoresCasaTodos}
+                          nomeTime={partida.nomeTimeCasa}
+                          cor="emerald"
+                        />
+                        <EstatisticasTime
+                          eventos={eventos}
+                          jogadores={jogadoresVisTodos}
+                          nomeTime={partida.nomeTimeVisitante}
+                          cor="orange"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
