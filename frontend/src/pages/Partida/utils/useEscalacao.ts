@@ -30,7 +30,7 @@ function aplicarRotacao(idsTaticos: (string | null)[], rotacao: number) {
   return idsNaQuadraFisica;
 }
 
-export function useEscalacao(partidaId: string | undefined, indiceSetAtual: number) {
+export function useEscalacao(partidaId: string | undefined, indiceSetAtual: number, timeCasaId?: string,) {
   // Controle de Modais
   const [modalEscalacaoAberto, setModalEscalacaoAberto] = useState(false);
   const [modalSubAberto, setModalSubAberto] = useState(false);
@@ -56,20 +56,25 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
 
         if (rows.length < 2) return; // ainda não foi salva escalação pra esse set
 
-        const [a, b] = rows;
+        const [r0, r1] = rows;
+        const rowCasa = timeCasaId
+          ? (r0.timeId === timeCasaId ? r0 : r1)
+          : r0; // fallback enquanto timeCasaId ainda não chegou
+        const rowVisitante = rowCasa === r0 ? r1 : r0;
+
         const escalacaoA: EscalacaoTime = {
-          timeId: a.timeId,
-          titulares: a.titulares as any,
-          banco: a.banco as any,
-          indicePosicaoSaque: a.indicePosicaoSaque as any,
-          sacaPrimeiro: a.sacaPrimeiro,
+          timeId: rowCasa.timeId,
+          titulares: rowCasa.titulares as any,
+          banco: rowCasa.banco as any,
+          indicePosicaoSaque: rowCasa.indicePosicaoSaque as any,
+          sacaPrimeiro: rowCasa.sacaPrimeiro,
         };
         const escalacaoB: EscalacaoTime = {
-          timeId: b.timeId,
-          titulares: b.titulares as any,
-          banco: b.banco as any,
-          indicePosicaoSaque: b.indicePosicaoSaque as any,
-          sacaPrimeiro: b.sacaPrimeiro,
+          timeId: rowVisitante.timeId,
+          titulares: rowVisitante.titulares as any,
+          banco: rowVisitante.banco as any,
+          indicePosicaoSaque: rowVisitante.indicePosicaoSaque as any,
+          sacaPrimeiro: rowVisitante.sacaPrimeiro,
         };
 
         setEscalacoes((prev) => ({
@@ -81,7 +86,7 @@ export function useEscalacao(partidaId: string | undefined, indiceSetAtual: numb
         tentativasFeitas.current.add(indiceSet);
       }
     },
-    [partidaId],
+    [partidaId, timeCasaId], // 👈 adiciona timeCasaId às dependências
   );
 
   const carregarSubstituicoes = useCallback(async () => {

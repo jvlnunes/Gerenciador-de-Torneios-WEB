@@ -362,6 +362,7 @@ export class PartidasService {
   async listarEscalacao(partidaId: string, indiceSet: number) {
     return this.prisma.escalacaoSet.findMany({
       where: { partidaId, indiceSet },
+      orderBy: { criadoEm: 'asc' }, 
     });
   }
 

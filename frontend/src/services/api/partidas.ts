@@ -23,18 +23,18 @@ export const partidasApi = {
      * Busca os dados completos de uma partida específica (placar, sets, times).
      */
     buscar: async (partidaId: string): Promise<Partida> => {
-    return request<Partida>(`/partidas/${partidaId}`);
-},
+        return request<Partida>(`/partidas/${partidaId}`);
+    },
 
     /**
      * Cria uma nova partida no torneio.
      */
     criar: async (torneioId: string, data: Partial<Partida>): Promise<Partida> => {
-    return request<Partida>(`/partidas`, {
-        method: "POST",
-        body: JSON.stringify({ ...data, torneioId }),
-    });
-},
+        return request<Partida>(`/partidas`, {
+            method: "POST",
+            body: JSON.stringify({ ...data, torneioId }),
+        });
+    },
 
     /**
      * Remove uma partida do sistema.
@@ -49,31 +49,31 @@ export const partidasApi = {
      * Atualiza dados gerais da partida (usado para placares, status, etc.)
      */
     atualizarPartida: async (partidaId: string, data: Partial<Partida>): Promise<Partida> => {
-    return request<Partida>(`/partidas/${partidaId}`, {
-        method: "PUT",          // era PATCH
-        body: JSON.stringify(data),
-    });
-},
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",          // era PATCH
+            body: JSON.stringify(data),
+        });
+    },
 
     /**
      * Finaliza a partida de forma definitiva.
      */
     finalizarPartida: async (partidaId: string): Promise<Partida> => {
-    return request<Partida>(`/partidas/${partidaId}`, {
-        method: "PUT",
-        body: JSON.stringify({ status: "FINALIZADA" }),
-    });
-},
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: "FINALIZADA" }),
+        });
+    },
 
     /**
      * Atualiza o status da partida (ex: de AGENDADA para AQUECIMENTO ou AO_VIVO).
      */
     atualizarStatus: async (partidaId: string, status: StatusPartida): Promise<Partida> => {
-    return request<Partida>(`/partidas/${partidaId}`, {
-        method: "PUT",          // era PATCH /status
-        body: JSON.stringify({ status }),
-    });
-},
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",          // era PATCH /status
+            body: JSON.stringify({ status }),
+        });
+    },
 
     /* ── Relacionados e Escalação (Drag and Drop) ───────────── */
 
@@ -134,11 +134,17 @@ export const partidasApi = {
     /**
      * Registra uma nova ação na partida (ponto, erro ou cartão) e recalcula o placar.
      */
-    registrarEvento: async (partidaId: string, data: Partial<EventoPartida>): Promise<EventoPartida> => {
-        return request<EventoPartida>(`/partidas/${partidaId}/eventos`, {
-            method: "POST",
-            body: JSON.stringify(data),
-        });
+    registrarEvento: async (
+        partidaId: string,
+        data: Partial<EventoPartida>,
+    ): Promise<{ evento: EventoPartida; partida: Partida }> => {
+        return request<{ evento: EventoPartida; partida: Partida }>(
+            `/partidas/${partidaId}/eventos`,
+            {
+                method: "POST",
+                body: JSON.stringify(data),
+            },
+        );
     },
 
     /**
@@ -174,9 +180,9 @@ export const partidasApi = {
      * Inicia a partida alterando o status no backend.
      */
     comecaPartida: async (partidaId: string): Promise<Partida> => {
-    return request<Partida>(`/partidas/${partidaId}`, {
-        method: "PUT",          // era PATCH
-        body: JSON.stringify({ status: "AQUECIMENTO" }),
-    });
-},
+        return request<Partida>(`/partidas/${partidaId}`, {
+            method: "PUT",          // era PATCH
+            body: JSON.stringify({ status: "AQUECIMENTO" }),
+        });
+    },
 };
