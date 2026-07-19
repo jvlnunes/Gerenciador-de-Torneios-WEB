@@ -24,7 +24,7 @@ import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
 import { JogadorPartida, Partida } from "@/services/api/interfaces";
 import api from "@/services/api";
 
-import { EstatisticasComparativoTime } from "./components/Estatisticascomparativotime";
+import { EstatisticasComparativoTime } from "./components/EstatisticasComparativoTime";
 
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
@@ -487,12 +487,18 @@ export default function PartidaLivePage() {
             setAlerta({
               msg: "Iniciar a partida?",
               onOk: async () => {
-                const p = await api.partidas.comecaPartida(partidaId!);
-                setPartida(p);
-                setSetStarted(false);
-                modalJaAbertoPorSet.current.add(0);
-                setAlerta(null);
-                abrirModalEscalacao();
+                try {
+                  const p = await api.partidas.comecaPartida(partidaId!);
+                  setPartida(p);
+                  setSetStarted(false);
+                  modalJaAbertoPorSet.current.add(0);
+                  abrirModalEscalacao();
+                } catch (e) {
+                  console.error("Erro ao iniciar partida:", e);
+                  alert((e as Error).message || "Erro ao iniciar a partida.");
+                } finally {
+                  setAlerta(null);
+                }
               },
             });
           }}
