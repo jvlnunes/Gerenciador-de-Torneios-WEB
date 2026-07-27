@@ -7,7 +7,7 @@ import {
   IsISO8601,
   MinLength,
 } from 'class-validator';
-import { StatusTorneio, VisibilidadeTorneio, FormatoTorneio } from '@prisma/client';
+import { StatusTorneio, VisibilidadeTorneio, FormatoTorneio, TipoTorneio } from '@prisma/client';
 
 export class CriarTorneioDto {
   @ApiProperty({ example: 'Copa Verão 2026' })
@@ -59,4 +59,9 @@ export class CriarTorneioDto {
   @IsOptional()
   @IsUrl()
   logoUrl?: string;
+
+  @ApiPropertyOptional({ enum: TipoTorneio, default: TipoTorneio.NORMAL })
+  @IsOptional()
+  @IsEnum(TipoTorneio)
+  tipo?: TipoTorneio;
 }

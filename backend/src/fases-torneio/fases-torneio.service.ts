@@ -13,7 +13,7 @@ import { SortearTimesDto } from './dto/sortear-times.dto';
 
 @Injectable()
 export class FasesTorneioService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /* ── Permissão (mesmo padrão do TorneiosService) ─────────── */
   private async verificarPermissaoTorneio(
@@ -56,36 +56,23 @@ export class FasesTorneioService {
   async criarFase(torneioId: string, dados: CriarFaseDto, user: AuthenticatedUser) {
     await this.verificarPermissaoTorneio(torneioId, user);
 
-    const fasesExistentes = await this.prisma.faseTorneio.findMany({
-      where: { torneioId },
-    });
-
-    // Regra: se já existe uma fase RACHA, o torneio é "só racha" — não deixa
-    // adicionar mais nenhuma fase. E o inverso: se já existem outras fases,
-    // não deixa adicionar RACHA sozinho depois (evita ambiguidade de fluxo).
-    const jaTemRacha = fasesExistentes.some((f) => f.tipo === 'RACHA');
-    if (fasesExistentes.length > 0 && (jaTemRacha || dados.tipo === 'RACHA')) {
+    if (dados.tipo === 'RACHA') {
       throw new BadRequestException(
-        'Torneios com fase RACHA só podem ter essa única fase. Remova as demais fases antes de adicionar RACHA, ou não adicione RACHA junto de outras fases.',
+        'RACHA não é mais criado como fase avulsa. Crie o torneio com tipo=RACHA.',
       );
     }
 
+    const torneio = await this.prisma.torneio.findUnique({ where: { id: torneioId } });
+    if (torneio?.tipo === 'RACHA') {
+      throw new BadRequestException('Torneios do tipo Racha só podem ter a fase Racha.');
+    }
+
+    const fasesExistentes = await this.prisma.faseTorneio.findMany({ where: { torneioId } });
     const ordem = dados.ordem ?? fasesExistentes.length + 1;
 
     const fase = await this.prisma.faseTorneio.create({
-      data: {
-        torneioId,
-        tipo: dados.tipo,
-        nome: dados.nome,
-        ordem,
-      },
+      data: { torneioId, tipo: dados.tipo, nome: dados.nome, ordem },
     });
-
-    if (dados.tipo === 'RACHA') {
-      await this.prisma.configuracaoRacha.create({
-        data: { faseId: fase.id },
-      });
-    }
 
     return this.buscarFaseOuFalhar(fase.id);
   }

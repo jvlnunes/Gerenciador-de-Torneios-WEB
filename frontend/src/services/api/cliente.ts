@@ -5,7 +5,6 @@ export const API_URL = (import.meta.env.VITE_API_URL as string) || "http://192.1
 const TOKEN_KEY = "vb_token";
 const USER_KEY = "vb_user";
 
-/* ── Armazenamento seguro para SSR (Safe Storage) ──────────────── */
 const isBrowser = typeof window !== "undefined";
 
 const ls = {
@@ -78,9 +77,7 @@ export async function request<T>(path: string, opts: RequestInit = {}): Promise<
                     ? errorJson.message.join(", ")
                     : errorJson.message;
             }
-        } catch {
-            // O corpo não era JSON — mantém o texto bruto como mensagem
-        }
+        } catch {}
 
         throw new Error(mensagem);
     }

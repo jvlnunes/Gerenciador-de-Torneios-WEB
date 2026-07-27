@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Trophy, Target, Users, BarChart3, ChevronDown, Activity } from "lucide-react";
+import { Loader2, Trophy, Target, Users, BarChart3, Activity } from "lucide-react";
 import { cn } from "@/services/utils";
 
 import { ActionDef, ladoOposto } from "./utils/LogicaPartida";
@@ -20,11 +20,11 @@ import { PainelAcaoJogador, type EscolhaAcao } from "./components/PainelAcaoJoga
 import { EstatisticasTime } from "./components/EstatisticasTime";
 import { PartidaModals, type AlertaConfirmacao } from "./components/PartidaModals";
 
+import { EstatisticasComparativoTime } from "./components/EstatisticasComparativoTime";
 import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
-import { JogadorPartida, Partida } from "@/services/api/interfaces";
+import { JogadorPartida } from "@/services/api/interfaces";
 import api from "@/services/api";
 
-import { EstatisticasComparativoTime } from "./components/EstatisticasComparativoTime";
 
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
@@ -50,7 +50,6 @@ export default function PartidaLivePage() {
     lado: LadoPonto;
   } | null>(null);
 
-  const [painelAcaoAberto, setPainelAcaoAberto] = useState(false);
   const [historicoModalAberto, setHistoricoModalAberto] = useState(false);
   const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false);
   const [abaEstatisticas, setAbaEstatisticas] = useState<"time" | "jogador">("time");

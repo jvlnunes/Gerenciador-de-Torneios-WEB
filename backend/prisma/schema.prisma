@@ -1,5 +1,5 @@
 generator client {
-  provider      = "prisma-client-js"
+  provider = "prisma-client-js"
   // binaryTargets = ["native", "windows", "debian-openssl-3.0.x"]
 }
 
@@ -31,11 +31,12 @@ model Torneio {
   bannerUrl     String?
   logoUrl       String?
   tokenConvite  String?
-  formato       FormatoTorneio        @default(MATA_MATA)
+  formato       FormatoTorneio        @default(MATA_MATA) // legado, pode manter por compat.
+  tipo          TipoTorneio           @default(NORMAL)
   criadoEm      DateTime              @default(now())
   organizadores OrganizadorTorneios[]
   partidas      Partida[]
-  regras        RegrasTorneio?
+  regras        RegrasTorneio[]
   times         Time[]
   fases         FaseTorneio[]
 }
@@ -62,12 +63,12 @@ model OrganizadorTorneios {
 }
 
 model FaseTorneio {
-  id        String   @id @default(uuid())
+  id        String         @id @default(uuid())
   torneioId String
   tipo      FormatoTorneio
   ordem     Int
   nome      String?
-  criadoEm  DateTime @default(now())
+  criadoEm  DateTime       @default(now())
 
   torneio           Torneio            @relation(fields: [torneioId], references: [id], onDelete: Cascade)
   configuracaoRacha ConfiguracaoRacha?
@@ -78,24 +79,9 @@ model FaseTorneio {
   @@unique([torneioId, ordem])
 }
 
-enum ModoFormacaoTimes {
-  MANUAL
-  POOL_SORTEIO
-}
-
-enum CriterioSorteio {
-  ALEATORIO
-  NOTA
-}
-
-enum ModoGeracaoPartidas {
-  AUTOMATICO
-  MANUAL
-}
-
 model ConfiguracaoRacha {
-  id     String @id @default(uuid())
-  faseId String @unique
+  id     String      @id @default(uuid())
+  faseId String      @unique
   fase   FaseTorneio @relation(fields: [faseId], references: [id], onDelete: Cascade)
 
   modoFormacaoTimes        ModoFormacaoTimes   @default(MANUAL)
@@ -121,8 +107,8 @@ model PoolJogadorRacha {
 }
 
 model FilaRachaEstado {
-  id     String @id @default(uuid())
-  faseId String @unique
+  id     String      @id @default(uuid())
+  faseId String      @unique
   fase   FaseTorneio @relation(fields: [faseId], references: [id], onDelete: Cascade)
 
   timeDefensorId   String?
@@ -177,14 +163,14 @@ model Jogador {
 }
 
 model Partida {
-  id                 String                 @id @default(uuid())
-  status             StatusPartida          @default(AGENDADA)
+  id                 String                @id @default(uuid())
+  status             StatusPartida         @default(AGENDADA)
   agendadoPara       DateTime?
   local              String?
-  setsCasa           Int                    @default(0)
-  setsVisitante      Int                    @default(0)
-  setAtualCasa       Int                    @default(0)
-  setAtualVisitante  Int                    @default(0)
+  setsCasa           Int                   @default(0)
+  setsVisitante      Int                   @default(0)
+  setAtualCasa       Int                   @default(0)
+  setAtualVisitante  Int                   @default(0)
   torneioId          String
   timeCasaId         String
   timeVisitanteId    String
@@ -192,9 +178,9 @@ model Partida {
   jogadoresNaPartida JogadorPartida[]
   escalacoes         EscalacaoSet[]
   substituicoes      SubstituicaoPartida[]
-  timeCasa           Time                   @relation("PartidaCasa", fields: [timeCasaId], references: [id], onDelete: Cascade)
-  timeVisitante      Time                   @relation("PartidaVisitante", fields: [timeVisitanteId], references: [id], onDelete: Cascade)
-  torneio            Torneio                @relation(fields: [torneioId], references: [id], onDelete: Cascade)
+  timeCasa           Time                  @relation("PartidaCasa", fields: [timeCasaId], references: [id], onDelete: Cascade)
+  timeVisitante      Time                  @relation("PartidaVisitante", fields: [timeVisitanteId], references: [id], onDelete: Cascade)
+  torneio            Torneio               @relation(fields: [torneioId], references: [id], onDelete: Cascade)
 }
 
 model EscalacaoSet {
@@ -270,6 +256,21 @@ model EventoPartida {
   partida               Partida     @relation(fields: [partidaId], references: [id], onDelete: Cascade)
 }
 
+enum ModoFormacaoTimes {
+  MANUAL
+  POOL_SORTEIO
+}
+
+enum CriterioSorteio {
+  ALEATORIO
+  NOTA
+}
+
+enum ModoGeracaoPartidas {
+  AUTOMATICO
+  MANUAL
+}
+
 enum PerfilUsuario {
   ADMIN
   GERENTE
@@ -330,4 +331,9 @@ enum LadoPonto {
 enum TipoCartao {
   AMARELO
   VERMELHO
+}
+
+enum TipoTorneio {
+  NORMAL
+  RACHA
 }

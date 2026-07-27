@@ -35,6 +35,7 @@ export interface Torneio {
     tokenConvite?: string;
     organizadores?: { usuarioId: string }[];
     podeGerenciar?: boolean;
+    tipo?: "NORMAL" | "RACHA";
 }
 
 export interface Time {

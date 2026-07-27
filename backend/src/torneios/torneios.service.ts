@@ -51,17 +51,24 @@ export class TorneiosService {
 
   async criar(dados: any, user: AuthenticatedUser) {
     const dadosTratados = this.tratarDatas(dados);
+    const tipo = dadosTratados.tipo ?? 'NORMAL';
 
-    return this.prisma.torneio.create({
+    const torneio = await this.prisma.torneio.create({
       data: {
         ...dadosTratados,
-        organizadores: {
-          create: {
-            usuarioId: user.id,
-          },
-        },
+        tipo,
+        organizadores: { create: { usuarioId: user.id } },
       },
     });
+
+    if (tipo === 'RACHA') {
+      const fase = await this.prisma.faseTorneio.create({
+        data: { torneioId: torneio.id, tipo: 'RACHA', ordem: 1, nome: 'Racha' },
+      });
+      await this.prisma.configuracaoRacha.create({ data: { faseId: fase.id } });
+    }
+
+    return torneio;
   }
 
   async listarTodos() {
