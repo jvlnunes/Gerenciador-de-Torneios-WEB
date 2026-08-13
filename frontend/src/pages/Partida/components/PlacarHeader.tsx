@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Partida } from "@/services/api/interfaces";
 import type { LadoPonto } from "@/services/api/types";
+import { cn } from "@/services/utils";
 
 import { useEffect, useState } from "react";
 import { ArrowLeft, Flag, Play, RotateCcw, Settings, Maximize2, Minimize2 } from "lucide-react";
@@ -19,14 +20,16 @@ interface PlacarHeaderProps {
   onAnularPonto: () => void;
   onEncerrarPartida: () => void;
   onOpenConfig: () => void;
-  /** Chamado ao clicar no mini card "Set N" com o resultado — abre as estatísticas daquele set */
-  onClickSet?: (indiceSet: number) => void;
+  /** Set (índice) ou "geral" selecionado para exibir as estatísticas da partida finalizada */
+  statSetSelecionado?: number | "geral";
+  /** Chamado ao clicar em "Set N" ou "Partida" — troca qual estatística é exibida abaixo */
+  onSelecionarStatSet?: (valor: number | "geral") => void;
 }
 
 export function PlacarHeader({
   partida, isAoVivo, isFinalizada, isAgendada, setStarted, sacadorAtual,
   podeGerenciar, resultadosSets = [], onIniciarPartida, onIniciarSet, onAnularPonto, onEncerrarPartida, onOpenConfig,
-  onClickSet,
+  statSetSelecionado, onSelecionarStatSet,
 }: PlacarHeaderProps) {
   const navigate = useNavigate();
 
@@ -34,23 +37,6 @@ export function PlacarHeader({
   const valorVisitante = isFinalizada ? partida.setsVisitante : partida.setAtualVisitante;
   const destacarCasa = !isFinalizada || partida.setsCasa > partida.setsVisitante;
   const destacarVisitante = !isFinalizada || partida.setsVisitante > partida.setsCasa;
-
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onChange);
-    onChange();
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => { });
-    } else {
-      document.exitFullscreen?.().catch(() => { });
-    }
-  };
 
   const NomeCasa = ({ className = "" }: { className?: string }) => (
     <span className={`flex items-center gap-1.5 min-w-0 font-bold text-gray-600 uppercase tracking-wider truncate ${className}`}>
@@ -130,24 +116,37 @@ export function PlacarHeader({
 
           {isFinalizada && resultadosSets.length > 0 && (
             <div className="flex flex-wrap justify-center gap-1.5">
-              {resultadosSets.map((r, i) => {
-                const clicavel = !!onClickSet;
-                const Tag = clicavel ? "button" : "div";
-                return (
-                  <Tag
-                    key={i}
-                    type={clicavel ? "button" : undefined}
-                    onClick={clicavel ? () => onClickSet!(i) : undefined}
-                    title={clicavel ? `Ver estatísticas do Set ${i + 1}` : undefined}
-                    className={`flex flex-col items-center px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200 transition-all ${
-                      clicavel ? "cursor-pointer hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-sm active:scale-95" : ""
-                    }`}
-                  >
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Set {i + 1}</span>
-                    <span className="text-xs font-black text-gray-800 tabular-nums">{r.casa} - {r.visitante}</span>
-                  </Tag>
-                );
-              })}
+              {resultadosSets.map((r, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onSelecionarStatSet?.(i)}
+                  title={`Ver estatísticas do Set ${i + 1}`}
+                  className={cn(
+                    "flex flex-col items-center px-2.5 py-1 rounded-lg border transition-all cursor-pointer active:scale-95",
+                    statSetSelecionado === i
+                      ? "bg-emerald-50 border-emerald-300 shadow-sm ring-1 ring-emerald-300"
+                      : "bg-gray-50 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-sm"
+                  )}
+                >
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Set {i + 1}</span>
+                  <span className="text-xs font-black text-gray-800 tabular-nums">{r.casa} - {r.visitante}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => onSelecionarStatSet?.("geral")}
+                title="Ver estatísticas gerais da partida"
+                className={cn(
+                  "flex flex-col items-center px-3 py-1 rounded-lg border transition-all cursor-pointer active:scale-95",
+                  statSetSelecionado === "geral"
+                    ? "bg-emerald-50 border-emerald-300 shadow-sm ring-1 ring-emerald-300"
+                    : "bg-gray-50 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-sm"
+                )}
+              >
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Partida</span>
+                <span className="text-xs font-black text-gray-800">Geral</span>
+              </button>
             </div>
           )}
         </div>
@@ -185,13 +184,6 @@ export function PlacarHeader({
           </>
         )}
 
-        <button
-          onClick={toggleFullscreen}
-          title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
-          className="flex items-center justify-center p-2 text-gray-500 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition shadow-sm"
-        >
-          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-        </button>
       </div>
     </header>
   );

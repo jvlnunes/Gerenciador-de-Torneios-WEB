@@ -23,9 +23,12 @@ import TorneioRacha         from "./pages/Torneio/TorneioRacha";
 
 import IndexPage from "./pages/IndexTorneio";
 
+import { BotaoMaxTela } from "./components/BotaoMaxTela";
+
 export default function App() {
   return (
     <BrowserRouter>
+      <BotaoMaxTela />
       <Routes>
         {/* Rota Admin para gerencia de usuários */}
         <Route path="/admin/usuarios" element={<AdminUsuarios />} />
