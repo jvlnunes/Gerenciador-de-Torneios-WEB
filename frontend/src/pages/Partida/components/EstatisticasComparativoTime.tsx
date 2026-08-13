@@ -3,9 +3,15 @@ import type { EventoPartida, Partida } from "@/services/api/interfaces";
 import { Trophy, Swords, Shield, Zap, XCircle } from "lucide-react";
 
 interface Props {
-  eventos: EventoPartida[]; 
+  eventos: EventoPartida[];
   partida: Partida;
-  setAtivo: number; 
+  setAtivo: number;
+  /**
+   * Quando true, a barra de destaque de cada categoria soma os valores de
+   * TODOS os sets em vez de mostrar apenas o set indicado por `setAtivo`.
+   * Usado no resumo agregado da partida finalizada.
+   */
+  agregarTodosSets?: boolean;
 }
 
 interface LinhaSet {
@@ -45,7 +51,14 @@ function pontosFinaisPorSet(eventos: EventoPartida[], totalSets: number): LinhaS
   });
 }
 
-export function EstatisticasComparativoTime({ eventos, partida, setAtivo }: Props) {
+function somarSets(porSet: LinhaSet[]): LinhaSet {
+  return porSet.reduce(
+    (acc, s) => ({ casa: acc.casa + s.casa, visitante: acc.visitante + s.visitante }),
+    { casa: 0, visitante: 0 },
+  );
+}
+
+export function EstatisticasComparativoTime({ eventos, partida, setAtivo, agregarTodosSets = false }: Props) {
   const setsJaComEvento = new Set(eventos.filter((e) => !e.anulado).map((e) => e.indiceSet));
   const totalSets = Math.max(
     partida.setsCasa + partida.setsVisitante + (partida.status === "AO_VIVO" ? 1 : 0),
@@ -96,76 +109,80 @@ export function EstatisticasComparativoTime({ eventos, partida, setAtivo }: Prop
           {partida.nomeTimeCasa}
         </span>
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">
-          Set {setAtivo + 1} em destaque
+          {agregarTodosSets ? "Total da partida" : `Set ${setAtivo + 1} em destaque`}
         </span>
         <span className="text-sm font-black text-orange-600 truncate max-w-[38%] text-right">
           {partida.nomeTimeVisitante}
         </span>
       </div>
 
-      {categorias.map((cat) => {
-        const destaque = cat.porSet[setAtivo] ?? { casa: 0, visitante: 0 };
-        const maiorValor = Math.max(destaque.casa, destaque.visitante, 1);
+      {/* Card único reunindo todas as categorias */}
+      <div className="rounded-xl border border-border overflow-hidden bg-card divide-y divide-border">
+        {categorias.map((cat) => {
+          const destaque = agregarTodosSets
+            ? somarSets(cat.porSet)
+            : cat.porSet[setAtivo] ?? { casa: 0, visitante: 0 };
+          const total = destaque.casa + destaque.visitante;
+          const pctCasa = total > 0 ? (destaque.casa / total) * 100 : 50;
+          const pctVisitante = total > 0 ? 100 - pctCasa : 50;
 
-        return (
-          <div key={cat.key} className="rounded-xl border border-border overflow-hidden bg-card">
-            {/* Linha de valores por set (histórico, como na tabela da VNL) */}
-            <div className="flex items-stretch bg-muted/40 border-b border-border">
-              <div className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground shrink-0 w-[92px] sm:w-28">
+          return (
+            <div key={cat.key} className="px-3 py-2.5 space-y-1.5">
+              {/* Rótulo da categoria, centralizado acima da barra */}
+              <div className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                 {cat.icon}
-                <span className="truncate">{cat.label}</span>
+                <span>{cat.label}</span>
               </div>
-              <div
-                className="flex-1 grid"
-                style={{ gridTemplateColumns: `repeat(${colunasSet.length}, minmax(0, 1fr))` }}
-              >
-                {colunasSet.map((i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "text-center py-1 border-l border-border",
-                      i === setAtivo && "bg-primary/5"
-                    )}
-                  >
-                    <p className="text-[9px] font-bold text-muted-foreground">S{i + 1}</p>
-                    <p className="text-[11px] sm:text-xs font-black text-foreground tabular-nums">
-                      {cat.porSet[i]?.casa ?? 0}
-                      <span className="text-muted-foreground font-normal mx-0.5">-</span>
-                      {cat.porSet[i]?.visitante ?? 0}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Barra comparativa do set em destaque (estilo VNL) */}
-            <div className="p-2.5 space-y-1.5">
+              {/* Histórico por set — omitido no modo agregado, pois todos os
+                  sets já estão somados na barra abaixo */}
+              {!agregarTodosSets && (
+                <div
+                  className="grid"
+                  style={{ gridTemplateColumns: `repeat(${colunasSet.length}, minmax(0, 1fr))` }}
+                >
+                  {colunasSet.map((i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "text-center py-0.5 border-l border-border first:border-l-0",
+                        i === setAtivo && "bg-primary/5 rounded-sm"
+                      )}
+                    >
+                      <p className="text-[9px] font-bold text-muted-foreground">S{i + 1}</p>
+                      <p className="text-[11px] sm:text-xs font-black text-foreground tabular-nums">
+                        {cat.porSet[i]?.casa ?? 0}
+                        <span className="text-muted-foreground font-normal mx-0.5">-</span>
+                        {cat.porSet[i]?.visitante ?? 0}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Barra comparativa única — set em destaque ou soma de todos os sets */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-emerald-700 w-6 text-right tabular-nums shrink-0">
                   {destaque.casa}
                 </span>
-                <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
+                <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden flex">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-300"
-                    style={{ width: `${(destaque.casa / maiorValor) * 100}%` }}
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-300"
+                    style={{ width: `${pctCasa}%` }}
+                  />
+                  <div
+                    className="h-full bg-gradient-to-l from-orange-400 to-orange-500 transition-all duration-300"
+                    style={{ width: `${pctVisitante}%` }}
                   />
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-orange-600 w-6 text-right tabular-nums shrink-0">
+                <span className="text-xs font-black text-orange-600 w-6 text-left tabular-nums shrink-0">
                   {destaque.visitante}
                 </span>
-                <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-300"
-                    style={{ width: `${(destaque.visitante / maiorValor) * 100}%` }}
-                  />
-                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

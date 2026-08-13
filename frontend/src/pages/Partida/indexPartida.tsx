@@ -54,6 +54,11 @@ export default function PartidaLivePage() {
   const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false);
   const [abaEstatisticas, setAbaEstatisticas] = useState<"time" | "jogador">("time");
 
+  // Modal de estatísticas de um set específico (aberto ao clicar no resultado
+  // do set, disponível depois que a partida é finalizada). null = fechado.
+  const [setModalEstatisticasSet, setSetModalEstatisticasSet] = useState<number | null>(null);
+  const [abaEstatisticasSet, setAbaEstatisticasSet] = useState<"geral" | "jogador">("geral");
+
   /* ── Modais e Configurações ───────────────────────────────── */
   const [modalCartao, setModalCartao] = useState<LadoPonto | null>(null);
   const [alerta, setAlerta] = useState<AlertaConfirmacao | null>(null);
@@ -347,6 +352,25 @@ export default function PartidaLivePage() {
 
   const podeClicarQuadra = podeGerenciar && isAoVivo && setStarted;
 
+  // Quando a partida termina, a coluna esquerda passa a conter dois blocos de
+  // estatísticas que podem ser mais altos que a tela — nesse caso a coluna
+  // precisa poder rolar mesmo em telas grandes (onde normalmente fica travada
+  // porque a quadra tem altura fixa).
+  const leftColOverflowClass = isFinalizada
+    ? "overflow-y-auto"
+    : "overflow-y-auto lg:overflow-hidden";
+
+  // ── Regras aplicáveis ao set em exibição ──────────────────
+  // O set decisivo (tie-break) usa pontosParaVencerUltimoSet, não pontosParaVencerSet.
+  // Sem essa distinção a barra de regras mostrava sempre o valor do set regular,
+  // mesmo quando o set ativo era o último (ex: terminou em 15 mas mostrava 18/25).
+  const totalSetsPossiveis = (partida.setsParaVencerPartida ?? 3) * 2 - 1;
+  const indiceUltimoSetPossivel = totalSetsPossiveis - 1;
+  const setEmExibicaoEhDecisivo = setAtivo === indiceUltimoSetPossivel;
+  const pontosDoSetEmExibicao = setEmExibicaoEhDecisivo
+    ? (partida.pontosParaVencerUltimoSet ?? 15)
+    : (partida.pontosParaVencerSet ?? 25);
+
   /* ── Interceptador de clique no jogador (quadra) ──────────── */
   const handleJogadorClick = (jogador: JogadorPartida, lado: LadoPonto) => {
     if (!podeClicarQuadra) return;
@@ -529,6 +553,10 @@ export default function PartidaLivePage() {
             });
           }}
           onOpenConfig={() => setShowConfig(true)}
+          onClickSet={(i) => {
+            setAbaEstatisticasSet("geral");
+            setSetModalEstatisticasSet(i);
+          }}
         />
 
         {/* Barra de regras */}
@@ -540,7 +568,8 @@ export default function PartidaLivePage() {
             </span>
             <span className="flex items-center gap-1.5">
               <Target className="w-3.5 h-3.5 text-emerald-500" />
-              Pts/set: <span className="text-gray-900 font-black ml-1">{partida.pontosParaVencerSet ?? 25}</span>
+              Pts/set{setEmExibicaoEhDecisivo ? " (decisivo)" : ""}:{" "}
+              <span className="text-gray-900 font-black ml-1">{pontosDoSetEmExibicao}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-emerald-500" />
@@ -555,7 +584,7 @@ export default function PartidaLivePage() {
         <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
 
           {/* Coluna esquerda: quadra (ou estatísticas, se finalizada) + histórico */}
-          <div className="flex-1 flex flex-col overflow-y-auto lg:overflow-hidden">
+          <div className={cn("flex-1 flex flex-col", leftColOverflowClass)}>
             <div className="order-2 lg:order-none p-4 border-b border-gray-100 bg-white shadow-sm z-10 shrink-0">
               {!isFinalizada ? (
                 <Quadra
@@ -567,26 +596,50 @@ export default function PartidaLivePage() {
                   onJogadorClick={handleJogadorClick}
                 />
               ) : (
-                <div className="rounded-2xl border border-gray-200 overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <BarChart3 className="h-4 w-4 text-gray-400" />
-                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">
-                      Estatísticas da partida
-                    </h3>
+                // Partida finalizada: mostra as duas visões de estatística lado a
+                // lado quando há espaço (xl+); em telas menores os dois blocos
+                // ficam um do lado do outro dentro de um carrossel horizontal
+                // com scroll-snap, então dá pra "arrastar" pra ver o outro sem
+                // que um fique escondido embaixo sem acesso.
+                <div className="flex xl:grid xl:grid-cols-2 gap-4 overflow-x-auto xl:overflow-visible snap-x snap-mandatory pb-2 xl:pb-0 -mx-1 px-1">
+                  <div className="min-w-[85%] sm:min-w-[70%] xl:min-w-0 shrink-0 xl:shrink snap-start rounded-2xl border border-gray-200 overflow-hidden xl:max-h-[65vh] xl:overflow-y-auto">
+                    <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                      <BarChart3 className="h-4 w-4 text-gray-400" />
+                      <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">
+                        Estatística geral
+                      </h3>
+                      <span className="text-[10px] font-semibold text-gray-400 ml-auto">Todos os sets</span>
+                    </div>
+                    <EstatisticasComparativoTime
+                      eventos={eventos}
+                      partida={partida}
+                      setAtivo={setAtivo}
+                      agregarTodosSets
+                    />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-                    <EstatisticasTime
-                      eventos={eventos}
-                      jogadores={jogadoresCasaTodos}
-                      nomeTime={partida.nomeTimeCasa}
-                      cor="emerald"
-                    />
-                    <EstatisticasTime
-                      eventos={eventos}
-                      jogadores={jogadoresVisTodos}
-                      nomeTime={partida.nomeTimeVisitante}
-                      cor="orange"
-                    />
+
+                  <div className="min-w-[85%] sm:min-w-[70%] xl:min-w-0 shrink-0 xl:shrink snap-start rounded-2xl border border-gray-200 overflow-hidden xl:max-h-[65vh] xl:overflow-y-auto">
+                    <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                      <BarChart3 className="h-4 w-4 text-gray-400" />
+                      <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">
+                        Estatística por jogador
+                      </h3>
+                      <span className="text-[10px] font-semibold text-gray-400 ml-auto">Todos os sets</span>
+                    </div>
+                    <div className="grid grid-cols-1 divide-y divide-gray-100">
+                      <EstatisticasTime
+                        eventos={eventos}
+                        jogadores={jogadoresCasaTodos}
+                        nomeTime={partida.nomeTimeCasa}
+                        cor="emerald"
+                      />
+                      <EstatisticasTime
+                        eventos={eventos}
+                        jogadores={jogadoresVisTodos}
+                        nomeTime={partida.nomeTimeVisitante}
+                        cor="orange"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -771,6 +824,77 @@ export default function PartidaLivePage() {
                         />
                         <EstatisticasTime
                           eventos={eventos}
+                          jogadores={jogadoresVisTodos}
+                          nomeTime={partida.nomeTimeVisitante}
+                          cor="orange"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {setModalEstatisticasSet !== null && (
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+                <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 shrink-0">
+                    <span className="text-sm font-black text-gray-800 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-gray-400" />
+                      Estatísticas — Set {setModalEstatisticasSet + 1}
+                    </span>
+                    <button
+                      onClick={() => setSetModalEstatisticasSet(null)}
+                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 flex items-center justify-center text-lg"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {/* Abas: Geral / Por jogador */}
+                  <div className="flex gap-1 px-4 pt-3 shrink-0">
+                    <button
+                      onClick={() => setAbaEstatisticasSet("geral")}
+                      className={cn(
+                        "flex-1 rounded-lg py-2 text-xs font-black uppercase tracking-wider transition-colors",
+                        abaEstatisticasSet === "geral"
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      )}
+                    >
+                      Geral
+                    </button>
+                    <button
+                      onClick={() => setAbaEstatisticasSet("jogador")}
+                      className={cn(
+                        "flex-1 rounded-lg py-2 text-xs font-black uppercase tracking-wider transition-colors",
+                        abaEstatisticasSet === "jogador"
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      )}
+                    >
+                      Por jogador
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto flex-1">
+                    {abaEstatisticasSet === "geral" ? (
+                      <EstatisticasComparativoTime
+                        eventos={eventos}
+                        partida={partida}
+                        setAtivo={setModalEstatisticasSet}
+                      />
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                        <EstatisticasTime
+                          eventos={eventos.filter((e) => e.indiceSet === setModalEstatisticasSet)}
+                          jogadores={jogadoresCasaTodos}
+                          nomeTime={partida.nomeTimeCasa}
+                          cor="emerald"
+                        />
+                        <EstatisticasTime
+                          eventos={eventos.filter((e) => e.indiceSet === setModalEstatisticasSet)}
                           jogadores={jogadoresVisTodos}
                           nomeTime={partida.nomeTimeVisitante}
                           cor="orange"

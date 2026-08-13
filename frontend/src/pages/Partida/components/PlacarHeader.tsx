@@ -19,11 +19,14 @@ interface PlacarHeaderProps {
   onAnularPonto: () => void;
   onEncerrarPartida: () => void;
   onOpenConfig: () => void;
+  /** Chamado ao clicar no mini card "Set N" com o resultado — abre as estatísticas daquele set */
+  onClickSet?: (indiceSet: number) => void;
 }
 
 export function PlacarHeader({
   partida, isAoVivo, isFinalizada, isAgendada, setStarted, sacadorAtual,
-  podeGerenciar, resultadosSets = [], onIniciarPartida, onIniciarSet, onAnularPonto, onEncerrarPartida, onOpenConfig
+  podeGerenciar, resultadosSets = [], onIniciarPartida, onIniciarSet, onAnularPonto, onEncerrarPartida, onOpenConfig,
+  onClickSet,
 }: PlacarHeaderProps) {
   const navigate = useNavigate();
 
@@ -127,12 +130,24 @@ export function PlacarHeader({
 
           {isFinalizada && resultadosSets.length > 0 && (
             <div className="flex flex-wrap justify-center gap-1.5">
-              {resultadosSets.map((r, i) => (
-                <div key={i} className="flex flex-col items-center px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Set {i + 1}</span>
-                  <span className="text-xs font-black text-gray-800 tabular-nums">{r.casa} - {r.visitante}</span>
-                </div>
-              ))}
+              {resultadosSets.map((r, i) => {
+                const clicavel = !!onClickSet;
+                const Tag = clicavel ? "button" : "div";
+                return (
+                  <Tag
+                    key={i}
+                    type={clicavel ? "button" : undefined}
+                    onClick={clicavel ? () => onClickSet!(i) : undefined}
+                    title={clicavel ? `Ver estatísticas do Set ${i + 1}` : undefined}
+                    className={`flex flex-col items-center px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200 transition-all ${
+                      clicavel ? "cursor-pointer hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-sm active:scale-95" : ""
+                    }`}
+                  >
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Set {i + 1}</span>
+                    <span className="text-xs font-black text-gray-800 tabular-nums">{r.casa} - {r.visitante}</span>
+                  </Tag>
+                );
+              })}
             </div>
           )}
         </div>
