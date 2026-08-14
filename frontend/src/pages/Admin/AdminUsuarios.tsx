@@ -4,14 +4,14 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import  api from "@/services/api";
+import   api from "@/services/api";
 import { cn } from "@/services/utils";
+import { PerfilUsuario } from "@/services/api";
 import {
-  Users, Shield, UserCog, Plus, Search, Trash2,
+  Users, UserCog, Plus, Search, Trash2,
   Loader2, X, AlertCircle, Check, Crown, User,
-  ChevronDown, MoreVertical, Eye, EyeOff, RefreshCw,
+  MoreVertical, Eye, EyeOff, RefreshCw,
 } from "lucide-react";
 
 /* ─── Tipos locais ─────────────────────────────────────────── */
@@ -672,12 +672,6 @@ export default function AdminUsuarios() {
         {/* Header */}
         <div className="flex items-end justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Shield className="h-5 w-5 text-primary" />
-              <span className="text-xs font-bold uppercase tracking-widest text-primary">
-                Painel Admin
-              </span>
-            </div>
             <h1 className="font-display text-4xl font-bold tracking-tight text-foreground">
               Gerenciar Usuários
             </h1>

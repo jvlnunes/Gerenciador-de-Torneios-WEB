@@ -134,32 +134,6 @@ export function EstatisticasComparativoTime({ eventos, partida, setAtivo, agrega
                 <span>{cat.label}</span>
               </div>
 
-              {/* Histórico por set — omitido no modo agregado, pois todos os
-                  sets já estão somados na barra abaixo */}
-              {!agregarTodosSets && (
-                <div
-                  className="grid"
-                  style={{ gridTemplateColumns: `repeat(${colunasSet.length}, minmax(0, 1fr))` }}
-                >
-                  {colunasSet.map((i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "text-center py-0.5 border-l border-border first:border-l-0",
-                        i === setAtivo && "bg-primary/5 rounded-sm"
-                      )}
-                    >
-                      <p className="text-[9px] font-bold text-muted-foreground">S{i + 1}</p>
-                      <p className="text-[11px] sm:text-xs font-black text-foreground tabular-nums">
-                        {cat.porSet[i]?.casa ?? 0}
-                        <span className="text-muted-foreground font-normal mx-0.5">-</span>
-                        {cat.porSet[i]?.visitante ?? 0}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Barra comparativa única — set em destaque ou soma de todos os sets */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-emerald-700 w-6 text-right tabular-nums shrink-0">

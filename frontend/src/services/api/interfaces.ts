@@ -152,6 +152,8 @@ export interface Partida {
     pontosParaVencerUltimoSet: number;
     setsParaVencerPartida: number;
     titularesPorTime: number;
+    logoTimeCasa?: string | null;     
+    logoTimeVisitante?: string | null;
 }
 
 export interface RegrasTorneio {

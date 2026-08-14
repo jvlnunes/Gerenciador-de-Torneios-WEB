@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import  api from "@/services/api";
+import api from "@/services/api";
 import type { Torneio } from "@/services/api/interfaces";
 import { Loader2, BarChart3, Search, ShieldAlert, BarChart } from "lucide-react";
 import { cn } from "@/services/utils";
@@ -26,6 +26,7 @@ interface PlayerStat {
   totalPontos: number;
   totalErros: number;
   eficiencia: number;
+  logoTime?: string | null;
 }
 
 const STAT_COLS: { key: keyof PlayerStat; label: string; color: string; icon: string }[] = [
@@ -44,7 +45,7 @@ export default function TorneioEstatisticas() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [times, setTimes] = useState<{ id: string; nome: string }[]>([]);
-  
+
   const [activeTab, setActiveTab] = useState<"resumo" | "detalhado">("resumo");
   const [sortKey, setSortKey] = useState<SortKey>("totalPontos");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
@@ -59,6 +60,7 @@ export default function TorneioEstatisticas() {
       ]);
       setTimes(ts.map((t) => ({ id: t.id, nome: t.nome })));
       const timeNomeMap = new Map(ts.map((t) => [t.id, t.nome]));
+      const timeLogoMap = new Map(ts.map((t) => [t.id, t.logoUrl]));
 
       const eventosByPartida = await Promise.all(
         partidas
@@ -83,6 +85,7 @@ export default function TorneioEstatisticas() {
               saques: 0, ataques: 0, bloqueios: 0,
               erroSaque: 0, erroAtaque: 0, outrosErros: 0,
               totalPontos: 0, totalErros: 0, eficiencia: 0,
+              logoTime: timeLogoMap.get(timeId) ?? null,
             });
           }
 
@@ -119,7 +122,7 @@ export default function TorneioEstatisticas() {
     if (filterTime === "todos") return null;
 
     const atletasDoTime = stats.filter((s) => s.timeId === filterTime);
-    
+
     const soma = atletasDoTime.reduce(
       (acc, curr) => {
         acc.totalPontos += curr.totalPontos;
@@ -192,7 +195,7 @@ export default function TorneioEstatisticas() {
               {STAT_COLS.map((col) => {
                 const top3 = getTop3(col.key);
                 if (top3[0]?.[col.key] === 0) return null;
-                
+
                 return (
                   <div key={col.key} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
@@ -232,7 +235,7 @@ export default function TorneioEstatisticas() {
                     className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
-                
+
                 <select
                   value={filterTime}
                   onChange={(e) => setFilterTime(e.target.value)}
@@ -248,8 +251,8 @@ export default function TorneioEstatisticas() {
               {teamTotals && (
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2 text-primary font-bold text-sm">
-                    <BarChart className="h-4 w-4" /> 
-                    Desempenho Coletivo 
+                    <BarChart className="h-4 w-4" />
+                    Desempenho Coletivo
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 text-center">
                     <div className="p-2 bg-background border border-border rounded-lg">
@@ -307,8 +310,12 @@ export default function TorneioEstatisticas() {
                         <td className="px-4 py-3 text-xs font-black text-muted-foreground text-center">{i + 1}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-md bg-primary/10 grid place-items-center text-xs font-bold text-primary shrink-0">
-                              {row.nomeJogador.charAt(0).toUpperCase()}
+                            <div className="h-7 w-7 rounded-md bg-primary/10 grid place-items-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+                              {row.logoTime ? (
+                                <img src={row.logoTime} alt={row.nomeTime} className="h-full w-full object-cover" />
+                              ) : (
+                                row.nomeJogador.charAt(0).toUpperCase()
+                              )}
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-foreground truncate text-sm">{row.nomeJogador}</p>

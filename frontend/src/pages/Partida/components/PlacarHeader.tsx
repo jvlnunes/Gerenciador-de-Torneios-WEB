@@ -3,8 +3,7 @@ import { Partida } from "@/services/api/interfaces";
 import type { LadoPonto } from "@/services/api/types";
 import { cn } from "@/services/utils";
 
-import { useEffect, useState } from "react";
-import { ArrowLeft, Flag, Play, RotateCcw, Settings, Maximize2, Minimize2 } from "lucide-react";
+import { ArrowLeft, Flag, Play, RotateCcw, Settings } from "lucide-react";
 
 interface PlacarHeaderProps {
   partida: Partida;
@@ -38,9 +37,20 @@ export function PlacarHeader({
   const destacarCasa = !isFinalizada || partida.setsCasa > partida.setsVisitante;
   const destacarVisitante = !isFinalizada || partida.setsVisitante > partida.setsCasa;
 
+  const Escudo = ({ url, nome }: { url?: string | null; nome: string }) => (
+    <span className="h-6 w-6 rounded-md overflow-hidden shrink-0 bg-gray-100 border border-gray-200 grid place-items-center">
+      {url ? (
+        <img src={url} alt={nome} className="h-full w-full object-cover" />
+      ) : (
+        <span className="text-[10px] font-black text-gray-400">{nome[0]?.toUpperCase()}</span>
+      )}
+    </span>
+  );
+
   const NomeCasa = ({ className = "" }: { className?: string }) => (
     <span className={`flex items-center gap-1.5 min-w-0 font-bold text-gray-600 uppercase tracking-wider truncate ${className}`}>
       {isAoVivo && sacadorAtual === "CASA" && <span className="animate-bounce text-sm shrink-0">🏐</span>}
+      <Escudo url={partida.logoTimeCasa} nome={partida.nomeTimeCasa} />
       {partida.nomeTimeCasa}
     </span>
   );
@@ -48,6 +58,7 @@ export function PlacarHeader({
   const NomeVisitante = ({ className = "" }: { className?: string }) => (
     <span className={`flex items-center gap-1.5 min-w-0 font-bold text-gray-600 uppercase tracking-wider truncate ${className}`}>
       {partida.nomeTimeVisitante}
+      <Escudo url={partida.logoTimeVisitante} nome={partida.nomeTimeVisitante} />
       {isAoVivo && sacadorAtual === "VISITANTE" && <span className="animate-bounce text-sm shrink-0">🏐</span>}
     </span>
   );

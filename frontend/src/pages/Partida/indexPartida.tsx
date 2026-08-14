@@ -54,9 +54,6 @@ export default function PartidaLivePage() {
   const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false);
   const [abaEstatisticas, setAbaEstatisticas] = useState<"time" | "jogador">("time");
 
-  // Seletor de estatísticas da partida finalizada: um set específico (índice)
-  // ou "geral" para o agregado de toda a partida. Controlado pelo seletor
-  // que fica junto das informações da partida (PlacarHeader).
   const [statSetSelecionado, setStatSetSelecionado] = useState<number | "geral">("geral");
 
   /* ── Modais e Configurações ───────────────────────────────── */
@@ -369,18 +366,11 @@ export default function PartidaLivePage() {
 
   const podeClicarQuadra = podeGerenciar && isAoVivo && setStarted;
 
-  // Quando a partida termina, a coluna esquerda passa a conter dois blocos de
-  // estatísticas que podem ser mais altos que a tela — nesse caso a coluna
-  // precisa poder rolar mesmo em telas grandes (onde normalmente fica travada
-  // porque a quadra tem altura fixa).
   const leftColOverflowClass = isFinalizada
     ? "overflow-y-auto"
     : "overflow-y-auto lg:overflow-hidden";
 
   // ── Regras aplicáveis ao set em exibição ──────────────────
-  // O set decisivo (tie-break) usa pontosParaVencerUltimoSet, não pontosParaVencerSet.
-  // Sem essa distinção a barra de regras mostrava sempre o valor do set regular,
-  // mesmo quando o set ativo era o último (ex: terminou em 15 mas mostrava 18/25).
   const totalSetsPossiveis = (partida.setsParaVencerPartida ?? 3) * 2 - 1;
   const indiceUltimoSetPossivel = totalSetsPossiveis - 1;
   const setEmExibicaoEhDecisivo = setAtivo === indiceUltimoSetPossivel;
@@ -656,8 +646,6 @@ export default function PartidaLivePage() {
                     Histórico de pontos {setAtivoParaHistorico !== null ? `— Set ${setAtivoParaHistorico + 1}` : "— Partida"}
                   </button>
 
-                  {/* Estatísticas em 3 colunas: jogadores casa | geral da partida | jogadores visitante.
-                      Em telas menores vira um carrossel horizontal com scroll-snap. */}
                   <div className="flex xl:grid xl:grid-cols-3 gap-4 overflow-x-auto xl:overflow-visible snap-x snap-mandatory pb-2 xl:pb-0 -mx-1 px-1">
                     <div className="min-w-[85%] sm:min-w-[70%] xl:min-w-0 shrink-0 xl:shrink snap-start rounded-2xl border border-gray-200 overflow-hidden xl:max-h-[65vh] xl:overflow-y-auto">
                       <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">

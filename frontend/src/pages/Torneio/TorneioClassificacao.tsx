@@ -10,7 +10,6 @@ interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
-  // canManage: boolean;
 }
 
 interface StandingRow {
@@ -258,19 +257,23 @@ export default function TorneioClassificacao() {
                       i === 0 ? "text-yellow-500" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"
                     )}
                   >
-                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+                    {i+1}
                   </span>
 
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="h-7 w-7 rounded-md bg-primary/10 grid place-items-center text-xs font-bold text-primary shrink-0">
-                      {row.time.nome[0].toUpperCase()}
+                    <div className="h-7 w-7 rounded-md bg-primary/10 grid place-items-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+                      {row.time.logoUrl ? (
+                        <img src={row.time.logoUrl} alt={row.time.nome} className="h-full w-full object-cover" />
+                      ) : (
+                        row.time.nome[0].toUpperCase()
+                      )}
                     </div>
                     <span className="text-sm font-semibold text-foreground truncate">{row.time.nome}</span>
-                    {isLeader && (
+                    {/* {isLeader && (
                       <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 hidden sm:inline">
                         Líder
                       </span>
-                    )}
+                    )} */}
                   </div>
 
                   <span className="text-sm font-black text-foreground text-center">{row.pts}</span>
@@ -369,9 +372,6 @@ export default function TorneioClassificacao() {
               {topJogadores.map((player, index) => (
                 <div key={player.jogadorId} className="flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-base w-5 text-center font-black">
-                      {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
-                    </span>
                     <div className="truncate">
                       <p className="text-sm font-bold text-foreground truncate">{player.nomeJogador}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{player.nomeTime}</p>

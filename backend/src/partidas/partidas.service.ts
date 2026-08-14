@@ -59,6 +59,8 @@ export class PartidasService {
       setsParaVencerPartida: regras.setsParaVencer,
       titularesPorTime: regras.limiteJogadoresPorTime ?? 6,
       vantagemDoisPontos: regras.vantagemDoisPontos,
+      logoTimeCasa: partida.timeCasa.logoUrl,       
+      logoTimeVisitante: partida.timeVisitante.logoUrl, 
     };
   }
 
