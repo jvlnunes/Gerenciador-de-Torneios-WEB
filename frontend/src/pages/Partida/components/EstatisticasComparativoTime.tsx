@@ -1,4 +1,3 @@
-import { cn } from "@/services/utils";
 import type { EventoPartida, Partida } from "@/services/api/interfaces";
 import { Trophy, Swords, Shield, Zap, XCircle } from "lucide-react";
 
@@ -6,11 +5,6 @@ interface Props {
   eventos: EventoPartida[];
   partida: Partida;
   setAtivo: number;
-  /**
-   * Quando true, a barra de destaque de cada categoria soma os valores de
-   * TODOS os sets em vez de mostrar apenas o set indicado por `setAtivo`.
-   * Usado no resumo agregado da partida finalizada.
-   */
   agregarTodosSets?: boolean;
 }
 

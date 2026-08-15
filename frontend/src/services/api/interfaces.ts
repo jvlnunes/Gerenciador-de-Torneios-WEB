@@ -140,6 +140,8 @@ export interface Partida {
     timeVisitanteId: string;
     nomeTimeCasa: string;
     nomeTimeVisitante: string;
+    logoTimeCasa?: string | null;
+    logoTimeVisitante?: string | null;
     status: StatusPartida;
     agendadoPara?: string;
     local?: string;
@@ -152,8 +154,6 @@ export interface Partida {
     pontosParaVencerUltimoSet: number;
     setsParaVencerPartida: number;
     titularesPorTime: number;
-    logoTimeCasa?: string | null;     
-    logoTimeVisitante?: string | null;
 }
 
 export interface RegrasTorneio {

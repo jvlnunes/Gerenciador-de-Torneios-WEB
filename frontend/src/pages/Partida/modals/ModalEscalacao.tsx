@@ -4,9 +4,10 @@ import { cn } from "@/services/utils";
 import type { JogadorPartida } from "@/services/api/interfaces";
 import { CheckCircle2, X, Trophy, GripVertical } from "lucide-react";
 
+import { ModalShell } from "@/components/ui/modal-shell";
+
 import type {
   ModalEscalacaoProps,
-  EscalacaoSet,
   IndicePosicao,
   TitularEmQuadra,
   EscalacaoTime,
@@ -321,7 +322,7 @@ export function ModalEscalacao({
   aoFechar,
 }: ModalEscalacaoProps) {
   const jCasa = jogadores.filter(j => j.timeId === timeCasaId);
-  const jVis = jogadores.filter(j => j.timeId === timeVisitanteId);
+  const jVis  = jogadores.filter(j => j.timeId === timeVisitanteId);
 
   const [escCasa, setEscCasa] = useState<EscalacaoTime>(() =>
     escalacaoAnterior?.casa ?? montarEscalacaoPadrao(timeCasaId, jCasa)
@@ -353,103 +354,100 @@ export function ModalEscalacao({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-4 px-3">
-      <div className="w-full max-w-3xl bg-background rounded-2xl border border-border shadow-2xl overflow-hidden my-auto">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/10">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-primary/10 rounded-lg">
-              <Trophy className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-display text-lg font-bold text-foreground">
-                Escalação — Set {indiceSet + 1}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Arraste as fichas para posicionar os jogadores · <span className="text-yellow-600 font-semibold">1●</span> = sacador
-              </p>
-            </div>
+    <ModalShell onClose={aoFechar} contentClassName="max-w-sm bg-background rounded-2xl border border-border shadow-2xl p-6 space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/10">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 bg-primary/10 rounded-lg">
+            <Trophy className="h-4 w-4 text-primary" />
           </div>
-          <button onClick={aoFechar} className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="p-4 space-y-4">
-
-          {/* Quem inicia o saque — apenas entre equipes */}
-          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-blue-700 mb-2.5 text-center">
-              🏐 Quem começa sacando?
+          <div>
+            <h2 className="font-display text-lg font-bold text-foreground">
+              Escalação — Set {indiceSet + 1}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Arraste as fichas para posicionar os jogadores · <span className="text-yellow-600 font-semibold">1●</span> = sacador
             </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                onClick={() => setEquipeQueIniciaSaque("CASA")}
-                className={cn(
-                  "py-2.5 rounded-xl border-2 font-bold text-sm transition-all",
-                  equipeQueIniciaSaque === "CASA"
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                )}
-              >
-                {nomeTimeCasa}
-                <span className="block text-[10px] font-normal opacity-70">Casa</span>
-              </button>
-              <button
-                onClick={() => setEquipeQueIniciaSaque("VISITANTE")}
-                className={cn(
-                  "py-2.5 rounded-xl border-2 font-bold text-sm transition-all",
-                  equipeQueIniciaSaque === "VISITANTE"
-                    ? "bg-orange-500 text-white border-orange-500 shadow-md"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                )}
-              >
-                {nomeTimeVisitante}
-                <span className="block text-[10px] font-normal opacity-70">Visitante</span>
-              </button>
-            </div>
           </div>
-
-          {/* Quadras lado a lado — idênticas ao visual da partida ao vivo */}
-          <div className="grid grid-cols-2 gap-4">
-            <MeiaQuadra
-              esc={escCasa}
-              jogadores={jCasa}
-              isCasa={true}
-              titulo={nomeTimeCasa}
-              onChange={setEscCasa}
-            />
-            <MeiaQuadra
-              esc={escVis}
-              jogadores={jVis}
-              isCasa={false}
-              titulo={nomeTimeVisitante}
-              onChange={setEscVis}
-            />
-          </div>
-
-          {/* Aviso de validação */}
-          {!canConfirm && (
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
-              {!casaOk && `${nomeTimeCasa}: posicione mais ${6 - escCasa.titulares.length} jogador(es) na quadra. `}
-              {!visOk && `${nomeTimeVisitante}: posicione mais ${6 - escVis.titulares.length} jogador(es) na quadra.`}
-            </p>
-          )}
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-t border-border bg-muted/10">
-          <Button variant="outline" onClick={aoFechar} className="h-10">Cancelar</Button>
-          <Button
-            onClick={handleConfirmar}
-            disabled={!canConfirm}
-            className="gap-2 h-10 px-8 font-bold"
-          >
-            <CheckCircle2 className="h-4 w-4" /> Iniciar Set {indiceSet + 1}
-          </Button>
-        </div>
+        <button onClick={aoFechar} className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors">
+          <X className="h-4 w-4" />
+        </button>
       </div>
-    </div>
+
+      <div className="p-4 space-y-4">
+
+        {/* Quem inicia o saque — apenas entre equipes */}
+        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-700 mb-2.5 text-center">
+            🏐 Quem começa sacando?
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              onClick={() => setEquipeQueIniciaSaque("CASA")}
+              className={cn(
+                "py-2.5 rounded-xl border-2 font-bold text-sm transition-all",
+                equipeQueIniciaSaque === "CASA"
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              )}
+            >
+              {nomeTimeCasa}
+              <span className="block text-[10px] font-normal opacity-70">Casa</span>
+            </button>
+            <button
+              onClick={() => setEquipeQueIniciaSaque("VISITANTE")}
+              className={cn(
+                "py-2.5 rounded-xl border-2 font-bold text-sm transition-all",
+                equipeQueIniciaSaque === "VISITANTE"
+                  ? "bg-orange-500 text-white border-orange-500 shadow-md"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              )}
+            >
+              {nomeTimeVisitante}
+              <span className="block text-[10px] font-normal opacity-70">Visitante</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Quadras lado a lado — idênticas ao visual da partida ao vivo */}
+        <div className="grid grid-cols-2 gap-4">
+          <MeiaQuadra
+            esc={escCasa}
+            jogadores={jCasa}
+            isCasa={true}
+            titulo={nomeTimeCasa}
+            onChange={setEscCasa}
+          />
+          <MeiaQuadra
+            esc={escVis}
+            jogadores={jVis}
+            isCasa={false}
+            titulo={nomeTimeVisitante}
+            onChange={setEscVis}
+          />
+        </div>
+
+        {/* Aviso de validação */}
+        {!canConfirm && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+            {!casaOk && `${nomeTimeCasa}: posicione mais ${6 - escCasa.titulares.length} jogador(es) na quadra. `}
+            {!visOk && `${nomeTimeVisitante}: posicione mais ${6 - escVis.titulares.length} jogador(es) na quadra.`}
+          </p>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-t border-border bg-muted/10">
+        <Button variant="outline" onClick={aoFechar} className="h-10">Cancelar</Button>
+        <Button
+          onClick={handleConfirmar}
+          disabled={!canConfirm}
+          className="gap-2 h-10 px-8 font-bold"
+        >
+          <CheckCircle2 className="h-4 w-4" /> Iniciar Set {indiceSet + 1}
+        </Button>
+      </div>
+    </ModalShell>
   );
 }

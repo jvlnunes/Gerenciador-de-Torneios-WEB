@@ -2,7 +2,7 @@ import { request } from "./cliente";
 import { Time, Jogador } from "./interfaces";
 
 export const timesApi = {
-    /* ── Equipas (Times) ────────────────────────────────────── */
+    /* ── Times ────────────────────────────────────── */
 
     /**
      * Lista todos os times pertencentes a um torneio específico.
@@ -62,7 +62,7 @@ export const timesApi = {
     adicionarJogador: async (timeId: string, data: Partial<Jogador>): Promise<Jogador> => {
         return request<Jogador>(`/times/${timeId}/jogadores`, {
             method: "POST",
-            body: JSON.stringify(data),
+            body: JSON.stringify({ ...data, timeId }),
         });
     },
 

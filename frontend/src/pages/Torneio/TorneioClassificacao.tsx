@@ -10,6 +10,7 @@ interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
+  // canManage: boolean;
 }
 
 interface StandingRow {
@@ -121,6 +122,18 @@ function FormBadge({ result }: { result: "V" | "D" | "-" }) {
   );
 }
 
+function EscudoTime({ url, nome }: { url?: string; nome: string }) {
+  return (
+    <div className="h-7 w-7 rounded-md bg-primary/10 grid place-items-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+      {url ? (
+        <img src={url} alt={nome} className="h-full w-full object-cover" />
+      ) : (
+        nome[0]?.toUpperCase()
+      )}
+    </div>
+  );
+}
+
 export default function TorneioClassificacao() {
   const { torneio, torneioId } = useOutletContext<TorneioCtx>();
   const navigate = useNavigate();
@@ -140,7 +153,6 @@ export default function TorneioClassificacao() {
         const timeNomeMap = new Map(ts.map((t) => [t.id, t.nome]));
         const partidasAlvo = ps.filter((p) => p.status === "FINALIZADA" || p.status === "AO_VIVO");
 
-        // Agregação paralela rápida para descobrir o Top 3 Geral da página
         try {
           const eventosByPartida = await Promise.all(
             partidasAlvo.map((p) =>
@@ -257,23 +269,17 @@ export default function TorneioClassificacao() {
                       i === 0 ? "text-yellow-500" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"
                     )}
                   >
-                    {i+1}
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
                   </span>
 
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="h-7 w-7 rounded-md bg-primary/10 grid place-items-center text-xs font-bold text-primary shrink-0 overflow-hidden">
-                      {row.time.logoUrl ? (
-                        <img src={row.time.logoUrl} alt={row.time.nome} className="h-full w-full object-cover" />
-                      ) : (
-                        row.time.nome[0].toUpperCase()
-                      )}
-                    </div>
+                    <EscudoTime url={row.time.logoUrl} nome={row.time.nome} />
                     <span className="text-sm font-semibold text-foreground truncate">{row.time.nome}</span>
-                    {/* {isLeader && (
+                    {isLeader && (
                       <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 hidden sm:inline">
                         Líder
                       </span>
-                    )} */}
+                    )}
                   </div>
 
                   <span className="text-sm font-black text-foreground text-center">{row.pts}</span>
@@ -330,7 +336,10 @@ export default function TorneioClassificacao() {
             <div className="space-y-2">
               {finalizadas.slice(-5).reverse().map((p) => (
                 <div key={p.id} className="rounded-xl border border-border bg-card px-4 py-3 flex items-center gap-3 shadow-sm">
-                  <div className="flex-1 text-right text-sm font-semibold text-foreground truncate">{p.nomeTimeCasa}</div>
+                  <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+                    <span className="text-sm font-semibold text-foreground truncate">{p.nomeTimeCasa}</span>
+                    <EscudoTime url={p.logoTimeCasa ?? undefined} nome={p.nomeTimeCasa} />
+                  </div>
                   <div className="flex items-center gap-2 shrink-0 bg-muted/50 px-2.5 py-1 rounded-lg">
                     <span className={cn("font-display text-sm font-black", p.setsCasa > p.setsVisitante ? "text-foreground" : "text-muted-foreground")}>
                       {p.setsCasa}
@@ -340,7 +349,10 @@ export default function TorneioClassificacao() {
                       {p.setsVisitante}
                     </span>
                   </div>
-                  <div className="flex-1 text-left text-sm font-semibold text-foreground truncate">{p.nomeTimeVisitante}</div>
+                  <div className="flex-1 flex items-center justify-start gap-2 min-w-0">
+                    <EscudoTime url={p.logoTimeVisitante ?? undefined} nome={p.nomeTimeVisitante} />
+                    <span className="text-sm font-semibold text-foreground truncate">{p.nomeTimeVisitante}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -372,6 +384,9 @@ export default function TorneioClassificacao() {
               {topJogadores.map((player, index) => (
                 <div key={player.jogadorId} className="flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-base w-5 text-center font-black">
+                      {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
+                    </span>
                     <div className="truncate">
                       <p className="text-sm font-bold text-foreground truncate">{player.nomeJogador}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{player.nomeTime}</p>

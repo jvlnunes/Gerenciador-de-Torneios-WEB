@@ -53,14 +53,14 @@ export class PartidasService {
       ...partida,
       nomeTimeCasa: partida.timeCasa.nome,
       nomeTimeVisitante: partida.timeVisitante.nome,
+      logoTimeCasa: partida.timeCasa.logoUrl,
+      logoTimeVisitante: partida.timeVisitante.logoUrl,
       sets: [],
       pontosParaVencerSet: regras.pontosPorSet,
       pontosParaVencerUltimoSet: regras.pontosTieBreak,
       setsParaVencerPartida: regras.setsParaVencer,
       titularesPorTime: regras.limiteJogadoresPorTime ?? 6,
       vantagemDoisPontos: regras.vantagemDoisPontos,
-      logoTimeCasa: partida.timeCasa.logoUrl,       
-      logoTimeVisitante: partida.timeVisitante.logoUrl, 
     };
   }
 
@@ -98,12 +98,12 @@ export class PartidasService {
 
     const partidaCriada = await this.prisma.partida.create({
       data: dadosFormatados,
-      include: { timeCasa: true, timeVisitante: true },   // 👈 adiciona isso
+      include: { timeCasa: true, timeVisitante: true },
     });
 
     const regras = await this.buscarRegras(partidaCriada.torneioId);
 
-    return this.formatarPartida(partidaCriada, regras);   // 👈 formata igual aos outros métodos
+    return this.formatarPartida(partidaCriada, regras);
   }
 
   async listarPorTorneio(torneioId: string) {
@@ -364,7 +364,7 @@ export class PartidasService {
   async listarEscalacao(partidaId: string, indiceSet: number) {
     return this.prisma.escalacaoSet.findMany({
       where: { partidaId, indiceSet },
-      orderBy: { criadoEm: 'asc' }, 
+      orderBy: { criadoEm: 'asc' },
     });
   }
 

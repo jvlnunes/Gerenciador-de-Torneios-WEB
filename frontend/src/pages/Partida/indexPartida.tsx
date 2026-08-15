@@ -2,25 +2,27 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Trophy, Target, Users, BarChart3, Activity } from "lucide-react";
+import { Loader2, Activity, BarChart3 } from "lucide-react";
 import { cn } from "@/services/utils";
 
 import { ActionDef, ladoOposto } from "./utils/LogicaPartida";
 import { usePartidaAoVivo } from "./utils/usePartidaAoVivo";
 import { useEscalacao } from "./utils/useEscalacao";
-import { jogadoresExpulsosNoSet, jogadoresDesqualificados, timeTemAmareloNoSet } from "./utils/cartoes";
+import { usePartidaCalculos } from "./utils/usePartidaCalculos";
+import { tratarResultadoEvento } from "./utils/tratarResultadoEvento";
 import type { EscalacaoSet } from "./components/Escalacao";
 
 import { PlacarHeader } from "./components/PlacarHeader";
-import { SetTimer } from "./components/Timer";
+import { BarraRegras } from "./components/BarraRegras";
+import { SetSelector } from "./components/SetSelector";
 import { Quadra } from "./components/Quadra";
-import { HistoricoSet } from "./components/HistoricoSet";
 import { PainelBanco } from "./components/PainelBanco";
 import { PainelAcaoJogador, type EscolhaAcao } from "./components/PainelAcaoJogador";
-import { EstatisticasTime } from "./components/EstatisticasTime";
+import { ResumoPartidaFinalizada } from "./components/ResumoPartidaFinalizada";
 import { PartidaModals, type AlertaConfirmacao } from "./components/PartidaModals";
+import { ModalHistoricoPontos } from "./modals/ModalHistoricoPontos";
+import { ModalEstatisticas, type AbaEstatisticas } from "./modals/ModalEstatisticas";
 
-import { EstatisticasComparativoTime } from "./components/EstatisticasComparativoTime";
 import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
 import { JogadorPartida } from "@/services/api/interfaces";
 import api from "@/services/api";
@@ -30,7 +32,6 @@ export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
   const { user } = useAuth();
 
-  /* ── Estado principal (via hook) ──────────────────────────── */
   const {
     partida, setPartida, torneio, eventos, jogadores, loading,
     load, executarRegistro, executarCartao,
@@ -38,13 +39,11 @@ export default function PartidaLivePage() {
 
   const [setAtivo, setSetAtivo] = useState(0);
 
-  /* ── Timer do set ─────────────────────────────────────────── */
   const [setStarted, setSetStarted] = useState(false);
   const [timerOn, setTimerOn] = useState(false);
   const [timerSecs, setTimerSecs] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /* ── Seleção de jogador + painel de ação ──────────────────── */
   const [jogadorSelecionado, setJogadorSelecionado] = useState<{
     jogador: JogadorPartida;
     lado: LadoPonto;
@@ -52,11 +51,9 @@ export default function PartidaLivePage() {
 
   const [historicoModalAberto, setHistoricoModalAberto] = useState(false);
   const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false);
-  const [abaEstatisticas, setAbaEstatisticas] = useState<"time" | "jogador">("time");
-
+  const [abaEstatisticas, setAbaEstatisticas] = useState<AbaEstatisticas>("time");
   const [statSetSelecionado, setStatSetSelecionado] = useState<number | "geral">("geral");
 
-  /* ── Modais e Configurações ───────────────────────────────── */
   const [modalCartao, setModalCartao] = useState<LadoPonto | null>(null);
   const [alerta, setAlerta] = useState<AlertaConfirmacao | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -67,15 +64,13 @@ export default function PartidaLivePage() {
 
   const modalJaAbertoPorSet = useRef<Set<number>>(new Set());
 
-  /* ── Hook de Escalação e Substituições ────────────────────── */
   const {
     modalEscalacaoAberto, abrirModalEscalacao, fecharModalEscalacao, confirmarEscalacao,
     modalSubAberto, timeSubId, abrirModalSubstituicao, fecharModalSubstituicao, confirmarSubstituicao,
     obterTitularesAtuais, obterBancoAtual, obterSubstituicoesDoSet, obterTodasSubstituicoesDoSet, obterEscalacao,
-    obterJogadorPosicao1, obterQuadraAtual, obterSacadorInicial, recarregar, // + obterSacadorInicial
+    obterQuadraAtual, obterSacadorInicial, recarregar,
   } = useEscalacao(partidaId, setAtivo, partida?.timeCasaId);
 
-  /* ── Timer effect ─────────────────────────────────────────── */
   useEffect(() => {
     if (timerOn) {
       timerRef.current = setInterval(() => setTimerSecs((s) => s + 1), 1000);
@@ -85,7 +80,6 @@ export default function PartidaLivePage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [timerOn]);
 
-  /* ── Carregar dados ───────────────────────────────────────── */
   useEffect(() => {
     if (partida?.timeCasaId) recarregar();
     async function init() {
@@ -94,10 +88,7 @@ export default function PartidaLivePage() {
       const { partida: p, eventos: evs } = dados;
 
       const indexSetAtual = p.setsCasa + p.setsVisitante;
-
-      const setInicial =
-        p.status === "FINALIZADA" ? Math.max(indexSetAtual - 1, 0) : indexSetAtual;
-
+      const setInicial = p.status === "FINALIZADA" ? Math.max(indexSetAtual - 1, 0) : indexSetAtual;
       setSetAtivo(setInicial);
 
       const pontosNesteSet = evs.filter((e) => e.indiceSet === indexSetAtual && !e.anulado).length;
@@ -124,14 +115,11 @@ export default function PartidaLivePage() {
     return dados;
   };
 
-  /* ── Handlers de Escalação ────────────────────────────────── */
   const handleConfirmarEscalacao = async (escalacao: EscalacaoSet) => {
     await confirmarEscalacao(escalacao);
 
     if (partida && partida.status !== "AO_VIVO") {
-      const partidaAtualizada = await api.partidas.atualizarPartida(partidaId!, {
-        status: "AO_VIVO",
-      });
+      const partidaAtualizada = await api.partidas.atualizarPartida(partidaId!, { status: "AO_VIVO" });
       setPartida(partidaAtualizada);
     }
 
@@ -140,7 +128,6 @@ export default function PartidaLivePage() {
     setTimerOn(true);
   };
 
-  /* ── Registrar ponto (orquestra fim de set / fim de partida) ── */
   const registrarAcao = async (
     acaoParaRegistrar: ActionDef,
     ladoAcao: LadoPonto,
@@ -160,43 +147,17 @@ export default function PartidaLivePage() {
       if (!resultado) return;
       await recarregarTudo();
 
-      const { partidaAtualizada, fimSet, vencedorSet, fimPartida, vencedorPartida, novoSetsCasa, novoSetsVisitante } = resultado;
-
-      if (fimPartida && vencedorPartida) {
-        const nomeVencedor = vencedorPartida === "CASA" ? partidaAtualizada.nomeTimeCasa : partidaAtualizada.nomeTimeVisitante;
-        setTimerOn(false);
-        setAlerta({
-          msg: `🏆 ${nomeVencedor} venceu a partida! Encerrar agora?`,
-          onOk: async () => {
-            await api.partidas.atualizarPartida(partidaId, {
-              setsCasa: novoSetsCasa, setsVisitante: novoSetsVisitante,
-              setAtualCasa: 0, setAtualVisitante: 0,
-            });
-            await api.partidas.finalizarPartida(partidaId);
-            await recarregarTudo();
-            setAlerta(null);
-          },
-        });
-      } else if (fimSet && vencedorSet) {
-        const nomeVencedor = vencedorSet === "CASA" ? partidaAtualizada.nomeTimeCasa : partidaAtualizada.nomeTimeVisitante;
-        setTimerOn(false);
-        setAlerta({
-          msg: `✅ ${nomeVencedor} venceu o set! Iniciar próximo set?`,
-          onOk: async () => {
-            await api.partidas.atualizarPartida(partidaId, {
-              setsCasa: novoSetsCasa, setsVisitante: novoSetsVisitante,
-              setAtualCasa: 0, setAtualVisitante: 0,
-            });
-            await recarregarTudo();
-            setAlerta(null);
-            setSetStarted(false);
-            setTimerSecs(0);
-            const proximoSet = novoSetsCasa + novoSetsVisitante;
-            modalJaAbertoPorSet.current.add(proximoSet);
-            abrirModalEscalacao();
-          },
-        });
-      }
+      tratarResultadoEvento({
+        resultado,
+        partidaId,
+        setAlerta,
+        setTimerOn,
+        setSetStarted,
+        setTimerSecs,
+        recarregarTudo,
+        abrirModalEscalacao,
+        marcarModalAbertoParaSet: (indice) => modalJaAbertoPorSet.current.add(indice),
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -205,7 +166,6 @@ export default function PartidaLivePage() {
     }
   };
 
-  /* ── Registrar cartão ─────────────────────────────────────── */
   const aplicarCartao = async (jogadorId: string, tipoCartao: TipoCartao, ladoPenalizadoParam: LadoPonto) => {
     if (!partida || !partidaId || salvando) return;
     setSalvando(true);
@@ -219,40 +179,18 @@ export default function PartidaLivePage() {
       if (!resultado) return;
       await recarregarTudo();
 
-      const { partidaAtualizada, daPonto, fimSet, vencedorSet, fimPartida, vencedorPartida, novoSetsCasa, novoSetsVisitante } = resultado;
-
-      if (daPonto) {
-        if (fimPartida && vencedorPartida) {
-          const nomeVencedor = vencedorPartida === "CASA" ? partidaAtualizada.nomeTimeCasa : partidaAtualizada.nomeTimeVisitante;
-          setTimerOn(false);
-          setAlerta({
-            msg: `🏆 ${nomeVencedor} venceu a partida! Encerrar agora?`,
-            onOk: async () => {
-              await api.partidas.finalizarPartida(partidaId);
-              await recarregarTudo();
-              setAlerta(null);
-            },
-          });
-        } else if (fimSet && vencedorSet) {
-          const nomeVencedor = vencedorSet === "CASA" ? partidaAtualizada.nomeTimeCasa : partidaAtualizada.nomeTimeVisitante;
-          setTimerOn(false);
-          setAlerta({
-            msg: `✅ ${nomeVencedor} venceu o set! Iniciar próximo set?`,
-            onOk: async () => {
-              await api.partidas.atualizarPartida(partidaId, {
-                setsCasa: novoSetsCasa, setsVisitante: novoSetsVisitante,
-                setAtualCasa: 0, setAtualVisitante: 0,
-              });
-              await recarregarTudo();
-              setAlerta(null);
-              setSetStarted(false);
-              setTimerSecs(0);
-              const proximoSet = novoSetsCasa + novoSetsVisitante;
-              modalJaAbertoPorSet.current.add(proximoSet);
-              abrirModalEscalacao();
-            },
-          });
-        }
+      if (resultado.daPonto) {
+        tratarResultadoEvento({
+          resultado,
+          partidaId,
+          setAlerta,
+          setTimerOn,
+          setSetStarted,
+          setTimerSecs,
+          recarregarTudo,
+          abrirModalEscalacao,
+          marcarModalAbertoParaSet: (indice) => modalJaAbertoPorSet.current.add(indice),
+        });
       }
     } catch (e) {
       console.error(e);
@@ -263,7 +201,6 @@ export default function PartidaLivePage() {
     }
   };
 
-  /* ── Loading / not found ──────────────────────────────────── */
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-100">
       <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
@@ -275,45 +212,23 @@ export default function PartidaLivePage() {
     </div>
   );
 
-  /* ── Derivações ───────────────────────────────────────────── */
   const podeGerenciar = torneio ? api.torneios.podeGerenciarTorneio(torneio, user) : false;
-  const isAoVivo = partida.status === "AO_VIVO";
-  const isFinalizada = partida.status === "FINALIZADA";
-  const isAgendada = partida.status === "AGENDADA" || partida.status === "AQUECIMENTO";
 
-  const titularesCasaList = obterTitularesAtuais(partida.timeCasaId, setAtivo, jogadores);
-  const titularesVisList = obterTitularesAtuais(partida.timeVisitanteId, setAtivo, jogadores);
-  const bancoCasaList = obterBancoAtual(partida.timeCasaId, setAtivo, jogadores);
-  const bancoVisList = obterBancoAtual(partida.timeVisitanteId, setAtivo, jogadores);
+  const {
+    isAoVivo, isFinalizada, isAgendada,
+    titularesCasaList, titularesVisList,
+    reservasCasaAtivos, reservasVisAtivos,
+    jogadoresInativos, casaTemAmarelo, visTemAmarelo,
+    totalSetsJogados, resultadosSets,
+    jogadoresCasaTodos, jogadoresVisTodos,
+    evSetAtivo, rotCasa, rotVisit,
+    jCasaQuadra, jVisQuadra, sacadorAtual,
+    setEmExibicaoEhDecisivo, pontosDoSetEmExibicao,
+  } = usePartidaCalculos({
+    partida, eventos, jogadores, setAtivo,
+    obterTitularesAtuais, obterBancoAtual, obterQuadraAtual, obterSacadorInicial,
+  });
 
-  // Cartões: jogadores fora de quadra por vermelho (no set) ou por 2º vermelho (partida toda)
-  const jogadoresInativos = new Set([
-    ...jogadoresExpulsosNoSet(eventos, setAtivo),
-    ...jogadoresDesqualificados(eventos),
-  ]);
-
-  const casaTemAmarelo = timeTemAmareloNoSet(eventos, "CASA", setAtivo);
-  const visTemAmarelo = timeTemAmareloNoSet(eventos, "VISITANTE", setAtivo);
-
-  const reservasCasaAtivos = bancoCasaList.filter((j) => !jogadoresInativos.has(j.jogadorId));
-  const reservasVisAtivos = bancoVisList.filter((j) => !jogadoresInativos.has(j.jogadorId));
-
-  // Placar final por set (usado no header e para popular o resumo "Set N: X–Y")
-  const totalSetsJogados = partida.setsCasa + partida.setsVisitante;
-  const resultadosSets = isFinalizada
-    ? Array.from({ length: totalSetsJogados }, (_, i) => {
-      const evsDoSet = eventos.filter((e) => !e.anulado && e.indiceSet === i);
-      if (evsDoSet.length === 0) return null;
-      const ultimo = evsDoSet.reduce((acc, e) =>
-        new Date(e.horario).getTime() > new Date(acc.horario).getTime() ? e : acc
-      );
-      return { casa: ultimo.placarCasa, visitante: ultimo.placarVisitante };
-    }).filter((r): r is { casa: number; visitante: number } => r !== null)
-    : [];
-
-  // ── Derivações para a tela de partida finalizada ──────────
-  // Set (índice) atualmente selecionado no seletor do header, ou null quando
-  // "Partida" (geral) está selecionado.
   const setAtivoParaHistorico = typeof statSetSelecionado === "number" ? statSetSelecionado : null;
 
   const eventosHistoricoFinalizada = setAtivoParaHistorico !== null
@@ -328,64 +243,18 @@ export default function PartidaLivePage() {
     ? eventos
     : eventos.filter((e) => e.indiceSet === statSetSelecionado);
 
-  const jogadoresCasaTodos = jogadores.filter((j) => j.timeId === partida.timeCasaId);
-  const jogadoresVisTodos = jogadores.filter((j) => j.timeId === partida.timeVisitanteId);
-
-  const evSetAtivo = eventos.filter((e) => !e.anulado && e.indiceSet === setAtivo).reverse();
-  const eventosCron = [...evSetAtivo].reverse();
-
-  const eventosCronParaRotacao = eventosCron.filter(
-    (e) => !(e.tipo === "CARTAO_ADVERSARIO" && e.tipoCartao === "AMARELO")
-  );
-
-  let ladoSaque: LadoPonto = obterSacadorInicial(setAtivo);
-  if (eventosCronParaRotacao.length > 0) {
-    ladoSaque = eventosCronParaRotacao[eventosCronParaRotacao.length - 1].lado;
-  }
-
-  let rotCasa = 0, rotVisit = 0;
-  let ladoAnterior: LadoPonto = obterSacadorInicial(setAtivo);
-  for (const ev of eventosCronParaRotacao) {
-    if (ev.lado !== ladoAnterior) {
-      if (ev.lado === "CASA") rotCasa++;
-      else rotVisit++;
-    }
-    ladoAnterior = ev.lado;
-  }
-
-  const jCasaQuadra = obterQuadraAtual(partida.timeCasaId, setAtivo, jogadores, rotCasa);
-  const jVisQuadra = obterQuadraAtual(partida.timeVisitanteId, setAtivo, jogadores, rotVisit);
-
-  const sacadorAtual: LadoPonto = ladoSaque;
-
-  const sacadorCasaJogador = obterJogadorPosicao1(partida.timeCasaId, setAtivo, jogadores, rotCasa - 1);
-  const sacadorVisJogador = obterJogadorPosicao1(partida.timeVisitanteId, setAtivo, jogadores, rotVisit - 1);
-
-  const getSacadorAtualJogador = (lado: LadoPonto) =>
-    lado === "CASA" ? sacadorCasaJogador : sacadorVisJogador;
-
   const podeClicarQuadra = podeGerenciar && isAoVivo && setStarted;
 
   const leftColOverflowClass = isFinalizada
     ? "overflow-y-auto"
     : "overflow-y-auto lg:overflow-hidden";
 
-  // ── Regras aplicáveis ao set em exibição ──────────────────
-  const totalSetsPossiveis = (partida.setsParaVencerPartida ?? 3) * 2 - 1;
-  const indiceUltimoSetPossivel = totalSetsPossiveis - 1;
-  const setEmExibicaoEhDecisivo = setAtivo === indiceUltimoSetPossivel;
-  const pontosDoSetEmExibicao = setEmExibicaoEhDecisivo
-    ? (partida.pontosParaVencerUltimoSet ?? 15)
-    : (partida.pontosParaVencerSet ?? 25);
-
-  /* ── Interceptador de clique no jogador (quadra) ──────────── */
   const handleJogadorClick = (jogador: JogadorPartida, lado: LadoPonto) => {
     if (!podeClicarQuadra) return;
     if (jogadoresInativos.has(jogador.jogadorId)) return;
     setJogadorSelecionado({ jogador, lado });
   };
 
-  /* ── Interceptador de escolha de ação no painel lateral ───── */
   const handleEscolherAcao = (escolha: EscolhaAcao) => {
     if (!jogadorSelecionado) return;
     const { jogador, lado } = jogadorSelecionado;
@@ -399,7 +268,6 @@ export default function PartidaLivePage() {
     if (escolha.kind === "erro") {
       const ladoQuePontua = ladoOposto(lado);
 
-      // Erro de saque só faz sentido se o jogador estava sacando no momento
       if (escolha.tipoErro === "ERRO_SAQUE" && sacadorAtual !== lado) {
         setAlerta({
           msg: `${jogador.nomeJogador} não está sacando no momento. Registrar o erro mesmo assim?`,
@@ -425,7 +293,6 @@ export default function PartidaLivePage() {
       return;
     }
 
-    // Ponto positivo (saque/ataque/bloqueio)
     if (escolha.acao.type === "SAQUE" && configAutoSaque && sacadorAtual !== lado) {
       setAlerta({
         msg: `${jogador.nomeJogador} não está sacando no momento. Registrar o ace mesmo assim?`,
@@ -501,7 +368,6 @@ export default function PartidaLivePage() {
         }}
       />
 
-      {/* ── CONTAINER PRINCIPAL ── */}
       <div className="max-w-[1400px] lg:w-[90vw] mx-auto flex flex-col flex-1 overflow-hidden bg-white rounded-none lg:rounded-3xl shadow-xl border-x lg:border border-gray-200 lg:my-4">
 
         <PlacarHeader
@@ -564,31 +430,19 @@ export default function PartidaLivePage() {
           onSelecionarStatSet={setStatSetSelecionado}
         />
 
-        {/* Barra de regras */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50/50 shrink-0">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5 text-emerald-500" />
-              Sets p/ vencer: <span className="text-gray-900 font-black ml-1">{partida.setsParaVencerPartida ?? 3}</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-emerald-500" />
-              Pts/set{setEmExibicaoEhDecisivo ? " (decisivo)" : ""}:{" "}
-              <span className="text-gray-900 font-black ml-1">{pontosDoSetEmExibicao}</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-emerald-500" />
-              Titulares: <span className="text-gray-900 font-black ml-1">{partida.titularesPorTime ?? 6}</span>
-            </span>
-          </div>
-          {configTimer && isAoVivo && setStarted && (
-            <SetTimer running={timerOn} seconds={timerSecs} onToggle={() => setTimerOn((v) => !v)} />
-          )}
-        </div>
+        <BarraRegras
+          setsParaVencerPartida={partida.setsParaVencerPartida ?? 3}
+          pontosDoSetEmExibicao={pontosDoSetEmExibicao}
+          setEmExibicaoEhDecisivo={setEmExibicaoEhDecisivo}
+          titularesPorTime={partida.titularesPorTime ?? 6}
+          mostrarTimer={configTimer && isAoVivo && setStarted}
+          timerOn={timerOn}
+          timerSecs={timerSecs}
+          onToggleTimer={() => setTimerOn((v) => !v)}
+        />
 
         <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
 
-          {/* Coluna esquerda: quadra (ou estatísticas, se finalizada) + histórico */}
           <div className={cn("flex-1 flex flex-col", leftColOverflowClass)}>
             <div className="order-2 lg:order-none p-4 border-b border-gray-100 bg-white shadow-sm z-10 shrink-0">
               {!isFinalizada ? (
@@ -601,119 +455,36 @@ export default function PartidaLivePage() {
                     jogadorSelecionadoId={jogadorSelecionado?.jogador.jogadorId}
                     onJogadorClick={handleJogadorClick}
                   />
-
-                  <div className="flex items-center justify-center gap-1 mt-3 flex-wrap">
-                    {Array.from(
-                      { length: (partida.setsParaVencerPartida ?? 3) * 2 - 1 },
-                      (_, i) => {
-                        const set = (partida.sets ?? [])[i];
-                        const isCurrent = i === partida.setsCasa + partida.setsVisitante;
-                        const isDone = i < (partida.sets ?? []).length;
-                        return (
-                          <button
-                            key={i}
-                            onClick={() => setSetAtivo(i)}
-                            className={cn(
-                              "px-2 py-1 rounded-full text-[10px] font-bold transition-all border",
-                              setAtivo === i && "ring-2 ring-emerald-400 ring-offset-1 ring-offset-white",
-                              isCurrent
-                                ? "bg-emerald-600 text-white border-emerald-600"
-                                : isDone
-                                  ? "bg-gray-200 text-gray-700 border-gray-200"
-                                  : "bg-transparent text-gray-300 border-gray-200"
-                            )}
-                          >
-                            S{i + 1}
-                            {isDone && set && (
-                              <span className="ml-1 opacity-60 font-normal">
-                                {set.casa}–{set.visitante}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      }
-                    )}
-                  </div>
+                  <SetSelector
+                    totalSets={(partida.setsParaVencerPartida ?? 3) * 2 - 1}
+                    setsJogados={partida.sets ?? []}
+                    setAtual={partida.setsCasa + partida.setsVisitante}
+                    setSelecionado={setAtivo}
+                    onSelecionar={setSetAtivo}
+                  />
                 </>
               ) : (
-                <>
-                  {/* Histórico de pontos — movido para o topo na tela de partida finalizada */}
-                  <button
-                    onClick={() => setHistoricoModalAberto(true)}
-                    className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
-                  >
-                    <Activity className="h-3.5 w-3.5" />
-                    Histórico de pontos {setAtivoParaHistorico !== null ? `— Set ${setAtivoParaHistorico + 1}` : "— Partida"}
-                  </button>
-
-                  <div className="flex xl:grid xl:grid-cols-3 gap-4 overflow-x-auto xl:overflow-visible snap-x snap-mandatory pb-2 xl:pb-0 -mx-1 px-1">
-                    <div className="min-w-[85%] sm:min-w-[70%] xl:min-w-0 shrink-0 xl:shrink snap-start rounded-2xl border border-gray-200 overflow-hidden xl:max-h-[65vh] xl:overflow-y-auto">
-                      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                        <BarChart3 className="h-4 w-4 text-emerald-500" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-emerald-700 truncate">
-                          {partida.nomeTimeCasa}
-                        </h3>
-                      </div>
-                      <EstatisticasTime
-                        eventos={eventosParaStatsJogador}
-                        jogadores={jogadoresCasaTodos}
-                        nomeTime={partida.nomeTimeCasa}
-                        cor="emerald"
-                      />
-                    </div>
-
-                    <div className="min-w-[85%] sm:min-w-[70%] xl:min-w-0 shrink-0 xl:shrink snap-start rounded-2xl border border-gray-200 overflow-hidden xl:max-h-[65vh] xl:overflow-y-auto">
-                      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                        <BarChart3 className="h-4 w-4 text-gray-400" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">
-                          Estatística geral
-                        </h3>
-                        <span className="text-[10px] font-semibold text-gray-400 ml-auto">
-                          {statSetSelecionado === "geral" ? "Todos os sets" : `Set ${(statSetSelecionado as number) + 1}`}
-                        </span>
-                      </div>
-                      <EstatisticasComparativoTime
-                        eventos={eventos}
-                        partida={partida}
-                        setAtivo={typeof statSetSelecionado === "number" ? statSetSelecionado : 0}
-                        agregarTodosSets={statSetSelecionado === "geral"}
-                      />
-                    </div>
-
-                    <div className="min-w-[85%] sm:min-w-[70%] xl:min-w-0 shrink-0 xl:shrink snap-start rounded-2xl border border-gray-200 overflow-hidden xl:max-h-[65vh] xl:overflow-y-auto">
-                      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                        <BarChart3 className="h-4 w-4 text-orange-500" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-orange-600 truncate">
-                          {partida.nomeTimeVisitante}
-                        </h3>
-                      </div>
-                      <EstatisticasTime
-                        eventos={eventosParaStatsJogador}
-                        jogadores={jogadoresVisTodos}
-                        nomeTime={partida.nomeTimeVisitante}
-                        cor="orange"
-                      />
-                    </div>
-                  </div>
-                </>
+                <ResumoPartidaFinalizada
+                  partida={partida}
+                  eventos={eventos}
+                  eventosParaStatsJogador={eventosParaStatsJogador}
+                  jogadoresCasaTodos={jogadoresCasaTodos}
+                  jogadoresVisTodos={jogadoresVisTodos}
+                  statSetSelecionado={statSetSelecionado}
+                  setAtivoParaHistorico={setAtivoParaHistorico}
+                  onAbrirHistorico={() => setHistoricoModalAberto(true)}
+                />
               )}
             </div>
 
-            {/* Painel de ação — em telas < lg vira modal de foco, abre sozinho ao selecionar jogador */}
             {podeGerenciar && isAoVivo && setStarted && jogadorSelecionado && (
               <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center">
                 <div className="bg-white w-full rounded-t-3xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 duration-200">
                   <PainelAcaoJogador
                     jogador={jogadorSelecionado.jogador}
                     lado={jogadorSelecionado.lado}
-                    nomeTime={
-                      jogadorSelecionado.lado === "CASA"
-                        ? partida.nomeTimeCasa
-                        : partida.nomeTimeVisitante
-                    }
-                    timeJaTemAmarelo={
-                      jogadorSelecionado.lado === "CASA" ? casaTemAmarelo : visTemAmarelo
-                    }
+                    nomeTime={jogadorSelecionado.lado === "CASA" ? partida.nomeTimeCasa : partida.nomeTimeVisitante}
+                    timeJaTemAmarelo={jogadorSelecionado.lado === "CASA" ? casaTemAmarelo : visTemAmarelo}
                     onEscolher={handleEscolherAcao}
                     onLimparSelecao={() => setJogadorSelecionado(null)}
                   />
@@ -721,9 +492,6 @@ export default function PartidaLivePage() {
               </div>
             )}
 
-
-
-            {/* Bancos */}
             {isAoVivo && (
               <div className="order-1 lg:order-none grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
                 <PainelBanco
@@ -745,9 +513,6 @@ export default function PartidaLivePage() {
               </div>
             )}
 
-            {/* Histórico + Estatísticas — apenas na partida ao vivo.
-                Na partida finalizada o Histórico já está no topo e as
-                Estatísticas aparecem inline em 3 colunas. */}
             {!isFinalizada && (
               <div className="order-4 border-t border-gray-100 px-4 py-3 shrink-0 grid grid-cols-2 gap-2">
                 <button
@@ -768,100 +533,28 @@ export default function PartidaLivePage() {
             )}
 
             {historicoModalAberto && (
-              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
-                <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 shrink-0">
-                    <span className="text-sm font-black text-gray-800">
-                      {isFinalizada
-                        ? `Histórico — ${setAtivoParaHistorico !== null ? `Set ${setAtivoParaHistorico + 1}` : "Partida"}`
-                        : "Histórico do set"}
-                    </span>
-                    <button
-                      onClick={() => setHistoricoModalAberto(false)}
-                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 flex items-center justify-center text-lg"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <HistoricoSet
-                    eventos={isFinalizada ? eventosHistoricoFinalizada : evSetAtivo}
-                    substituicoes={isFinalizada ? substituicoesHistoricoFinalizada : obterTodasSubstituicoesDoSet(setAtivo)}
-                    partida={partida}
-                    setStarted={setStarted}
-                  />
-                </div>
-              </div>
+              <ModalHistoricoPontos
+                eventos={isFinalizada ? eventosHistoricoFinalizada : evSetAtivo}
+                substituicoes={isFinalizada ? substituicoesHistoricoFinalizada : obterTodasSubstituicoesDoSet(setAtivo)}
+                partida={partida}
+                setStarted={setStarted}
+                isFinalizada={isFinalizada}
+                setAtivoParaHistorico={setAtivoParaHistorico}
+                onClose={() => setHistoricoModalAberto(false)}
+              />
             )}
 
             {!isFinalizada && estatisticasModalAberto && (
-              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
-                <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
-                  {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 shrink-0">
-                    <span className="text-sm font-black text-gray-800 flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-gray-400" />
-                      Estatísticas ao vivo
-                    </span>
-                    <button
-                      onClick={() => setEstatisticasModalAberto(false)}
-                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 flex items-center justify-center text-lg"
-                    >
-                      ×
-                    </button>
-                  </div>
-
-                  {/* Abas: Por time / Por jogador */}
-                  <div className="flex gap-1 px-4 pt-3 shrink-0">
-                    <button
-                      onClick={() => setAbaEstatisticas("time")}
-                      className={cn(
-                        "flex-1 rounded-lg py-2 text-xs font-black uppercase tracking-wider transition-colors",
-                        abaEstatisticas === "time"
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                      )}
-                    >
-                      Por time
-                    </button>
-                    <button
-                      onClick={() => setAbaEstatisticas("jogador")}
-                      className={cn(
-                        "flex-1 rounded-lg py-2 text-xs font-black uppercase tracking-wider transition-colors",
-                        abaEstatisticas === "jogador"
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                      )}
-                    >
-                      Por jogador
-                    </button>
-                  </div>
-
-                  <div className="overflow-y-auto flex-1">
-                    {abaEstatisticas === "time" ? (
-                      <EstatisticasComparativoTime
-                        eventos={eventos}
-                        partida={partida}
-                        setAtivo={setAtivo}
-                      />
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-                        <EstatisticasTime
-                          eventos={eventos}
-                          jogadores={jogadoresCasaTodos}
-                          nomeTime={partida.nomeTimeCasa}
-                          cor="emerald"
-                        />
-                        <EstatisticasTime
-                          eventos={eventos}
-                          jogadores={jogadoresVisTodos}
-                          nomeTime={partida.nomeTimeVisitante}
-                          cor="orange"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <ModalEstatisticas
+                eventos={eventos}
+                partida={partida}
+                setAtivo={setAtivo}
+                aba={abaEstatisticas}
+                onMudarAba={setAbaEstatisticas}
+                jogadoresCasaTodos={jogadoresCasaTodos}
+                jogadoresVisTodos={jogadoresVisTodos}
+                onClose={() => setEstatisticasModalAberto(false)}
+              />
             )}
           </div>
 

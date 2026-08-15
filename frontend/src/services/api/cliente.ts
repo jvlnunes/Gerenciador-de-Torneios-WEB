@@ -1,6 +1,7 @@
 import { AuthUser } from "./interfaces";
 
-export const API_URL = (import.meta.env.VITE_API_URL as string) || "http://192.168.18.5:3000";
+export const API_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:3000";
+// export const API_URL = (import.meta.env.VITE_API_URL as string) || "http://192.168.18.5:3000";
 
 const TOKEN_KEY = "vb_token";
 const USER_KEY = "vb_user";

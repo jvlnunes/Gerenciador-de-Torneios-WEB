@@ -34,6 +34,18 @@ const matchStatusLabel: Record<string, string> = {
   FINALIZADA: "Finalizada",
 };
 
+/* ── Escudo do time ──────────────────────────────────────── */
+function EscudoTime({ url, nome }: { url?: string | null; nome: string }) {
+  return (
+    <span className="h-6 w-6 rounded-md overflow-hidden shrink-0 bg-muted border border-border grid place-items-center">
+      {url ? (
+        <img src={url} alt={nome} className="h-full w-full object-cover" />
+      ) : (
+        <span className="text-[9px] font-black text-muted-foreground">{nome[0]?.toUpperCase()}</span>
+      )}
+    </span>
+  );
+}
 
 /* ── Match Card ──────────────────────────────────────────── */
 function MatchCard({
@@ -89,8 +101,9 @@ function MatchCard({
           className={cn("flex items-center gap-3", (isLive || isFinished) && "cursor-pointer")}
           onClick={(isLive || isFinished) ? onOpen : undefined}
         >
-          <div className="flex-1 text-right">
-            <p className="font-display font-bold text-foreground">{match.nomeTimeCasa}</p>
+          <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+            <p className="font-display font-bold text-foreground truncate">{match.nomeTimeCasa}</p>
+            <EscudoTime url={match.logoTimeCasa} nome={match.nomeTimeCasa} />
           </div>
 
           {isScheduled ? (
@@ -117,8 +130,9 @@ function MatchCard({
             </div>
           )}
 
-          <div className="flex-1 text-left">
-            <p className="font-display font-bold text-foreground">{match.nomeTimeVisitante}</p>
+          <div className="flex-1 flex items-center justify-start gap-2 min-w-0">
+            <EscudoTime url={match.logoTimeVisitante} nome={match.nomeTimeVisitante} />
+            <p className="font-display font-bold text-foreground truncate">{match.nomeTimeVisitante}</p>
           </div>
         </div>
 
