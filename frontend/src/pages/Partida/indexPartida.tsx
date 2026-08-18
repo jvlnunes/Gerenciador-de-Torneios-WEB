@@ -202,12 +202,12 @@ export default function PartidaLivePage() {
   };
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-      <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+    <div className="flex h-screen items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
   if (!partida) return (
-    <div className="p-10 text-center text-gray-500 bg-gray-100 h-screen">
+    <div className="p-10 text-center text-muted-foreground bg-background h-screen">
       Partida não encontrada
     </div>
   );
@@ -308,7 +308,7 @@ export default function PartidaLivePage() {
   };
 
   return (
-    <div className="h-screen bg-gray-100 text-gray-900 flex flex-col font-sans overflow-hidden">
+    <div className="h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden">
 
       <PartidaModals
         acao={{
@@ -368,7 +368,7 @@ export default function PartidaLivePage() {
         }}
       />
 
-      <div className="max-w-[1400px] lg:w-[90vw] mx-auto flex flex-col flex-1 overflow-hidden bg-white rounded-none lg:rounded-3xl shadow-xl border-x lg:border border-gray-200 lg:my-4">
+      <div className="max-w-[1400px] lg:w-[90vw] mx-auto flex flex-col flex-1 overflow-hidden bg-card rounded-none lg:rounded-3xl shadow-xl border-x lg:border border-border lg:my-4">
 
         <PlacarHeader
           partida={partida}
@@ -444,7 +444,7 @@ export default function PartidaLivePage() {
         <main className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
 
           <div className={cn("flex-1 flex flex-col", leftColOverflowClass)}>
-            <div className="order-2 lg:order-none p-4 border-b border-gray-100 bg-white shadow-sm z-10 shrink-0">
+            <div className="order-2 lg:order-none p-4 border-b border-border bg-card shadow-sm z-10 shrink-0">
               {!isFinalizada ? (
                 <>
                   <Quadra
@@ -479,7 +479,7 @@ export default function PartidaLivePage() {
 
             {podeGerenciar && isAoVivo && setStarted && jogadorSelecionado && (
               <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center">
-                <div className="bg-white w-full rounded-t-3xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 duration-200">
+                <div className="bg-card w-full rounded-t-3xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 duration-200">
                   <PainelAcaoJogador
                     jogador={jogadorSelecionado.jogador}
                     lado={jogadorSelecionado.lado}
@@ -493,7 +493,7 @@ export default function PartidaLivePage() {
             )}
 
             {isAoVivo && (
-              <div className="order-1 lg:order-none grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
+              <div className="order-1 lg:order-none grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 py-3 border-b border-border shrink-0">
                 <PainelBanco
                   cor="emerald"
                   nomeTime={partida.nomeTimeCasa}
@@ -514,17 +514,17 @@ export default function PartidaLivePage() {
             )}
 
             {!isFinalizada && (
-              <div className="order-4 border-t border-gray-100 px-4 py-3 shrink-0 grid grid-cols-2 gap-2">
+              <div className="order-4 border-t border-border px-4 py-3 shrink-0 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setHistoricoModalAberto(true)}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-2.5 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:bg-muted/50 transition-colors"
                 >
                   <Activity className="h-3.5 w-3.5" />
                   Histórico ({evSetAtivo.length})
                 </button>
                 <button
                   onClick={() => setEstatisticasModalAberto(true)}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-2.5 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:bg-muted/50 transition-colors"
                 >
                   <BarChart3 className="h-3.5 w-3.5" />
                   Estatísticas
@@ -559,7 +559,7 @@ export default function PartidaLivePage() {
           </div>
 
           {podeGerenciar && isAoVivo && setStarted && (
-            <div className="hidden lg:flex lg:w-[320px] shrink-0 p-4 border-l border-gray-100 bg-gray-50 flex-col">
+            <div className="hidden lg:flex lg:w-[320px] shrink-0 p-4 border-l border-border bg-muted/30 flex-col">
               <PainelAcaoJogador
                 jogador={jogadorSelecionado?.jogador ?? null}
                 lado={jogadorSelecionado?.lado ?? null}
@@ -584,7 +584,7 @@ export default function PartidaLivePage() {
           )}
 
           {isAgendada && (
-            <div className="flex-1 flex items-center justify-center p-10 text-sm text-gray-400">
+            <div className="flex-1 flex items-center justify-center p-10 text-sm text-muted-foreground">
               A partida ainda não começou.
             </div>
           )}

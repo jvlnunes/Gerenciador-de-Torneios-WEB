@@ -37,7 +37,8 @@ export default function IndexPage() {
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden"
-        style={{ background: "linear-gradient(160deg, #0a0a0a 0%, #0d1a0d 55%, #0a3d1f 100%)" }}
+        // Hero section background
+        style={{ background: "linear-gradient(160deg, #0a0a0a 0%, #1a120a 55%, color-mix(in oklch, var(--primary) 40%, #0a0a0a) 100%)" }}
       >
         <div
           className="absolute inset-0 opacity-[0.04]"
@@ -49,7 +50,7 @@ export default function IndexPage() {
         />
         <div
           className="absolute bottom-0 right-0 w-[600px] h-[400px] rounded-full blur-[120px] opacity-20"
-          style={{ background: "#00843D" }}
+          style={{ background: "var(--primary)" }}
         />
 
         <div className="relative container mx-auto px-4 py-24 lg:py-32 grid lg:grid-cols-2 gap-16 items-center">
@@ -57,7 +58,11 @@ export default function IndexPage() {
           <div>
             <div
               className="inline-flex items-center gap-2 mb-6 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest"
-              style={{ background: "rgba(0,132,61,0.2)", border: "1px solid rgba(0,132,61,0.4)", color: "#4ade80" }}
+              style={{
+                background: "color-mix(in oklch, var(--primary) 20%, transparent)",
+                border: "1px solid color-mix(in oklch, var(--primary) 40%, transparent)",
+                color: "var(--accent)",
+              }}
             >
               <Trophy className="h-3 w-3" />
               Para organizadores de vôlei
@@ -68,7 +73,7 @@ export default function IndexPage() {
               style={{ color: "#ffffff", fontSize: "clamp(2.8rem, 6vw, 5.5rem)" }}
             >
               GERENCIE.<br />
-              <span style={{ color: "#00843D" }}>COMPITA.</span><br />
+              <span style={{ color: "var(--primary)" }}>COMPITA.</span>
               VENÇA.
             </h1>
 
@@ -81,7 +86,7 @@ export default function IndexPage() {
               <Button
                 size="lg" asChild
                 className="h-12 px-7 font-bold text-sm tracking-wide"
-                style={{ background: "#00843D", color: "#fff", border: "none" }}
+                style={{ background: "var(--primary)", color: "var(--primary-foreground)", border: "none" }}
               >
                 <Link to="/torneios/novo">
                   Criar torneio <ChevronRight className="ml-1 h-4 w-4" />
@@ -117,9 +122,12 @@ export default function IndexPage() {
                   >
                     <div
                       className="h-10 w-10 rounded-lg grid place-items-center shrink-0"
-                      style={{ background: "rgba(0,132,61,0.18)", border: "1px solid rgba(0,132,61,0.3)" }}
+                      style={{
+                        background: "color-mix(in oklch, var(--primary) 18%, transparent)",
+                        border: "1px solid color-mix(in oklch, var(--primary) 30%, transparent)",
+                      }}
                     >
-                      <f.icon className="h-5 w-5" style={{ color: "#4ade80" }} />
+                      <f.icon className="h-5 w-5" style={{ color: "var(--accent)" }} />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-white leading-tight">{f.title}</p>
@@ -233,32 +241,20 @@ export default function IndexPage() {
       <section className="container mx-auto px-4 pb-24">
         <div
           className="rounded-3xl relative overflow-hidden px-10 py-16 text-center"
-          style={{ background: "linear-gradient(160deg, #0a0a0a 0%, #0a3d1f 100%)" }}
+          style={{ background: "linear-gradient(160deg, #0a0a0a 0%, color-mix(in oklch, var(--primary) 45%, #0a0a0a) 100%)" }}
         >
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
-          />
+          ...
           <div
             className="absolute bottom-0 left-1/2 -translate-x-1/2 w-96 h-48 rounded-full blur-3xl opacity-25"
-            style={{ background: "#00843D" }}
+            style={{ background: "var(--primary)" }}
           />
           <div className="relative">
-            <Trophy className="h-12 w-12 mx-auto mb-4" style={{ color: "#00843D" }} />
-            <h2 className="font-display text-4xl md:text-5xl font-black" style={{ color: "#fff" }}>
-              Pronto para o apito inicial?
-            </h2>
-            <p className="mt-4 text-lg max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.50)" }}>
-              Crie seu torneio e comece a gerenciar em poucos minutos.
-            </p>
+            <Trophy className="h-12 w-12 mx-auto mb-4" style={{ color: "var(--primary)" }} />
+            ...
             <Button
               size="lg" asChild
               className="mt-8 h-12 px-10 font-bold"
-              style={{ background: "#00843D", color: "#fff", border: "none" }}
+              style={{ background: "var(--primary)", color: "var(--primary-foreground)", border: "none" }}
             >
               <Link to="/torneios/novo">
                 Criar torneio <ChevronRight className="ml-1 h-5 w-5" />

@@ -78,7 +78,7 @@ function TorneioSidebar({
         display: "flex",
         flexDirection: "column",
         background: "var(--card)",
-        borderRight: "1px solid var(--color-border)",
+        borderRight: "1px solid var(--border)",
         transition: "width 200ms cubic-bezier(0.4,0,0.2,1)",
         height: "100%",
         overflow: "hidden",
@@ -122,15 +122,15 @@ function TorneioSidebar({
             width: 36,
             height: 36,
             borderRadius: 9,
-            background: "color-mix(in oklch, var(--color-primary) 15%, transparent)",
-            border: "1px solid color-mix(in oklch, var(--color-primary) 30%, transparent)",
+            background: "color-mix(in oklch, var(--primary) 15%, transparent)",
+            border: "1px solid color-mix(in oklch, var(--primary) 30%, transparent)",
             display: "grid",
             placeItems: "center",
             flexShrink: 0,
           }}>
             {torneio.logoUrl
               ? <img src={torneio.logoUrl} alt="Logo" className="h-6 w-6 rounded object-cover" />
-              : <Trophy className="h-4 w-4" style={{ color: "var(--color-primary)" }} />}
+              : <Trophy className="h-4 w-4" style={{ color: "var(--primary)" }} />}
           </div>
           <div style={{ minWidth: 0 }}>
             <p style={{
@@ -178,12 +178,12 @@ function TorneioSidebar({
               fontSize: 13,
               fontWeight: isActive ? 600 : 500,
               color: isActive
-                ? "var(--color-primary)"
-                : "var(--color-muted-foreground)",
+                ? "var(--primary)"
+                : "var(--muted-foreground)",
               background: isActive
-                ? "color-mix(in oklch, var(--color-primary) 10%, transparent)"
+                ? "color-mix(in oklch, var(--primary) 10%, transparent)"
                 : "transparent",
-              borderLeft: `2px solid ${isActive ? "var(--color-primary)" : "transparent"}`,
+              borderLeft: `2px solid ${isActive ? "var(--primary)" : "transparent"}`,
               transition: "all 200ms",
               whiteSpace: "nowrap",
               position: "relative",
@@ -285,7 +285,7 @@ export default function TorneioLayout() {
           canManage={canManage}
           faseRacha={faseRacha}
         />
-        <main style={{ flex: 1, overflowY: "auto", background: "var(--color-background)" }}>
+        <main style={{ flex: 1, overflowY: "auto", background: "var(--background)", }}>
           <Outlet context={{ torneio, setTorneio, torneioId, liveCount, canManage, faseRacha }} />
         </main>
       </div>

@@ -14,8 +14,8 @@ export function SetTimer({ running, seconds, onToggle }: SetTimerProps) {
       <div className={cn(
         "font-mono text-sm font-black tabular-nums px-3 py-1.5 rounded-lg border transition-colors",
         running
-          ? "bg-green-50 border-green-300 text-green-700"
-          : "bg-gray-100 border-gray-200 text-gray-500"
+          ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+          : "bg-muted border-border text-muted-foreground"
       )}>
         <TimerIcon className="h-3.5 w-3.5 inline mr-1 -mt-0.5" />
         {formatTime(seconds)}
@@ -25,8 +25,8 @@ export function SetTimer({ running, seconds, onToggle }: SetTimerProps) {
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider transition-all",
           running
-            ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
-            : "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+            ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+            : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
         )}
       >
         {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}

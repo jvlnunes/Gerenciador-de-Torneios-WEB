@@ -93,24 +93,20 @@ export function EstatisticasComparativoTime({ eventos, partida, setAtivo, agrega
     },
   ];
 
-  const colunasSet = Array.from({ length: totalSets }, (_, i) => i);
-
   return (
     <div className="p-4 space-y-3">
-      {/* Cabeçalho dos times */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-sm font-black text-emerald-700 truncate max-w-[38%]">
+        <span className="text-sm font-black text-emerald-700 dark:text-emerald-400 truncate max-w-[38%]">
           {partida.nomeTimeCasa}
         </span>
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">
           {agregarTodosSets ? "Total da partida" : `Set ${setAtivo + 1} em destaque`}
         </span>
-        <span className="text-sm font-black text-orange-600 truncate max-w-[38%] text-right">
+        <span className="text-sm font-black text-orange-600 dark:text-orange-400 truncate max-w-[38%] text-right">
           {partida.nomeTimeVisitante}
         </span>
       </div>
 
-      {/* Card único reunindo todas as categorias */}
       <div className="rounded-xl border border-border overflow-hidden bg-card divide-y divide-border">
         {categorias.map((cat) => {
           const destaque = agregarTodosSets
@@ -122,15 +118,13 @@ export function EstatisticasComparativoTime({ eventos, partida, setAtivo, agrega
 
           return (
             <div key={cat.key} className="px-3 py-2.5 space-y-1.5">
-              {/* Rótulo da categoria, centralizado acima da barra */}
               <div className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                 {cat.icon}
                 <span>{cat.label}</span>
               </div>
 
-              {/* Barra comparativa única — set em destaque ou soma de todos os sets */}
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-emerald-700 w-6 text-right tabular-nums shrink-0">
+                <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 w-6 text-right tabular-nums shrink-0">
                   {destaque.casa}
                 </span>
                 <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden flex">
@@ -143,7 +137,7 @@ export function EstatisticasComparativoTime({ eventos, partida, setAtivo, agrega
                     style={{ width: `${pctVisitante}%` }}
                   />
                 </div>
-                <span className="text-xs font-black text-orange-600 w-6 text-left tabular-nums shrink-0">
+                <span className="text-xs font-black text-orange-600 dark:text-orange-400 w-6 text-left tabular-nums shrink-0">
                   {destaque.visitante}
                 </span>
               </div>

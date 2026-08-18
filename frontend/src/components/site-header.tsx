@@ -3,6 +3,8 @@ import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
+import { TrocaTema } from "./TrocaTema";
+
 export function SiteHeader() {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
@@ -51,6 +53,7 @@ export function SiteHeader() {
 
         {/* Ações */}
         <div className="flex items-center gap-2">
+          <TrocaTema />
           {isAuthenticated ? (
             <>
               <span className="hidden text-sm text-muted-foreground sm:inline">
