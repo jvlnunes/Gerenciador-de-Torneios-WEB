@@ -12,7 +12,7 @@ import {
   ArrowLeft, Plus, Loader2, X, Users, Star, StarOff,
   Check, AlertCircle, Instagram, Phone, Globe, Facebook,
   MessageCircle, Mail, Palette, Save, ChevronRight,
-  GripVertical, Shield, LayoutGrid,
+  GripVertical, Shield, LayoutGrid, ChevronDown,
 } from "lucide-react"
 
 type Tab = "elenco" | "identidade"
@@ -524,22 +524,6 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
 
   return (
     <div className="space-y-6">
-      {/* Stats resumidas */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Elenco", value: players.length },
-          { label: "Em quadra", value: titularesQuadra.length, accent: true },
-          { label: "No banco", value: banco.length },
-        ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-border bg-card p-3.5 text-center">
-            <p className={cn("font-display text-2xl font-black", s.accent ? "text-primary" : "text-foreground")}>
-              {s.value}
-            </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wide">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-6">
         {/* Coluna esquerda: Quadra + banco */}
         <div className="space-y-3">
@@ -695,6 +679,7 @@ function TabIdentidade({
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [contatosAbertos, setContatosAbertos] = useState(false)
 
   const handleSave = async () => {
     if (!nome.trim()) { setError("Nome é obrigatório"); return }
@@ -726,104 +711,120 @@ function TabIdentidade({
     { icon: Globe, label: "Site", value: site, onChange: setSite, placeholder: "https://meutime.com.br", type: "url" },
   ]
 
+  const contatosPreenchidos = CONTACT_FIELDS.filter((f) => f.value.trim().length > 0).length
+
   return (
-    <div className="max-w-2xl space-y-6">
-      {/* Preview */}
-      <div className="rounded-2xl border border-border overflow-hidden">
-        <div className="h-20 w-full" style={{ background: `linear-gradient(135deg, ${cor} 0%, ${cor}99 100%)` }} />
-        <div className="px-5 pb-5 flex items-end gap-4 -mt-8">
-          <div
-            className="h-16 w-16 rounded-xl border-4 grid place-items-center text-2xl font-black text-white shadow-md shrink-0 overflow-hidden"
-            style={{ background: cor, borderColor: "var(--background)" }}
-          >
-            {logoUrl ? <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" /> : nome?.[0]?.toUpperCase() ?? "?"}
-          </div>
-          <div className="pb-1">
-            <p className="font-display text-xl font-black text-foreground">{nome || "Nome do time"}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Prévia do brasão e cores</p>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-4xl">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6 items-start">
 
-      {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
-        </div>
-      )}
-
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold">Nome do time *</Label>
-          <Input value={nome} onChange={(e) => setNome(e.target.value)} disabled={!canManage} className="h-11" />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold">URL do brasão</Label>
-          <Input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://..." disabled={!canManage} className="h-11" />
-        </div>
-
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Palette className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-bold text-foreground">Cores do time</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: "Cor primária", value: corPrimaria, onChange: setCorPrimaria },
-              { label: "Cor secundária", value: corSecundaria, onChange: setCorSecundaria },
-            ].map(({ label, value, onChange }) => (
-              <div key={label} className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</Label>
-                <div className="flex items-center gap-3 h-11 rounded-xl border border-input px-3 bg-background">
-                  <input
-                    type="color"
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    disabled={!canManage}
-                    className="h-7 w-7 rounded cursor-pointer border-0 bg-transparent p-0"
-                  />
-                  <span className="text-sm font-mono text-foreground">{value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h3 className="text-sm font-bold text-foreground mb-4">Contato & redes sociais</h3>
-        <div className="space-y-3">
-          {CONTACT_FIELDS.map(({ icon: Icon, label, value, onChange, placeholder, type }) => (
-            <div key={label} className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-muted grid place-items-center shrink-0">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <Input
-                type={type}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                disabled={!canManage}
-                className="h-10 flex-1"
-              />
+        {/* ── Coluna principal ── */}
+        <div className="space-y-6 min-w-0">
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" /> {error}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {canManage && (
-        <div className="flex items-center gap-3">
-          <Button onClick={handleSave} disabled={saving} className="gap-2 h-11 px-8 font-semibold">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar alterações
-          </Button>
-          {success && (
-            <span className="text-sm text-green-600 flex items-center gap-1.5 font-medium">
-              <Check className="h-4 w-4" /> Salvo com sucesso!
-            </span>
           )}
+
+          {/* Dados básicos + cores */}
+          <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Nome do time *</Label>
+              <Input value={nome} onChange={(e) => setNome(e.target.value)} disabled={!canManage} className="h-11" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">URL do brasão</Label>
+              <Input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://..." disabled={!canManage} className="h-11" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Palette className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold text-foreground">Cores do time</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: "Cor primária", value: corPrimaria, onChange: setCorPrimaria },
+                  { label: "Cor secundária", value: corSecundaria, onChange: setCorSecundaria },
+                ].map(({ label, value, onChange }) => (
+                  <div key={label} className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</Label>
+                    <div className="flex items-center gap-3 h-11 rounded-xl border border-input px-3 bg-background">
+                      <input
+                        type="color"
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        disabled={!canManage}
+                        className="h-7 w-7 rounded cursor-pointer border-0 bg-transparent p-0"
+                      />
+                      <span className="text-sm font-mono text-foreground">{value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Contato & redes — encolhível */}
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setContatosAbertos((v) => !v)}
+              className="w-full flex items-center gap-3 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
+            >
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-foreground">Contato & redes sociais</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {contatosPreenchidos > 0
+                    ? `${contatosPreenchidos} preenchido${contatosPreenchidos !== 1 ? "s" : ""}`
+                    : "Nenhum contato preenchido"}
+                </p>
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform shrink-0", contatosAbertos && "rotate-180")} />
+            </button>
+
+            {contatosAbertos && (
+              <div className="border-t border-border px-5 py-4 space-y-3">
+                {CONTACT_FIELDS.map(({ icon: Icon, label, value, onChange, placeholder, type }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-muted grid place-items-center shrink-0">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <Input
+                      type={type}
+                      value={value}
+                      onChange={(e) => onChange(e.target.value)}
+                      placeholder={placeholder}
+                      disabled={!canManage}
+                      className="h-10 flex-1"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* ── Coluna lateral: ação de salvar sempre visível ── */}
+        {canManage && (
+          <div className="lg:sticky lg:top-20 space-y-3">
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+              <Button onClick={handleSave} disabled={saving} className="w-full gap-2 h-11 font-semibold">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar alterações
+              </Button>
+              {success && (
+                <p className="text-xs text-green-600 flex items-center gap-1.5 font-medium">
+                  <Check className="h-3.5 w-3.5" /> Salvo com sucesso!
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                As alterações de identidade e contato são salvas juntas.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -881,11 +882,11 @@ export default function TorneioTimeDetalhe() {
       {/* Hero */}
       <div className="relative overflow-hidden">
         <div
-          className="h-28 w-full"
+          className="h-32 md:h-36 w-full"
           style={{ background: `linear-gradient(135deg, ${cor} 0%, ${cor}cc 55%, ${cor}22 100%)` }}
         />
         <div className="max-w-5xl mx-auto px-4">
-          <div className="flex items-end gap-5 -mt-11 pb-5">
+          <div className="flex items-end gap-5 -mt-9 pb-3">
             <div
               className="h-22 w-22 rounded-2xl border-4 shadow-xl grid place-items-center text-4xl font-black shrink-0 overflow-hidden"
               style={{ height: 88, width: 88, background: cor, borderColor: "var(--background)", color: corSec }}
@@ -894,23 +895,25 @@ export default function TorneioTimeDetalhe() {
                 ? <img src={time.logoUrl} alt={`Brasão ${time.nome}`} className="h-full w-full object-cover" />
                 : time.nome?.[0]?.toUpperCase() ?? "?"}
             </div>
-            <div className="flex-1 min-w-0 pb-1">
-              <nav className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                <Link to={`/torneios/${torneioId}`} className="hover:text-primary transition-colors">Torneio</Link>
-                <ChevronRight className="h-3 w-3" />
-                <Link to={`/torneios/${torneioId}/times`} className="hover:text-primary transition-colors">Times</Link>
-                <ChevronRight className="h-3 w-3" />
-                <span className="text-foreground font-medium truncate">{time.nome}</span>
-              </nav>
-              <h1 className="font-display text-3xl font-black text-foreground leading-tight truncate">{time.nome}</h1>
-            </div>
+            <nav className="flex-1 min-w-0 flex items-center gap-1 text-xs text-muted-foreground pb-1.5">
+              <Link to={`/torneios/${torneioId}`} className="hover:text-primary transition-colors">Torneio</Link>
+              <ChevronRight className="h-3 w-3" />
+              <Link to={`/torneios/${torneioId}/times`} className="hover:text-primary transition-colors">Times</Link>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground font-medium truncate">{time.nome}</span>
+            </nav>
             <button
               onClick={() => navigate(`/torneios/${torneioId}/times`)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1 shrink-0"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pb-1.5 shrink-0"
             >
               <ArrowLeft className="h-4 w-4" /> Voltar
             </button>
           </div>
+
+          {/* Nome fora da faixa do banner — nunca mais cortado */}
+          <h1 className="font-display text-2xl md:text-3xl font-black text-foreground leading-tight truncate pb-5">
+            {time.nome}
+          </h1>
         </div>
       </div>
 

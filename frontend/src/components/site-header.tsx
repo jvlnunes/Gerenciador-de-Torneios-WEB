@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Trophy, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -16,13 +16,13 @@ export function SiteHeader() {
           to="/"
           className="flex items-center gap-2 font-display text-xl font-bold tracking-tight"
         >
-          <span
-            className="grid h-9 w-9 place-items-center rounded-lg"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            <Trophy className="h-5 w-5 text-primary-foreground" />
+          <span className="grid h-9 w-9 place-items-center rounded-lg overflow-hidden">
+            <img src="/volleyhub-icon.png" alt="Volleyhub" className="h-9 w-9 object-contain" />
           </span>
-          <span>VolleyHub</span>
+          <span>
+            <span style={{ color: "var(--primary)" }}>Volley</span>
+            <span style={{ color: "var(--accent)" }}>hub</span>
+          </span>
         </Link>
 
         {/* Navegação */}
