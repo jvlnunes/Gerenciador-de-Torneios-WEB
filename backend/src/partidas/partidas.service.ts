@@ -146,6 +146,16 @@ export class PartidasService {
         ? this.normalizarDateTime(dados.agendadoPara)
         : undefined,
     };
+
+    const estaIniciando =
+      dados.status &&
+      dados.status !== 'AGENDADA' &&
+      partida.status === 'AGENDADA';
+
+    if (estaIniciando && !partida.agendadoPara && !dadosFormatados.agendadoPara) {
+      dadosFormatados.agendadoPara = new Date().toISOString();
+    }
+
     return this.prisma.partida.update({
       where: { id },
       data: dadosFormatados,

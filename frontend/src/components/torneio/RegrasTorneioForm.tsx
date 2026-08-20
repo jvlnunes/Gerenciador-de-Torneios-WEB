@@ -142,7 +142,7 @@ function BooleanToggle({
         onClick={() => !disabled && onChange(!value)}
         disabled={disabled}
         className={cn(
-          "relative h-6 w-11 rounded-full transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "relative h-6 w-11 shrink-0 rounded-full border-0 p-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           value ? "bg-primary" : "bg-muted",
           disabled && "opacity-40 cursor-not-allowed"
         )}
@@ -151,8 +151,8 @@ function BooleanToggle({
       >
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-            value ? "translate-x-5" : "translate-x-0.5"
+            "absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+            value ? "translate-x-5" : "translate-x-0"
           )}
         />
       </button>

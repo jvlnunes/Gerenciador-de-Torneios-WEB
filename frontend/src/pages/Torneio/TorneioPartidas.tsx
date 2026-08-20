@@ -35,13 +35,13 @@ const matchStatusLabel: Record<string, string> = {
 };
 
 /* ── Escudo do time ──────────────────────────────────────── */
-function EscudoTime({ url, nome }: { url?: string | null; nome: string }) {
+function EscudoTime({ url, nome }: { url?: string | null; nome?: string }) {
   return (
     <span className="h-6 w-6 rounded-md overflow-hidden shrink-0 bg-muted border border-border grid place-items-center">
       {url ? (
-        <img src={url} alt={nome} className="h-full w-full object-cover" />
+        <img src={url} alt={nome ?? ""} className="h-full w-full object-cover" />
       ) : (
-        <span className="text-[9px] font-black text-muted-foreground">{nome[0]?.toUpperCase()}</span>
+        <span className="text-[9px] font-black text-muted-foreground">{nome?.[0]?.toUpperCase() ?? "?"}</span>
       )}
     </span>
   );

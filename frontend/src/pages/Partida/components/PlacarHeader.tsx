@@ -3,6 +3,8 @@ import { Partida } from "@/services/api/interfaces";
 import type { LadoPonto } from "@/services/api/types";
 import { cn } from "@/services/utils";
 
+import { TrocaTema } from "@/components/TrocaTema";
+
 import { ArrowLeft, Flag, Play, RotateCcw, Settings } from "lucide-react";
 
 interface PlacarHeaderProps {
@@ -35,12 +37,14 @@ export function PlacarHeader({
   const destacarCasa = !isFinalizada || partida.setsCasa > partida.setsVisitante;
   const destacarVisitante = !isFinalizada || partida.setsVisitante > partida.setsCasa;
 
-  const Escudo = ({ url, nome }: { url?: string | null; nome: string }) => (
+  const Escudo = ({ url, nome }: { url?: string | null; nome?: string }) => (
     <span className="h-6 w-6 rounded-md overflow-hidden shrink-0 bg-muted border border-border grid place-items-center">
       {url ? (
-        <img src={url} alt={nome} className="h-full w-full object-cover" />
+        <img src={url} alt={nome ?? ""} className="h-full w-full object-cover" />
       ) : (
-        <span className="text-[10px] font-black text-muted-foreground">{nome[0]?.toUpperCase()}</span>
+        <span className="text-[10px] font-black text-muted-foreground">
+          {nome?.[0]?.toUpperCase() ?? "?"}
+        </span>
       )}
     </span>
   );
@@ -75,10 +79,11 @@ export function PlacarHeader({
 
   return (
     <header className="relative flex items-center justify-center p-4 sm:p-5 border-b border-border bg-card shrink-0">
-      <div className="absolute left-4 sm:left-5">
+      <div className="absolute left-4 sm:left-5 flex items-center gap-2">
         <button onClick={() => navigate(-1)} className="p-2.5 bg-muted text-muted-foreground hover:text-foreground transition rounded-xl border border-border hover:bg-muted/70 flex items-center justify-center">
           <ArrowLeft className="w-4 h-4" />
         </button>
+        <TrocaTema />
       </div>
 
       <div className="flex flex-col items-center w-full font-display">

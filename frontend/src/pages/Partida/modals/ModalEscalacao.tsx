@@ -322,7 +322,7 @@ export function ModalEscalacao({
   aoFechar,
 }: ModalEscalacaoProps) {
   const jCasa = jogadores.filter(j => j.timeId === timeCasaId);
-  const jVis  = jogadores.filter(j => j.timeId === timeVisitanteId);
+  const jVis = jogadores.filter(j => j.timeId === timeVisitanteId);
 
   const [escCasa, setEscCasa] = useState<EscalacaoTime>(() =>
     escalacaoAnterior?.casa ?? montarEscalacaoPadrao(timeCasaId, jCasa)
@@ -354,7 +354,11 @@ export function ModalEscalacao({
   };
 
   return (
-    <ModalShell onClose={aoFechar} contentClassName="max-w-sm bg-background rounded-2xl border border-border shadow-2xl p-6 space-y-5">
+    <ModalShell
+      onClose={aoFechar}
+      backdropClassName="p-4 overflow-y-auto py-8"
+      contentClassName="max-w-4xl w-full bg-background rounded-2xl border border-border shadow-2xl max-h-[92vh] overflow-y-auto"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/10">
         <div className="flex items-center gap-3">

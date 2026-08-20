@@ -154,6 +154,7 @@ export interface Partida {
     pontosParaVencerUltimoSet: number;
     setsParaVencerPartida: number;
     titularesPorTime: number;
+    criadoEm?: string; 
 }
 
 export interface RegrasTorneio {

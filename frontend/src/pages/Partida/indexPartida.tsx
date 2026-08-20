@@ -20,13 +20,14 @@ import { PainelBanco } from "./components/PainelBanco";
 import { PainelAcaoJogador, type EscolhaAcao } from "./components/PainelAcaoJogador";
 import { ResumoPartidaFinalizada } from "./components/ResumoPartidaFinalizada";
 import { PartidaModals, type AlertaConfirmacao } from "./components/PartidaModals";
+
+import { ModalEncerrarPartida } from "./modals/ModalEncerrarPartida";
 import { ModalHistoricoPontos } from "./modals/ModalHistoricoPontos";
 import { ModalEstatisticas, type AbaEstatisticas } from "./modals/ModalEstatisticas";
 
 import type { TipoErro, LadoPonto, TipoCartao } from "@/services/api/types";
 import { JogadorPartida } from "@/services/api/interfaces";
 import api from "@/services/api";
-
 
 export default function PartidaLivePage() {
   const { id: partidaId } = useParams();
@@ -50,6 +51,7 @@ export default function PartidaLivePage() {
   } | null>(null);
 
   const [historicoModalAberto, setHistoricoModalAberto] = useState(false);
+  const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
   const [estatisticasModalAberto, setEstatisticasModalAberto] = useState(false);
   const [abaEstatisticas, setAbaEstatisticas] = useState<AbaEstatisticas>("time");
   const [statSetSelecionado, setStatSetSelecionado] = useState<number | "geral">("geral");
@@ -63,6 +65,34 @@ export default function PartidaLivePage() {
   const [configAutoSaque, setConfigAutoSaque] = useState(true);
 
   const modalJaAbertoPorSet = useRef<Set<number>>(new Set());
+
+  const handleEncerrarPartida = async (vencedor: LadoPonto | null) => {
+    if (!partida || !partidaId) return;
+
+    try {
+      let setsCasa = partida.setsCasa;
+      let setsVisitante = partida.setsVisitante;
+
+      if (vencedor === "CASA" && setsCasa <= setsVisitante) {
+        setsCasa = setsVisitante + 1;
+      } else if (vencedor === "VISITANTE" && setsVisitante <= setsCasa) {
+        setsVisitante = setsCasa + 1;
+      }
+
+      if (setsCasa !== partida.setsCasa || setsVisitante !== partida.setsVisitante) {
+        await api.partidas.atualizarPartida(partidaId, { setsCasa, setsVisitante });
+      }
+
+      await api.partidas.finalizarPartida(partidaId);
+      setTimerOn(false);
+      await recarregarTudo();
+    } catch (e) {
+      console.error("Erro ao encerrar partida:", e);
+      alert((e as Error).message || "Erro ao encerrar a partida.");
+    } finally {
+      setModalEncerrarAberto(false);
+    }
+  };
 
   const {
     modalEscalacaoAberto, abrirModalEscalacao, fecharModalEscalacao, confirmarEscalacao,
@@ -119,7 +149,8 @@ export default function PartidaLivePage() {
     await confirmarEscalacao(escalacao);
 
     if (partida && partida.status !== "AO_VIVO") {
-      const partidaAtualizada = await api.partidas.atualizarPartida(partidaId!, { status: "AO_VIVO" });
+      await api.partidas.atualizarPartida(partidaId!, { status: "AO_VIVO" });
+      const partidaAtualizada = await api.partidas.buscar(partidaId!); // busca formatada
       setPartida(partidaAtualizada);
     }
 
@@ -379,24 +410,18 @@ export default function PartidaLivePage() {
           sacadorAtual={sacadorAtual}
           podeGerenciar={podeGerenciar}
           resultadosSets={resultadosSets}
-          onIniciarPartida={() => {
-            setAlerta({
-              msg: "Iniciar a partida?",
-              onOk: async () => {
-                try {
-                  const p = await api.partidas.comecaPartida(partidaId!);
-                  setPartida(p);
-                  setSetStarted(false);
-                  modalJaAbertoPorSet.current.add(0);
-                  abrirModalEscalacao();
-                } catch (e) {
-                  console.error("Erro ao iniciar partida:", e);
-                  alert((e as Error).message || "Erro ao iniciar a partida.");
-                } finally {
-                  setAlerta(null);
-                }
-              },
-            });
+          onIniciarPartida={async () => {
+            try {
+              await api.partidas.comecaPartida(partidaId!);
+              const p = await api.partidas.buscar(partidaId!); // busca formatada, com nomes/logos
+              setPartida(p);
+              setSetStarted(false);
+              modalJaAbertoPorSet.current.add(0);
+              abrirModalEscalacao();
+            } catch (e) {
+              console.error("Erro ao iniciar partida:", e);
+              alert((e as Error).message || "Erro ao iniciar a partida.");
+            }
           }}
           onIniciarSet={() => abrirModalEscalacao()}
           onAnularPonto={() => {
@@ -414,17 +439,7 @@ export default function PartidaLivePage() {
               },
             });
           }}
-          onEncerrarPartida={() => {
-            setAlerta({
-              msg: "Encerrar partida permanentemente?",
-              onOk: async () => {
-                await api.partidas.finalizarPartida(partidaId!);
-                setTimerOn(false);
-                await recarregarTudo();
-                setAlerta(null);
-              },
-            });
-          }}
+          onEncerrarPartida={() => setModalEncerrarAberto(true)}
           onOpenConfig={() => setShowConfig(true)}
           statSetSelecionado={statSetSelecionado}
           onSelecionarStatSet={setStatSetSelecionado}
@@ -557,6 +572,14 @@ export default function PartidaLivePage() {
               />
             )}
           </div>
+
+          {modalEncerrarAberto && (
+            <ModalEncerrarPartida
+              partida={partida}
+              onConfirmar={handleEncerrarPartida}
+              onFechar={() => setModalEncerrarAberto(false)}
+            />
+          )}
 
           {podeGerenciar && isAoVivo && setStarted && (
             <div className="hidden lg:flex lg:w-[320px] shrink-0 p-4 border-l border-border bg-muted/30 flex-col">
