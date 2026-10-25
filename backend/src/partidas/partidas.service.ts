@@ -111,6 +111,7 @@ export class PartidasService {
       this.prisma.partida.findMany({
         where: { torneioId },
         include: { timeCasa: true, timeVisitante: true },
+        orderBy: { criadoEm: 'asc' },
       }),
       this.buscarRegras(torneioId),
     ]);

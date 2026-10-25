@@ -6,6 +6,8 @@ import { Plus, Loader2, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalCriarTime } from "@/pages/Torneio/modals/ModalCriarTime"
 
+import { useConfirm } from "@/components/ui/confirm-dialog";
+
 interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
@@ -126,6 +128,8 @@ export default function TorneioTimes() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
+
+
   const load = useCallback(async () => {
     setLoading(true);
     try { setTeams(await api.times.listarPorTorneio(torneioId)); }
@@ -134,8 +138,15 @@ export default function TorneioTimes() {
 
   useEffect(() => { load(); }, [load]);
 
+  const confirm = useConfirm();
+
   const deleteTeam = async (id: string) => {
-    if (!confirm("Excluir este time? Todos os jogadores serão removidos.")) return;
+    const ok = await confirm({
+      title: "Excluir time?",
+      message: "Todos os jogadores deste time serão removidos. Esta ação não pode ser desfeita.",
+      variant: "destructive",
+    });
+    if (!ok) return;
     await api.times.remover(id);
     setTeams((prev) => prev.filter((t) => t.id !== id));
   };

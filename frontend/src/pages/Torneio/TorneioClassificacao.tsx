@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import api from "@/services/api";
 import { cn } from "@/services/utils";
+import { timeDoAutorEvento } from "@/pages/Partida/utils/cartoes";
 
 interface TorneioCtx {
   torneio: Torneio;
   torneioId: string;
   liveCount: number;
-  // canManage: boolean;
 }
 
 interface StandingRow {
@@ -167,7 +167,8 @@ export default function TorneioClassificacao() {
               if (!ev.jogadorId || !ev.jogadorNome) return;
 
               if (!playerMap.has(ev.jogadorId)) {
-                const timeId = ev.lado === "CASA" ? partida.timeCasaId : partida.timeVisitanteId;
+                const ladoAutor = timeDoAutorEvento(ev);
+                const timeId = ladoAutor === "CASA" ? partida.timeCasaId : partida.timeVisitanteId;
                 playerMap.set(ev.jogadorId, {
                   jogadorId: ev.jogadorId,
                   nomeJogador: ev.jogadorNome,
@@ -203,7 +204,13 @@ export default function TorneioClassificacao() {
     );
 
   const standings = buildStandings(times, partidas);
-  const finalizadas = partidas.filter((p) => p.status === "FINALIZADA");
+  const finalizadas = partidas
+    .filter((p) => p.status === "FINALIZADA")
+    .sort(
+      (a, b) =>
+        new Date(a.criadoEm ?? a.agendadoPara ?? 0).getTime() -
+        new Date(b.criadoEm ?? b.agendadoPara ?? 0).getTime(),
+    );
 
   function getForm(timeId: string): ("V" | "D")[] {
     return finalizadas

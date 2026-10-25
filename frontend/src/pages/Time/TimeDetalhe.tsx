@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/services/utils"
-
-import { ModalShell } from "@/components/ui/modal-shell"
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 import {
   ArrowLeft, Plus, Loader2, X, Users, Star, StarOff,
@@ -380,9 +379,6 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
   const [saving, setSaving] = useState(false)
   const [titularesQuadra, setTitularesQuadra] = useState<TitularNaQuadra[]>([])
 
-  const [jogadorParaExcluir, setJogadorParaExcluir] = useState<Jogador | null>(null)
-  const [excluindo, setExcluindo] = useState(false)
-
   // ── ÚNICA fonte de verdade do drag, compartilhada entre quadra e banco ──
   const [dragging, setDragging] = useState<DragOrigin>(null)
   const [benchDropActive, setBenchDropActive] = useState(false)
@@ -423,17 +419,21 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
     } catch (e) { console.error(e) }
   }
 
-  const confirmarExclusao = async () => {
-    if (!jogadorParaExcluir) return
-    setExcluindo(true)
-    try {
-      await api.times.removerJogador(time.id, jogadorParaExcluir.id)
-      setPlayers((prev) => prev.filter((p) => p.id !== jogadorParaExcluir.id))
-      setTitularesQuadra((prev) => prev.filter((t) => t.jogadorId !== jogadorParaExcluir.id))
-    } finally {
-      setExcluindo(false)
-      setJogadorParaExcluir(null)
-    }
+  const confirm = useConfirm();
+
+  const handleDelete = async (id: string) => {
+    const jogador = players.find((p) => p.id === id);
+    const ok = await confirm({
+      title: "Remover jogador?",
+      message: jogador
+        ? `${jogador.nome} será removido do time. Esta ação não pode ser desfeita.`
+        : "Este jogador será removido do time.",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    await api.times.removerJogador(time.id, id)
+    setPlayers((prev) => prev.filter((p) => p.id !== id))
+    setTitularesQuadra((prev) => prev.filter((t) => t.jogadorId !== id))
   }
 
   const titularIds = new Set(titularesQuadra.map((t) => t.jogadorId))
@@ -632,7 +632,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
                       isTitular
                       canManage={canManage}
                       onUpdate={(data) => handleUpdate(p.id, data)}
-                      onDelete={() => setJogadorParaExcluir(p)}
+                      onDelete={() => handleDelete(p.id)}
                       onToggleTitular={() => toggleTitular(p)}
                     />
                   ))}
@@ -648,7 +648,7 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
                       isTitular={false}
                       canManage={canManage}
                       onUpdate={(data) => handleUpdate(p.id, data)}
-                      onDelete={() => setJogadorParaExcluir(p)}
+                      onDelete={() => handleDelete(p.id)}
                       onToggleTitular={() => toggleTitular(p)}
                       draggable={canManage}
                       onDragStart={() => setDragging({ from: "bench", jogadorId: p.id })}
@@ -661,39 +661,6 @@ function TabElencoFormacao({ time, canManage }: { time: Time; canManage: boolean
 
           {canManage && (
             <AddPlayerRow players={players} teamId={time.id} onCreated={(p) => setPlayers((prev) => [...prev, p])} />
-          )}
-
-          {jogadorParaExcluir && (
-            <ModalShell
-              onClose={() => !excluindo && setJogadorParaExcluir(null)}
-              contentClassName="max-w-sm bg-background rounded-2xl border border-border shadow-2xl p-6 space-y-5 text-center"
-            >
-              <div className="h-12 w-12 rounded-full bg-destructive/10 grid place-items-center mx-auto">
-                <X className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <h2 className="font-display text-lg font-bold text-foreground">Remover jogador?</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  <span className="font-semibold text-foreground">{jogadorParaExcluir.nome}</span> será removido do time. Esta ação não pode ser desfeita.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setJogadorParaExcluir(null)}
-                  disabled={excluindo}
-                  className="flex-1 h-10 rounded-lg border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmarExclusao}
-                  disabled={excluindo}
-                  className="flex-1 h-10 rounded-lg bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50"
-                >
-                  {excluindo ? "Removendo..." : "Remover"}
-                </button>
-              </div>
-            </ModalShell>
           )}
         </div>
       </div>

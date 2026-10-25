@@ -44,3 +44,10 @@ export function timeTemAmareloNoSet(eventos: EventoPartida[], lado: LadoPonto, i
       ladoPenalizado(e) === lado
   );
 }
+
+export function timeDoAutorEvento(evento: EventoPartida): LadoPonto {
+  if (evento.tipo === "ERRO_ADVERSARIO") {
+    return evento.lado === "CASA" ? "VISITANTE" : "CASA";
+  }
+  return ladoPenalizado(evento);
+}

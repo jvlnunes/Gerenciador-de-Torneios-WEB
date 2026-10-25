@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { timeDoAutorEvento } from "@/pages/Partida/utils/cartoes";
 import api from "@/services/api";
 
 export interface PlayerStat {
@@ -58,7 +59,8 @@ export function usePlayerStats(torneioId: string) {
 
           const key = ev.jogadorId;
           if (!playerMap.has(key)) {
-            const timeId = ev.lado === "CASA" ? partida.timeCasaId : partida.timeVisitanteId;
+            const ladoAutor = timeDoAutorEvento(ev);
+            const timeId = ladoAutor === "CASA" ? partida.timeCasaId : partida.timeVisitanteId;
             playerMap.set(key, {
               jogadorId: ev.jogadorId,
               nomeJogador: ev.jogadorNome,

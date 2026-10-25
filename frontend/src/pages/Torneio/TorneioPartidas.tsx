@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import api from "@/services/api";
 import { cn } from "@/services/utils";
 import { calcularResultadosSets, type ResultadoSet } from "@/pages/Partida/utils/LogicaPartida";
+
+import { useConfirm } from "@/components/ui/confirm-dialog";
+
 import {
   Plus, Loader2, Swords, Trophy, Play, Clock,
   CheckCircle2, MapPin, Trash2,
@@ -233,8 +236,15 @@ export default function TorneioPartidas() {
     } finally { setStarting(null); }
   };
 
-  const handleDelete = async (matchId: string) => {
-    if (!confirm("Excluir esta partida?")) return;
+  const confirm = useConfirm();
+
+  const deleteMatch = async (matchId: string) => {
+    const ok = await confirm({
+      title: "Excluir partida?",
+      message: "Todos os eventos e estatísticas desta partida serão perdidos.",
+      variant: "destructive",
+    });
+    if (!ok) return;
     await api.partidas.removerPartida(matchId);
     setMatches((prev) => prev.filter((m) => m.id !== matchId));
   };
@@ -310,7 +320,7 @@ export default function TorneioPartidas() {
                   match={m}
                   canManage={canManage}
                   onStart={() => handleStart(m.id)}
-                  onDelete={() => handleDelete(m.id)}
+                  onDelete={() => deleteMatch(m.id)}
                   onOpen={() => navigate(`/partidas/${m.id}`)}
                 />
               ))}
@@ -328,7 +338,7 @@ export default function TorneioPartidas() {
                   match={m}
                   canManage={canManage}
                   onStart={() => handleStart(m.id)}
-                  onDelete={() => handleDelete(m.id)}
+                  onDelete={() => deleteMatch(m.id)}
                   onOpen={() => navigate(`/partidas/${m.id}`)}
                 />
               ))}
@@ -359,7 +369,7 @@ export default function TorneioPartidas() {
                   canManage={canManage}
                   resultadosSets={resultadosPorPartida[m.id]}
                   onStart={() => handleStart(m.id)}
-                  onDelete={() => handleDelete(m.id)}
+                  onDelete={() => deleteMatch(m.id)}
                   onOpen={() => navigate(`/partidas/${m.id}`)}
                 />
               ))}

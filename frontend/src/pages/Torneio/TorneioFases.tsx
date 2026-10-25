@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import api from "@/services/api";
 import { cn } from "@/services/utils";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
-  Plus, Loader2, Swords, Trophy, Play, Clock, MapPin, Trash2, X,
-  Calendar, CheckCircle2, Users, ChevronRight, ChevronDown, Layers,
-  BarChart3, GitBranch, Award, ArrowRight, RefreshCw,
+  Plus, Loader2, Play, MapPin, Trash2, X,
+  Calendar, Users, ChevronRight, ChevronDown, Layers,
+  GitBranch, ArrowRight,
 } from "lucide-react";
 
 interface TorneioCtx {
@@ -675,11 +676,6 @@ export default function TorneioFases() {
     setExpandedFase(fase.id);
   };
 
-  const deleteFase = (id: string) => {
-    if (!confirm("Excluir esta fase e seus dados locais?")) return;
-    updateFases(fases.filter((f) => f.id !== id));
-  };
-
   const handleStart = async (partidaId: string) => {
     setStarting(partidaId);
     try {
@@ -689,8 +685,25 @@ export default function TorneioFases() {
     } finally { setStarting(null); }
   };
 
+  const confirm = useConfirm();
+
+  const deleteFase = async (id: string) => {
+    const ok = await confirm({
+      title: "Excluir fase?",
+      message: "Os dados locais desta fase (grupos, configurações) serão perdidos.",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    updateFases(fases.filter((f) => f.id !== id));
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm("Excluir esta partida?")) return;
+    const ok = await confirm({
+      title: "Excluir partida?",
+      message: "Esta ação não pode ser desfeita.",
+      variant: "destructive",
+    });
+    if (!ok) return;
     await api.partidas.removerPartida(id);
     setPartidas((prev) => prev.filter((m) => m.id !== id));
   };

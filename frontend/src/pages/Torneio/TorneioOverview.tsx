@@ -4,6 +4,8 @@ import  api from "@/services/api";
 import type { Torneio, Partida, Time } from "@/services/api/interfaces";
 import { Loader2, Shield, Swords, Users, ChevronLeft, ChevronRight, Trophy, Zap, Award } from "lucide-react";
 import { cn } from "@/services/utils";
+import { timeDoAutorEvento } from "@/pages/Partida/utils/cartoes";
+
 
 interface TorneioCtx {
   torneio: Torneio;
@@ -60,7 +62,8 @@ export default function TorneioOverview() {
             if (!ev.jogadorId || !ev.jogadorNome) return;
 
             if (!playerMap.has(ev.jogadorId)) {
-              const timeId = ev.lado === "CASA" ? partida.timeCasaId : partida.timeVisitanteId;
+              const ladoAutor = timeDoAutorEvento(ev);
+              const timeId = ladoAutor === "CASA" ? partida.timeCasaId : partida.timeVisitanteId;
               playerMap.set(ev.jogadorId, {
                 id: ev.jogadorId,
                 nome: ev.jogadorNome,
