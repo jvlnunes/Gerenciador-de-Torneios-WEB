@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 git fetch origin
 git reset --hard origin/main
 
-docker compose build api
+docker compose pull api
 docker compose up -d
 docker image prune -f
 

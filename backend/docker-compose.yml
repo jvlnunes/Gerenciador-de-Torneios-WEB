@@ -11,7 +11,8 @@ services:
     restart: always
 
   api:
-    build: .
+    image: ghcr.io/jvlnunes/gerenciador-backend:latest
+    pull_policy: always
     container_name: gerenciador_torneios_api
     ports:
       - "127.0.0.1:3000:3000"
